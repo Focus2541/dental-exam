@@ -8,6 +8,7 @@
 <title>เตรียมแบบตรวจฟันนักเรียน</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 :root{--bg:#eef2f3;--ink:#1d2b2f;--mut:#5b6b70;--line:#cfd9db;--card:#fff;--acc:#0f6b6b;--acc2:#0a4f4f;--warn:#a1480b;--warnbg:#fdf1e4}
 @media (prefers-color-scheme:dark){:root{--bg:#121a1c;--ink:#e6eeef;--mut:#9aabb0;--line:#2c3b3f;--card:#1a2528;--acc:#4cc0b8;--acc2:#7ad8d0;--warn:#f0a35e;--warnbg:#2e2216}}
@@ -32,6 +33,7 @@ input[type=text],select{width:100%;font:inherit;padding:7px 9px;border:1px solid
 .n{color:var(--acc);font-weight:600}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .grid label{font-size:13px;color:var(--mut)}
+.auto{display:block;margin-top:10px;font-size:14px;color:var(--mut)}
 .pv{margin:10px 0 0;font-size:14px;color:var(--mut)}
 #msg{margin:14px 0;padding:10px 12px;border-radius:6px;background:var(--warnbg);color:var(--warn);font-size:14px}
 #msg:empty{display:none}
@@ -76,12 +78,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 </div>
 </header>
 <main>
-<label id="drop"><input type="file" id="f" accept=".xlsx">เลือกไฟล์รายชื่อ หรือลากมาวางที่นี่<small>รองรับ .xlsx (ถ้าเป็น .xls ให้บันทึกเป็น .xlsx ก่อน)</small></label>
+<label id="drop"><input type="file" id="f" accept=".xlsx,.docx">เลือกไฟล์รายชื่อ หรือลากมาวางที่นี่<small>รองรับ Excel (.xlsx) และ Word (.docx) ที่เป็นตารางรายชื่อ ถ้าเป็น .xls หรือ .doc ให้บันทึกเป็นรุ่นใหม่ก่อน</small></label>
 <section id="cfg" hidden>
 <div class="row">
 <label>ชื่อโรงเรียน<input type="text" id="school" placeholder="เช่น อนุบาลเพชรบูรณ์"></label>
 <label>วันที่ตรวจ (เว้นว่างไว้เขียนมือได้)<input type="text" id="date" placeholder="เช่น 5 พ.ย. 2569"></label>
 <label>กระดาษ A4 (ห้องที่คนเยอะจะต่อหน้าถัดไปเอง)<select id="ori"><option value="landscape">แนวนอน: ช่องกว้าง เขียนสบาย ราว 18 คน/หน้า</option><option value="portrait">แนวตั้ง: ราว 38 คน/หน้า ตัวเล็กลง</option></select></label>
+<label>แยกชีตในไฟล์ที่ได้ตาม<select id="by"><option value="room">ห้อง (ป2/1, ป2/2 ...)</option><option value="grade">ชั้น (ป2 รวมทุกห้อง)</option></select></label>
 <label>ความสูงแถว (เขียนมือ ใช้ 23 ขึ้นไป)<input type="text" id="rh" value="23.4" inputmode="decimal"></label>
 </div>
 <div id="list"></div>
@@ -107,7 +110,7 @@ function str(v){
   }
   return String(v).trim();
 }
-const idOf=s=>{const d=String(s||'').replace(/[\s-]/g,'');return /^\d{13}$/.test(d)?d:''};
+const idOf=s=>{const d=String(s||'').replace(/[\s-]/g,'');return (/^\d{13}$/.test(d)||/^[A-Za-z]\d{8,13}$/.test(d))?d.toUpperCase():''};
 const isText=c=>c.length>1&&/[ก-๙A-Za-z]/.test(c)&&!/^(ชาย|หญิง)$/.test(c);
 function normPre(s){
   s=(s||'').replace(/\s/g,'');
@@ -138,10 +141,19 @@ function detect(g){
   const cnt=Array(nc).fill(0);
   g.forEach(r=>r.forEach((c,i)=>{if(idOf(c))cnt[i]++}));
   const mx=Math.max(0,...cnt);
-  const m={id:-1,pre:-1,fn:-1,ln:-1,rm:-1};
+  const m={id:-1,pre:-1,fn:-1,ln:-1,rm:-1,sq:-1,gr:-1};
   if(!mx)return {m,nc,sample:g.find(r=>r.some(Boolean))||[]};
   const id=cnt.indexOf(mx);m.id=id;
   const rows=g.filter(r=>idOf(r[id]));
+  const GR=/^(ป|ม|อ|อนุบาล)\.?\s?\d$/;
+  for(let i=0;i<nc&&m.gr<0;i++){if(i!==id&&rows.filter(r=>GR.test((r[i]||'').trim())).length>=rows.length*.6)m.gr=i}
+  if(m.gr>=0)for(let j=m.gr+1;j<=m.gr+3&&j<nc;j++){
+    const v=rows.map(r=>(r[j]||'').trim());
+    if(v.filter(x=>/^\d{1,2}$/.test(x)).length>=rows.length*.8&&new Set(v).size<=15){m.rm=j;break}
+  }
+  const dt=i=>{if(i>=nc||i===id)return 0;let c=0;rows.forEach(r=>{const v=r[i]||'';if(isText(v)||/^[-–—.]+$/.test(v))c++});return c/rows.length};
+  let bs=0;
+  for(let i=0;i<nc;i++){if(i===id)continue;const c=rows.filter(r=>/^\d{1,3}$/.test(r[i]||'')).length;if(c>bs&&c>=rows.length*.6){bs=c;m.sq=i}}
   const S2=[];
   for(let i=0;i<nc;i++){
     if(i===id){S2.push(null);continue}
@@ -159,23 +171,38 @@ function detect(g){
     m.pre=pre;
     const rest=idx.filter(i=>i>pre&&txt(i));
     m.fn=rest.length?rest[0]:-1;
-    if(m.fn>=0&&S2[m.fn].sp<.5)m.ln=rest.length>1?rest[1]:-1;
+    if(m.fn>=0&&S2[m.fn].sp<.5)m.ln=dt(m.fn+1)>.6?m.fn+1:-1;
   }else{
     const ps=S2.findIndex(s=>s&&s.ps>.5);
     if(ps>=0)m.fn=ps;
     else{
       const rest=idx.filter(txt);
       m.fn=rest.length?rest[0]:-1;
-      if(m.fn>=0&&S2[m.fn].sp<.5)m.ln=rest.length>1?rest[1]:-1;
+      if(m.fn>=0&&S2[m.fn].sp<.5)m.ln=dt(m.fn+1)>.6?m.fn+1:-1;
     }
   }
   return {m,nc,sample:rows[0]};
 }
 
-function extract(g,m){
+function roomOf(t){
+  const m=t.match(/(ป|ม|อ)\.?\s?(\d)\s*[\/\-]\s*(\d{1,2})/);
+  if(m)return m[1]+m[2]+'/'+m[3];
+  const h=t.match(/ห้อง\s*(\d{1,2})/);
+  return h?'ห้อง '+h[1]:'';
+}
+function labelOf(n){
+  let m=n.match(/^([ก-ฮ]+)\.?\s*(\d+)[.\/\-\s]+(\d+)$/);
+  if(m)return m[1]+m[2]+'/'+m[3];
+  m=n.match(/^([ก-ฮ]+)\.?\s*(\d+)$/);
+  return m?m[1]+m[2]:n;
+}
+function extract(g,m,auto,label){
   if(m.id<0||m.fn<0)return [];
-  return g.flatMap(r=>{
-    const id=idOf(r[m.id]);if(!id)return [];
+  const split=auto&&m.rm<0&&m.gr<0,out=[];
+  let cur='',last=0,idx=1;
+  g.forEach(r=>{
+    const id=idOf(r[m.id]);
+    if(!id){if(split){const t=roomOf(r.join(' '));if(t)cur=t}return}
     let pre=m.pre>=0?normPre(r[m.pre]):'',fn=(r[m.fn]||'').trim(),ln=m.ln>=0?(r[m.ln]||'').trim():'';
     if(m.ln<0){
       if(!pre){const [p,f]=splitPre(fn);pre=normPre(p);fn=f}
@@ -183,9 +210,25 @@ function extract(g,m){
     }else if(m.pre<0){
       const [p,f]=splitPre(fn);if(p){pre=normPre(p);fn=f}
     }
-    const rm=m.rm>=0?(r[m.rm]||'').trim():'';
-    return [{id,pre,fn,ln,rm}];
+    if(/^[-–—.]+$/.test(ln))ln='';
+    let rm=m.rm>=0?(r[m.rm]||'').trim():'';
+    if(m.gr>=0){const gv=(r[m.gr]||'').replace(/[.\s]/g,'');rm=gv?(rm?gv+'/'+rm:gv):''}
+    const o={id,pre,fn,ln,rm,cur:'',idx:1};
+    if(split){
+      const sq=m.sq>=0?parseInt(r[m.sq],10):NaN;
+      if(!isNaN(sq)){if(sq<last&&sq<=1)idx++;last=sq}
+      o.cur=cur;o.idx=idx;
+    }
+    out.push(o);
   });
+  if(split){
+    const hd=new Set(out.map(o=>o.cur).filter(Boolean)),mi=Math.max(1,...out.map(o=>o.idx));
+    out.forEach(o=>{if(hd.size>=2)o.rm=o.cur;else if(mi>=2)o.rm=`${label}/${o.idx}`});
+  }
+  return out;
+}
+function groupsOf(rows,label){
+  const g=new Map();rows.forEach(r=>{const k=r.rm||label;g.set(k,(g.get(k)||0)+1)});return g;
 }
 
 function opts(s,key){
@@ -195,40 +238,82 @@ function opts(s,key){
 }
 function render(){
   $('list').innerHTML=S.map((s,k)=>{
-    const pv=s.rows.length?s.rows.slice(0,3).map(r=>esc(`${r.pre} ${r.fn} ${r.ln}`.trim())).join(' / '):'ไม่พบเลขบัตร 13 หลักในชีตนี้ (ถ้าไม่ใช่ชีตรายชื่อ ปล่อยไว้ได้)';
+    const gp=groupsOf(s.rows,s.label);
+    const pv0=s.rows.length?s.rows.slice(0,3).map(r=>esc(`${r.pre} ${r.fn} ${r.ln}`.trim())).join(' / '):'ไม่พบเลขบัตร 13 หลักในชีตนี้ (ถ้าไม่ใช่ชีตรายชื่อ ปล่อยไว้ได้)';
+    const pv=(gp.size>1?`<b>แยกได้ ${gp.size} ห้อง:</b> ${[...gp].map(([k,n])=>esc(k)+' ('+n+')').join(', ')}<br>`:'')+pv0;
     const sel=(f,l)=>`<label>${l}<select data-k="${k}" data-f="${f}">${opts(s,f)}</select></label>`;
     return `<div class="card ${s.on?'':'off'}">
 <div class="top"><label><input type="checkbox" data-k="${k}" data-f="on" ${s.on?'checked':''}> <b>ชีต ${esc(s.name)}</b></label><span class="n">${s.rows.length} คน</span></div>
 <div class="grid">
 <label>ชื่อห้อง/ชั้นในหัวแบบ<input type="text" data-k="${k}" data-f="label" value="${esc(s.label)}"></label>
-${sel('id','เลขบัตร')}${sel('pre','คำนำหน้า')}${sel('fn','ชื่อ (หรือชื่อ-สกุล)')}${sel('ln','สกุล')}${sel('rm','ห้อง (ถ้ารวมหลายห้องในชีตเดียว)')}
-</div><p class="pv">${pv}</p></div>`;
+${sel('id','เลขบัตร')}${sel('pre','คำนำหน้า')}${sel('fn','ชื่อ (หรือชื่อ-สกุล)')}${sel('ln','สกุล')}${sel('gr','ชั้น (ถ้ามีคอลัมน์ชั้น)')}${sel('rm','ห้อง (ถ้ารวมหลายห้องในชีตเดียว)')}
+</div><label class="auto"><input type="checkbox" data-k="${k}" data-f="auto" ${s.auto?'checked':''}> แยกห้องอัตโนมัติ (ชีตที่รวมหลายห้อง ตัดเมื่อลำดับเริ่มนับ 1 ใหม่ หรือเจอหัวข้อห้อง)</label><p class="pv">${pv}</p></div>`;
   }).join('');
   validate();
 }
 function used(){return S.filter(s=>s.on&&s.rows.length)}
 function validate(){
   const all=used().flatMap(s=>s.rows),seen=new Set();let dup=0,bad=0;
-  all.forEach(r=>{if(seen.has(r.id))dup++;seen.add(r.id);if(!checksumOk(r.id))bad++});
+  all.forEach(r=>{if(seen.has(r.id))dup++;seen.add(r.id);if(/^\d/.test(r.id)&&!checksumOk(r.id))bad++});
   const w=[];
   if(dup)w.push(`พบเลขบัตรซ้ำ ${dup} รายการ`);
   if(bad)w.push(`เลขบัตร ${bad} รายการไม่ผ่านการตรวจหลักที่ 13 (อาจพิมพ์ผิด)`);
   const nm=all.filter(r=>!r.ln).length;
-  if(nm)w.push(`${nm} คนไม่มีนามสกุล ลองตรวจการเลือกคอลัมน์`);
+  if(nm)w.push(`${nm} คนไม่มีนามสกุล (ถ้าเป็นเด็กที่ไม่มีนามสกุลจริงข้ามได้ ถ้ามากผิดปกติให้ลองตรวจการเลือกคอลัมน์)`);
   $('msg').textContent=w.join(' · ');
   $('go').disabled=!used().length;
 }
 
+async function readDocx(buf){
+  const z=await JSZip.loadAsync(buf),f=z.file('word/document.xml');
+  if(!f)throw new Error('ไม่ใช่ไฟล์ .docx');
+  const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const xml=new DOMParser().parseFromString(await f.async('string'),'application/xml');
+  const body=xml.getElementsByTagNameNS(W,'body')[0];
+  const kids=n=>[...n.childNodes].filter(c=>c.nodeType===1);
+  const txt=el=>{let t='';(function walk(n){for(const c of kids(n)){
+    const l=c.localName;
+    if(l==='t')t+=c.textContent;else if(l==='tab')t+='\t';else if(l==='br'||l==='cr')t+=' ';
+    else{walk(c);if(l==='p')t+=' '}}})(el);return t.trim()};
+  const sheets=[],paras=[];let pending='',nt=0;
+  for(const el of kids(body)){
+    if(el.localName==='p'){const t=txt(el);if(t){paras.push(t);if(roomOf(t))pending=roomOf(t)}}
+    else if(el.localName==='tbl'){
+      const g=[];
+      for(const tr of kids(el).filter(c=>c.localName==='tr')){
+        const row=[];
+        for(const tc of kids(tr).filter(c=>c.localName==='tc')){
+          const pr=kids(tc).find(c=>c.localName==='tcPr'),pk=pr?kids(pr):[];
+          const gs=pk.find(c=>c.localName==='gridSpan'),vm=pk.find(c=>c.localName==='vMerge');
+          const cont=vm&&vm.getAttributeNS(W,'val')!=='restart';
+          row.push(cont?'':txt(tc));
+          for(let i=1;i<(gs?+gs.getAttributeNS(W,'val')||1:1);i++)row.push('');
+        }
+        g.push(row);
+      }
+      nt++;sheets.push({name:pending||'ตาราง '+nt,g});pending='';
+    }
+  }
+  if(!sheets.some(x=>x.g.some(r=>r.some(c=>idOf(c))))&&paras.length){
+    const g=paras.map(t=>{let c=t.split(/\t|\s{2,}/).map(x=>x.trim()).filter(Boolean);return c.length<3?t.split(/\s+/):c});
+    sheets.push({name:'ข้อความในเอกสาร',g});
+  }
+  return sheets;
+}
 async function load(file){
   if(!file)return;
-  if(!/\.xlsx$/i.test(file.name)){alert('รองรับเฉพาะไฟล์ .xlsx');return}
-  const wb=new ExcelJS.Workbook();
-  try{await wb.xlsx.load(await file.arrayBuffer())}catch(e){alert('เปิดไฟล์ไม่ได้: '+e.message);return}
-  S=wb.worksheets.map(ws=>{
-    const g=gridOf(ws),d=detect(g),s={name:ws.name,label:ws.name.replace(/\./g,'/'),g,m:d.m,nc:d.nc,sample:d.sample};
-    s.rows=extract(g,s.m);s.on=s.rows.length>0;return s;
+  let src;
+  try{
+    if(/\.xlsx$/i.test(file.name)){
+      const wb=new ExcelJS.Workbook();await wb.xlsx.load(await file.arrayBuffer());
+      src=wb.worksheets.map(ws=>({name:ws.name,g:gridOf(ws)}));
+    }else if(/\.docx$/i.test(file.name))src=await readDocx(await file.arrayBuffer());
+    else{alert('รองรับไฟล์ .xlsx และ .docx (ถ้าเป็น .xls หรือ .doc ให้บันทึกเป็นรุ่นใหม่ก่อน)');return}
+  }catch(e){alert('เปิดไฟล์ไม่ได้: '+e.message);return}
+  S=src.map(({name,g})=>{
+    const d=detect(g),s={name,label:labelOf(name),g,m:d.m,nc:d.nc,sample:d.sample,auto:true};
+    s.rows=extract(g,s.m,s.auto,s.label);s.on=s.rows.length>0&&!/รวม|สรุป|total/i.test(name);return s;
   });
-  if(!$('school').value){const m=file.name.match(/โรงเรียน([^_.\d]*)/);}
   $('cfg').hidden=false;render();
 }
 $('f').addEventListener('change',e=>load(e.target.files[0]));
@@ -240,13 +325,14 @@ $('list').addEventListener('change',e=>{
   const t=e.target,s=S[t.dataset.k];if(!s)return;
   const f=t.dataset.f;
   if(f==='on')s.on=t.checked;
-  else if(f==='label')s.label=t.value;
-  else{s.m[f]=+t.value;s.rows=extract(s.g,s.m)}
+  else if(f==='auto'){s.auto=t.checked;s.rows=extract(s.g,s.m,s.auto,s.label)}
+  else if(f==='label'){s.label=t.value;s.rows=extract(s.g,s.m,s.auto,s.label)}
+  else{s.m[f]=+t.value;s.rows=extract(s.g,s.m,s.auto,s.label)}
   render();
 });
 
 async function build(){
-  const school=$('school').value.trim(),date=$('date').value.trim(),ori=$('ori').value,rh=Math.min(40,Math.max(15,parseFloat($('rh').value)||23.4));
+  const school=$('school').value.trim(),date=$('date').value.trim(),ori=$('ori').value,by=$('by').value,rh=Math.min(40,Math.max(15,parseFloat($('rh').value)||23.4));
   const wb=new ExcelJS.Workbook(),names=new Set();
   const bd={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}};
   const widths=[5.2,14.8,9.3,12,13.4,8.7,4.7,4,8,8.7,4.4,3.9,7.4,5.4,6.2,4.4,4.3,7.1];
@@ -254,8 +340,8 @@ async function build(){
   const font=sz=>({name:'Angsana New',size:sz});
   for(const s of used()){
     const groups=new Map();
-    s.rows.forEach(r=>{const k=r.rm||s.label;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(r)});
-    for(const [label,rows] of groups){
+    s.rows.forEach(r=>{const k0=r.rm||s.label,k=by==='grade'?k0.split('/')[0]:k0;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(r)});
+    for(const [label,rows] of [...groups].sort((a,b)=>a[0].localeCompare(b[0],'th',{numeric:true}))){
       let nm=label.replace(/[:\\\/?*\[\]]/g,'.').slice(0,28)||'ชีต',x=nm,i=2;
       while(names.has(x))x=nm+'_'+i++;
       names.add(x);
@@ -274,7 +360,7 @@ async function build(){
       ws.getRow(3).height=21;ws.getRow(4).height=19.8;
       rows.forEach((p,n)=>{
         const r=5+n,row=ws.getRow(r);row.height=rh;
-        row.getCell(1).value=n+1;row.getCell(2).value=Number(p.id);row.getCell(2).numFmt='0';
+        row.getCell(1).value=n+1;const num=/^[1-9]\d{12}$/.test(p.id);row.getCell(2).value=num?Number(p.id):p.id;row.getCell(2).numFmt=num?'0':'@';
         row.getCell(3).value=p.pre;row.getCell(4).value=p.fn;row.getCell(5).value=p.ln;
         for(let c=1;c<=18;c++){
           const cell=row.getCell(c);cell.border=bd;cell.font=font(c<=5?16:14);
