@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0d4f4f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%A6%B7%3C/text%3E%3C/svg%3E">
 <title>เตรียมแบบตรวจฟันนักเรียน</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
@@ -15,7 +17,7 @@ body{font-family:'Sarabun',system-ui,sans-serif;background:var(--bg);color:var(-
 header{padding:28px 20px 8px;max-width:900px;margin:0 auto}
 h1{margin:0 0 6px;font-size:28px;font-weight:700}
 header p{margin:0;color:var(--mut)}
-main{max-width:900px;margin:0 auto;padding:16px 20px 60px}
+main{max-width:900px;margin:0 auto;padding:28px 20px 60px}
 #drop{display:block;border:2px dashed var(--acc);border-radius:10px;padding:34px 16px;text-align:center;cursor:pointer;background:var(--card);font-weight:600;color:var(--acc)}
 #drop.over{background:var(--bg)}
 #drop input{display:none}
@@ -37,12 +39,41 @@ button{font:inherit;font-weight:600;padding:12px 22px;border:0;border-radius:8px
 button:hover{background:var(--acc2)}
 button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within{outline:3px solid var(--acc);outline-offset:2px}
 @media (prefers-color-scheme:dark){button{color:#0b1416}}
+
+.cover{max-width:none;margin:0;padding:44px 20px 40px;background:#0d4f4f;color:#fff}
+.cv-in{max-width:900px;margin:0 auto;display:flex;gap:32px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.cv-txt{flex:1 1 380px}
+.cover h1{font-size:42px;line-height:1.15;margin:0 0 10px;letter-spacing:-.01em}
+.cover p{color:#cfe6e4;margin:0 0 20px;max-width:34em}
+.cv-tag{font-size:14px;margin-bottom:10px!important;color:#8fd6cf!important;font-weight:600}
+.cv-steps{list-style:none;margin:0 0 24px;padding:0;display:flex;gap:10px;flex-wrap:wrap}
+.cv-steps li{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border-radius:999px;padding:6px 14px 6px 6px;font-size:15px}
+.cv-steps b{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#fff;color:#0d4f4f;font-size:14px}
+.cv-go{display:inline-block;background:#fff;color:#0d4f4f;text-decoration:none;font-weight:700;padding:12px 26px;border-radius:8px}
+.cv-go:hover{background:#e3f3f1}
+.cv-go:focus-visible{outline:3px solid #8fd6cf;outline-offset:3px}
+.cv-note{display:block;margin-top:14px;font-size:13px;color:#8fd6cf}
+.cv-art{flex:0 0 auto;width:190px;height:auto}
+@media (max-width:560px){.cover h1{font-size:34px}.cv-art{width:120px}}
 </style>
 </head>
 <body>
-<header>
-<h1>เตรียมแบบตรวจฟันนักเรียน</h1>
-<p>ใส่ไฟล์รายชื่อ (.xlsx) ของโรงเรียนใดก็ได้ แล้วได้ไฟล์แบบตรวจรูปแบบเดียวกับต้นฉบับ ข้อมูลประมวลผลในเครื่องนี้เท่านั้น ไม่ถูกส่งไปที่ไหน</p>
+<header class="cover">
+<div class="cv-in">
+<div class="cv-txt">
+<p class="cv-tag">งานทันตสาธารณสุข · อนามัยโรงเรียน</p>
+<h1>แบบตรวจฟันนักเรียน</h1>
+<p>ใส่ไฟล์รายชื่อของโรงเรียนไหนก็ได้ แล้วได้แบบตรวจคัดกรองสุขภาพช่องปากแยกตามห้อง พร้อมพิมพ์ A4</p>
+<ol class="cv-steps"><li><b>1</b>ใส่ไฟล์รายชื่อ</li><li><b>2</b>เช็กคอลัมน์</li><li><b>3</b>ดาวน์โหลดแล้วพิมพ์</li></ol>
+<a class="cv-go" href="#drop">เริ่มเลย</a>
+<span class="cv-note">ข้อมูลเด็กประมวลผลในเครื่องนี้เท่านั้น ไม่ถูกส่งไปที่ไหน</span>
+</div>
+<svg class="cv-art" viewBox="0 0 160 190" role="img" aria-label="ภาพฟันกับเครื่องหมายถูก">
+<path d="M80 22c-18-12-50-6-58 20-5 18 3 34 8 52 5 21 3 52 16 76 7 13 16 10 19-5 3-16 5-40 15-40s12 24 15 40c3 15 12 18 19 5 13-24 11-55 16-76 5-18 13-34 8-52-8-26-40-32-58-20z" fill="rgba(255,255,255,.12)" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+<circle cx="122" cy="40" r="26" fill="#8fd6cf"/>
+<path d="M110 40l9 9 16-18" fill="none" stroke="#0d4f4f" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</div>
 </header>
 <main>
 <label id="drop"><input type="file" id="f" accept=".xlsx">เลือกไฟล์รายชื่อ หรือลากมาวางที่นี่<small>รองรับ .xlsx (ถ้าเป็น .xls ให้บันทึกเป็น .xlsx ก่อน)</small></label>
