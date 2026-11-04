@@ -215,10 +215,20 @@ function detect(g){
 }
 
 function roomOf(t){
+  for(const [w,c] of [['ประถม','ป'],['มัธยม','ม'],['อนุบาล','อ']]){
+    const x=t.match(new RegExp(w+'(?:ศึกษา)?\\s*(?:ปีที่)?\\s*(\\d)(?:\\s*[\\/\\-]\\s*(\\d{1,2}))?'));
+    if(x)return c+x[1]+(x[2]?'/'+x[2]:'');
+  }
+  const y=t.match(/ชั้น\s*(ป|ม|อ)\.?\s?(\d)(?:\s*[\/\-]\s*(\d{1,2}))?/);
+  if(y)return y[1]+y[2]+(y[3]?'/'+y[3]:'');
   const m=t.match(/(ป|ม|อ)\.?\s?(\d)\s*[\/\-]\s*(\d{1,2})/);
   if(m)return m[1]+m[2]+'/'+m[3];
   const h=t.match(/ห้อง\s*(\d{1,2})/);
   return h?'ห้อง '+h[1]:'';
+}
+function schoolOf(t){
+  const m=t.match(/โรงเรียน\s*([^\s].*?)(?=\s+(?:อ\.|อำเภอ|ต\.|ตำบล|จ\.|จังหวัด|สังกัด|ปีการศึกษา|ภาคเรียน)|\s{2,}|$)/);
+  return m?m[1].trim():'';
 }
 function labelOf(n){
   let m=n.match(/^([ก-ฮ]+)\.?\s*(\d+)[.\/\-\s]+(\d+)$/);
@@ -328,6 +338,7 @@ async function readDocx(buf){
     const g=paras.map(t=>{let c=t.split(/\t|\s{2,}/).map(x=>x.trim()).filter(Boolean);return c.length<3?t.split(/\s+/):c});
     sheets.push({name:'ข้อความในเอกสาร',g});
   }
+  sheets.paras=paras;
   return sheets;
 }
 const DOC_MSG='ไฟล์ .doc รุ่นเก่า (Word 97-2003) เบราว์เซอร์อ่านตารางจากไฟล์ชนิดนี้ไม่ได้อย่างแม่นยำ กรุณาเปิดใน Word แล้วเลือก ไฟล์ > บันทึกเป็น > Word Document (.docx) จากนั้นนำเข้าใหม่';
@@ -379,9 +390,15 @@ async function load(file){
   try{src=await readAny(file)}catch(e){alert('เปิดไฟล์ไม่ได้: '+e.message);return}
   if(!src.length){alert('ไม่พบตารางหรือชีตในไฟล์นี้');return}
   S=src.map(({name,g})=>{
-    const d=detect(g),s={name,label:labelOf(name),g,m:d.m,nc:d.nc,sample:d.sample,auto:true};
+    const d=detect(g);let label=labelOf(name);
+    if(label===name){const t=roomOf(g.slice(0,10).map(r=>r.join(' ')).join(' '));if(t)label=t}
+    const s={name,label,g,m:d.m,nc:d.nc,sample:d.sample,auto:true};
     s.rows=extract(g,s.m,s.auto,s.label);s.on=s.rows.length>0&&!/รวม|สรุป|total/i.test(name);return s;
   });
+  if(!$('school').value){
+    const sc=schoolOf((src.paras||[]).join('  ')+'  '+src.slice(0,3).map(x=>x.g.slice(0,6).map(r=>r.join('  ')).join('  ')).join('  '));
+    if(sc)$('school').value=sc;
+  }
   $('cfg').hidden=false;render();
 }
 $('f').addEventListener('change',e=>load(e.target.files[0]));
