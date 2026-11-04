@@ -416,6 +416,7 @@ async function build(){
   a.download=`แบบตรวจฟัน_${school||'โรงเรียน'}.xlsx`;
   document.body.appendChild(a);a.click();a.remove();
 }
+
 $('go').addEventListener('click',()=>build().catch(e=>alert('สร้างไฟล์ไม่สำเร็จ: '+e.message)));
 </script>
 </body>
