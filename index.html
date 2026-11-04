@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#eef2f3;--ink:#1d2b2f;--mut:#5b6b70;--line:#cfd9db;--card:#fff;--acc:#0f6b6b;--acc2:#0a4f4f;--warn:#a1480b;--warnbg:#fdf1e4}
 @media (prefers-color-scheme:dark){:root{--bg:#121a1c;--ink:#e6eeef;--mut:#9aabb0;--line:#2c3b3f;--card:#1a2528;--acc:#4cc0b8;--acc2:#7ad8d0;--warn:#f0a35e;--warnbg:#2e2216}}
@@ -78,7 +79,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 </div>
 </header>
 <main>
-<label id="drop"><input type="file" id="f" accept=".xlsx,.docx">เลือกไฟล์รายชื่อ หรือลากมาวางที่นี่<small>รองรับ Excel (.xlsx) และ Word (.docx) ที่เป็นตารางรายชื่อ ถ้าเป็น .xls หรือ .doc ให้บันทึกเป็นรุ่นใหม่ก่อน</small></label>
+<label id="drop"><input type="file" id="f" accept=".xlsx,.xlsm,.xls,.csv,.docx,.doc,.htm,.html">เลือกไฟล์รายชื่อ หรือลากมาวางที่นี่<small>Excel (.xlsx .xls .csv) และ Word (.docx) ที่เป็นตารางรายชื่อ ส่วน .doc รุ่นเก่าที่เป็นไฟล์ Word จริง ให้บันทึกเป็น .docx ก่อน</small></label>
 <section id="cfg" hidden>
 <div class="row">
 <label>ชื่อโรงเรียน<input type="text" id="school" placeholder="เช่น อนุบาลเพชรบูรณ์"></label>
@@ -300,16 +301,54 @@ async function readDocx(buf){
   }
   return sheets;
 }
+const DOC_MSG='ไฟล์ .doc รุ่นเก่า (Word 97-2003) เบราว์เซอร์อ่านตารางจากไฟล์ชนิดนี้ไม่ได้อย่างแม่นยำ กรุณาเปิดใน Word แล้วเลือก ไฟล์ > บันทึกเป็น > Word Document (.docx) จากนั้นนำเข้าใหม่';
+function decodeText(buf){
+  try{return new TextDecoder('utf-8',{fatal:true}).decode(buf)}
+  catch(e){return new TextDecoder('windows-874').decode(buf)}
+}
+function readHtml(text){
+  const doc=new DOMParser().parseFromString(text,'text/html'),sheets=[];let n=0;
+  doc.querySelectorAll('table').forEach(t=>{
+    if(t.parentElement&&t.parentElement.closest('table'))return;
+    const g=[...t.rows].map(tr=>{const row=[];[...tr.cells].forEach(c=>{row.push(c.textContent.replace(/\s+/g,' ').trim());for(let i=1;i<(c.colSpan||1);i++)row.push('')});return row});
+    let prev=t.previousElementSibling,pt='';
+    for(let i=0;i<3&&prev&&!pt;i++){pt=roomOf(prev.textContent||'');prev=prev.previousElementSibling}
+    n++;sheets.push({name:pt||'ตาราง '+n,g});
+  });
+  return sheets;
+}
+function readSheetJS(data,isText){
+  const wb=XLSX.read(data,{type:isText?'string':'array'});
+  return wb.SheetNames.map(n=>({name:n,g:XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''}).slice(0,4000).map(r=>r.slice(0,30).map(str))}));
+}
+async function readXlsx(buf){
+  const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);
+  return wb.worksheets.map(ws=>({name:ws.name,g:gridOf(ws)}));
+}
+async function readAny(file){
+  const buf=await file.arrayBuffer(),u=new Uint8Array(buf.slice(0,8));
+  const ext=((file.name.match(/\.([A-Za-z0-9]+)$/)||[])[1]||'').toLowerCase();
+  if(u[0]===0x50&&u[1]===0x4B){
+    const z=await JSZip.loadAsync(buf);
+    if(z.file('word/document.xml'))return readDocx(buf);
+    if(z.file('xl/workbook.xml'))return readXlsx(buf);
+    throw new Error('ไม่รู้จักรูปแบบไฟล์นี้');
+  }
+  if(u[0]===0xD0&&u[1]===0xCF){
+    if(ext==='doc'||ext==='dot')throw new Error(DOC_MSG);
+    return readSheetJS(buf,false);
+  }
+  if(u[0]===0x7B&&u[1]===0x5C)throw new Error(DOC_MSG);
+  const text=decodeText(buf);
+  if(/<table/i.test(text)&&(ext==='doc'||ext==='htm'||ext==='html'||ext==='docx')){const r=readHtml(text);if(r.length)return r}
+  if(ext==='doc'||ext==='docx')throw new Error(DOC_MSG);
+  return readSheetJS(text,true);
+}
 async function load(file){
   if(!file)return;
   let src;
-  try{
-    if(/\.xlsx$/i.test(file.name)){
-      const wb=new ExcelJS.Workbook();await wb.xlsx.load(await file.arrayBuffer());
-      src=wb.worksheets.map(ws=>({name:ws.name,g:gridOf(ws)}));
-    }else if(/\.docx$/i.test(file.name))src=await readDocx(await file.arrayBuffer());
-    else{alert('รองรับไฟล์ .xlsx และ .docx (ถ้าเป็น .xls หรือ .doc ให้บันทึกเป็นรุ่นใหม่ก่อน)');return}
-  }catch(e){alert('เปิดไฟล์ไม่ได้: '+e.message);return}
+  try{src=await readAny(file)}catch(e){alert('เปิดไฟล์ไม่ได้: '+e.message);return}
+  if(!src.length){alert('ไม่พบตารางหรือชีตในไฟล์นี้');return}
   S=src.map(({name,g})=>{
     const d=detect(g),s={name,label:labelOf(name),g,m:d.m,nc:d.nc,sample:d.sample,auto:true};
     s.rows=extract(g,s.m,s.auto,s.label);s.on=s.rows.length>0&&!/รวม|สรุป|total/i.test(name);return s;
