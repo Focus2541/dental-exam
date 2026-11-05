@@ -141,33 +141,30 @@ function gridOf(ws){
 
 function detect(g){
   const nc=Math.max(0,...g.map(r=>r.length));
-  const cnt=Array(nc).fill(0);
-  g.forEach(r=>r.forEach((c,i)=>{if(idOf(c))cnt[i]++}));
-  const mx=Math.max(0,...cnt);
-  const m={id:-1,pre:-1,fn:-1,ln:-1,rm:-1,sq:-1,gr:-1,cd:-1};
+  const cnt=Array(nc).fill(0),pc=Array(nc).fill(0);
+  const m={id:-1,pre:-1,fn:-1,ln:-1,rm:-1,sq:-1,gr:-1,cd:-1,ids:[]};
   const hasPre=c=>PREFULL.test(c.replace(/\s/g,''))||PRE.some(p=>c.startsWith(p)&&c.length>p.length);
-  let id=-1,rows;
-  if(mx){id=cnt.indexOf(mx);m.id=id;rows=g.filter(r=>idOf(r[id]))}
-  else{
-    const pc=Array(nc).fill(0);
-    g.forEach(r=>r.forEach((c,i)=>{if(c&&hasPre(c))pc[i]++}));
-    const best=Math.max(0,...pc);
-    if(best<3)return {m,nc,sample:g.find(r=>r.some(Boolean))||[]};
-    const nameCol=pc.indexOf(best);
-    rows=g.filter(r=>hasPre(r[nameCol]||''));
-  }
+  g.forEach(r=>r.forEach((c,i)=>{if(idOf(c))cnt[i]++;else if(c&&hasPre(c))pc[i]++}));
+  const mx=Math.max(0,...cnt),best=Math.max(0,...pc);
+  let idc=cnt.map((c,i)=>[c,i]).filter(x=>x[0]>=2).sort((a,b)=>b[0]-a[0]).map(x=>x[1]);
+  if(!idc.length&&mx>=1)idc=[cnt.indexOf(mx)];
+  m.id=idc.length?idc[0]:-1;m.ids=idc.slice(1);
+  const nameCol=best>=3?pc.indexOf(best):-1;
+  if(m.id<0&&nameCol<0)return {m,nc,sample:g.find(r=>r.some(Boolean))||[]};
+  const id=m.id,isId=i=>i===id||m.ids.includes(i);
+  const rows=g.filter(r=>idc.some(c=>idOf(r[c]||''))||(nameCol>=0&&hasPre(r[nameCol]||'')));
   const GR=/^(ป|ม|อ|อนุบาล)\.?\s?\d$/;
-  for(let i=0;i<nc&&m.gr<0;i++){if(i!==id&&rows.filter(r=>GR.test((r[i]||'').trim())).length>=rows.length*.6)m.gr=i}
+  for(let i=0;i<nc&&m.gr<0;i++){if(!isId(i)&&rows.filter(r=>GR.test((r[i]||'').trim())).length>=rows.length*.6)m.gr=i}
   if(m.gr>=0)for(let j=m.gr+1;j<=m.gr+3&&j<nc;j++){
     const v=rows.map(r=>(r[j]||'').trim());
     if(v.filter(x=>/^\d{1,2}$/.test(x)).length>=rows.length*.8&&new Set(v).size<=15){m.rm=j;break}
   }
-  const dt=i=>{if(i>=nc||i===id)return 0;let c=0;rows.forEach(r=>{const v=r[i]||'';if(isText(v)||/^[-–—.]+$/.test(v))c++});return c/rows.length};
+  const dt=i=>{if(i>=nc||isId(i))return 0;let c=0;rows.forEach(r=>{const v=r[i]||'';if(isText(v)||/^[-–—.]+$/.test(v))c++});return c/rows.length};
   let bs=0;
-  for(let i=0;i<nc;i++){if(i===id)continue;const c=rows.filter(r=>/^\d{1,3}$/.test(r[i]||'')).length;if(c>bs&&c>=rows.length*.6){bs=c;m.sq=i}}
+  for(let i=0;i<nc;i++){if(isId(i))continue;const c=rows.filter(r=>/^\d{1,3}$/.test(r[i]||'')).length;if(c>bs&&c>=rows.length*.6){bs=c;m.sq=i}}
   const S2=[];
   for(let i=0;i<nc;i++){
-    if(i===id){S2.push(null);continue}
+    if(isId(i)){S2.push(null);continue}
     let t=0,pf=0,ps=0,sp=0;
     rows.forEach(r=>{const c=r[i]||'';if(isText(c)){t++;
       if(PREFULL.test(c.replace(/\s/g,'')))pf++;
@@ -192,9 +189,9 @@ function detect(g){
       if(m.fn>=0&&S2[m.fn].sp<.5)m.ln=dt(m.fn+1)>.6?m.fn+1:-1;
     }
   }
-  if(m.id<0){
+  {
     for(let i=0;i<nc;i++){
-      if([m.sq,m.fn,m.pre,m.ln,m.gr,m.rm].includes(i))continue;
+      if(isId(i)||[m.sq,m.fn,m.pre,m.ln,m.gr,m.rm].includes(i))continue;
       const v=rows.map(r=>(r[i]||'').trim());
       if(v.filter(x=>/^\d{3,7}$/.test(x)).length>=rows.length*.8&&new Set(v).size>=rows.length*.9){m.cd=i;break}
     }
@@ -230,9 +227,9 @@ function extract(g,m,auto,label){
   let cur='',last=0,idx=1;
   g.forEach(r=>{
     let id='';
-    if(m.id>=0)id=idOf(r[m.id]);
-    else{const nv=(m.pre>=0?r[m.pre]:r[m.fn])||'';if(PREFULL.test(nv.replace(/\s/g,''))||PRE.some(p=>nv.startsWith(p)&&nv.length>p.length))id='-'}
-    if(!id){if(split){const t=roomOf(r.join(' '));if(t)cur=t}return}
+    for(const c of [m.id,...(m.ids||[])]){if(c>=0){id=idOf(r[c]||'');if(id)break}}
+    const nv=(m.pre>=0?r[m.pre]:r[m.fn])||'',named=PREFULL.test(nv.replace(/\s/g,''))||PRE.some(p=>nv.startsWith(p)&&nv.length>p.length);
+    if(!id&&!named){if(split){const t=roomOf(r.join(' '));if(t)cur=t}return}
     let pre=m.pre>=0?normPre(r[m.pre]):'',fn=(r[m.fn]||'').trim(),ln=m.ln>=0?(r[m.ln]||'').trim():'';
     if(m.ln<0){
       if(!pre){const [p,f]=splitPre(fn);pre=normPre(p);fn=f}
@@ -243,9 +240,10 @@ function extract(g,m,auto,label){
     if(/^[-–—.]+$/.test(ln))ln='';
     let rm=m.rm>=0?(r[m.rm]||'').trim():'';
     if(m.gr>=0){const gv=(r[m.gr]||'').replace(/[.\s]/g,'');rm=gv?(rm?gv+'/'+rm:gv):''}
-    const noid=m.id<0;
+    const noid=!id;
+    const bad=noid&&m.id>=0&&(r[m.id]||'').trim()!=='';
     if(noid){const cd=m.cd>=0?(r[m.cd]||'').trim():'';id=cd?'c'+cd:label+'#'+(out.length+1)}
-    const o={id,noid,pre,fn,ln,rm,cur:'',idx:1};
+    const o={id,noid,bad,pre,fn,ln,rm,cur:'',idx:1};
     if(split){
       const sq=m.sq>=0?parseInt(r[m.sq],10):NaN;
       if(!isNaN(sq)){if(sq<last&&sq<=1)idx++;last=sq}
@@ -292,8 +290,9 @@ function validate(){
   if(bad)w.push(`เลขบัตร ${bad} รายการไม่ผ่านการตรวจหลักที่ 13 (อาจพิมพ์ผิด)`);
   const nm=all.filter(r=>!r.ln).length;
   if(nm)w.push(`${nm} คนไม่มีนามสกุล (ถ้าเป็นเด็กที่ไม่มีนามสกุลจริงข้ามได้ ถ้ามากผิดปกติให้ลองตรวจการเลือกคอลัมน์)`);
-  const ni=all.filter(r=>r.noid).length;
+  const ni=all.filter(r=>r.noid&&!r.bad).length,bd=all.filter(r=>r.bad);
   if(ni)w.push(`${ni} คนไม่มีเลขบัตรในไฟล์ ใช้รหัสนักเรียนแทนในการจดจำ ช่องเลขบัตรในไฟล์ที่ได้จะเว้นว่าง`);
+  if(bd.length)w.push(`${bd.length} คนมีเลขบัตรที่ไม่ครบ 13 หลัก (เช่น ${bd.slice(0,3).map(r=>r.fn).join(', ')}) ช่องเลขบัตรจะเว้นว่าง ตรวจกับไฟล์ต้นฉบับ`);
   $('msg').textContent=w.join(' · ');
   $('go').disabled=!used().length;
 }
