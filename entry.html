@@ -80,6 +80,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .entry .ok{padding:4px 10px;background:var(--acc)}
 :root{--ok:#e3f1ef}
 @media (prefers-color-scheme:dark){:root{--ok:#1c3436}}
+.rv{margin-top:12px}
+.rv summary{cursor:pointer;font-weight:600;color:var(--acc)}
+.th{display:block;max-width:100%;border:1px solid var(--line);border-radius:6px;margin:8px 0}
+.rvw{overflow-x:auto}
+.rt{border-collapse:collapse;font-size:14px;min-width:100%}
+.rt td,.rt th{border:1px solid var(--line);padding:1px 2px;text-align:left}
+.rt input{font:inherit;width:100%;min-width:70px;border:0;background:transparent;color:var(--ink);padding:5px}
+.rt input.bad{background:var(--warnbg);color:var(--warn)}
+.rt input.fx{background:#dbeafe;color:#1e3a8a}
+.rt .x{padding:2px 8px;background:transparent;color:var(--warn);border:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -101,7 +111,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 </div>
 </header>
 <main>
-<label id="drop"><input type="file" id="f" accept=".xlsx,.xlsm,.xls,.csv,.docx,.doc,.htm,.html">เลือกไฟล์รายชื่อ หรือลากมาวางที่นี่<small>Excel (.xlsx .xls .csv) และ Word (.docx) ที่เป็นตารางรายชื่อ ส่วน .doc รุ่นเก่าที่เป็นไฟล์ Word จริง ให้บันทึกเป็น .docx ก่อน</small></label>
+<label id="drop"><input type="file" id="f" accept=".xlsx,.xlsm,.xls,.csv,.docx,.doc,.htm,.html,.pdf">เลือกไฟล์รายชื่อ หรือลากมาวางที่นี่<small>Excel (.xlsx .xls .csv) และ Word (.docx) ที่เป็นตารางรายชื่อ และ PDF (ถ้าเป็นภาพสแกนจะอ่านด้วย OCR ซึ่งอาจผิดบ้าง ต้องตรวจทานก่อนใช้) ส่วน .doc รุ่นเก่าที่เป็นไฟล์ Word จริง ให้บันทึกเป็น .docx ก่อน</small></label>
+<p id="st" class="hint" role="status"></p>
 <section id="cfg" hidden>
 <div class="row">
 <label>ชื่อโรงเรียน<input type="text" id="school" placeholder="เช่น อนุบาลเพชรบูรณ์"></label>
@@ -304,7 +315,7 @@ function render(){
 <div class="grid">
 <label>ชื่อห้อง/ชั้นในหัวแบบ<input type="text" data-k="${k}" data-f="label" value="${esc(s.label)}"></label>
 ${sel('id','เลขบัตร')}${sel('pre','คำนำหน้า')}${sel('fn','ชื่อ (หรือชื่อ-สกุล)')}${sel('ln','สกุล')}${sel('gr','ชั้น (ถ้ามีคอลัมน์ชั้น)')}${sel('rm','ห้อง (ถ้ารวมหลายห้องในชีตเดียว)')}
-</div><label class="auto"><input type="checkbox" data-k="${k}" data-f="auto" ${s.auto?'checked':''}> แยกห้องอัตโนมัติ (ชีตที่รวมหลายห้อง ตัดเมื่อลำดับเริ่มนับ 1 ใหม่ หรือเจอหัวข้อห้อง)</label><p class="pv">${pv}</p></div>`;
+</div><label class="auto"><input type="checkbox" data-k="${k}" data-f="auto" ${s.auto?'checked':''}> แยกห้องอัตโนมัติ (ชีตที่รวมหลายห้อง ตัดเมื่อลำดับเริ่มนับ 1 ใหม่ หรือเจอหัวข้อห้อง)</label><p class="pv">${pv}</p>${rv(s,k)}</div>`;
   }).join('');
   validate();
 }
@@ -361,6 +372,128 @@ async function readDocx(buf){
   sheets.paras=paras;
   return sheets;
 }
+function binarize(img){
+  const w=img.width,h=img.height,data=img.data,n=w*h,g=new Uint8Array(n);
+  for(let i=0;i<n;i++)g[i]=(data[4*i]*299+data[4*i+1]*587+data[4*i+2]*114)/1000;
+  const W=w+1,ii=new Float64Array(W*(h+1));
+  for(let y=0;y<h;y++){let s=0;for(let x=0;x<w;x++){s+=g[y*w+x];ii[(y+1)*W+x+1]=ii[y*W+x+1]+s}}
+  const r=17,blk=new Uint8Array(n);
+  for(let y=0;y<h;y++){const y0=Math.max(0,y-r),y1=Math.min(h,y+r+1);
+    for(let x=0;x<w;x++){const x0=Math.max(0,x-r),x1=Math.min(w,x+r+1);
+      const m=(ii[y1*W+x1]-ii[y0*W+x1]-ii[y1*W+x0]+ii[y0*W+x0])/((y1-y0)*(x1-x0));
+      blk[y*w+x]=g[y*w+x]<m-12?1:0}}
+  const RUN=Math.round(w*0.042);
+  for(let y=0;y<h;y++){let s=-1;for(let x=0;x<=w;x++){const b=x<w&&blk[y*w+x];
+    if(b&&s<0)s=x;else if(!b&&s>=0){if(x-s>=RUN)for(let k=s;k<x;k++)blk[y*w+k]=0;s=-1}}}
+  for(let x=0;x<w;x++){let s=-1;for(let y=0;y<=h;y++){const b=y<h&&blk[y*w+x];
+    if(b&&s<0)s=y;else if(!b&&s>=0){if(y-s>=RUN)for(let k=s;k<y;k++)blk[k*w+x]=0;s=-1}}}
+  for(let i=0;i<n;i++){const v=blk[i]?0:255;data[4*i]=data[4*i+1]=data[4*i+2]=v;data[4*i+3]=255}
+}
+function fixPre(s){
+  s=s.replace(/^\s*ด็ก/,'เด็ก');
+  return s.replace(/^เด็ก\s*[ขซฃช]\s*า\s*ย/,'เด็กชาย').replace(/^เด็ก\s*[หพ]\s*[ญฎฏ]\s*[ิี]?\s*ง/,'เด็กหญิง');
+}
+function fixId13(s){
+  if(!/^\d{13}$/.test(s))return {id:s,fixed:false};
+  const ck=x=>{let t=0;for(let i=0;i<12;i++)t+=+x[i]*(13-i);return (11-t%11)%10===+x[12]};
+  if(ck(s))return {id:s,fixed:false};
+  if(/^\d6[1-8]5000\d{6}$/.test(s))return {id:'G'+s.slice(1),fixed:true};
+  const C={0:[8,6,9],1:[7],2:[7],3:[8],4:[8,9],5:[6,8],6:[5,8,0],7:[1,2],8:[0,3,4,6,9],9:[8,4,0]},hit=[];
+  for(let i=0;i<13;i++)for(const d of C[s[i]]||[]){const x=s.slice(0,i)+d+s.slice(i+1);if(ck(x))hit.push(x)}
+  return hit.length===1?{id:hit[0],fixed:true}:{id:s,fixed:false};
+}
+function wordsToGrid(words){
+  const J=/^[|\/\\\[\]!'"`._:;,~•*()‘’“”]+$/;
+  const clean=t=>t.replace(/^[\[\]|!'"`‘’“”()]+|[\[\]|!'"`‘’“”()]+$/g,'');
+  const W=words.map(w=>({t:clean((w.text||'').trim()),x0:w.bbox.x0,x1:w.bbox.x1,y0:w.bbox.y0,y1:w.bbox.y1})).filter(w=>w.t&&!J.test(w.t));
+  const grid=[];grid.fixed=new Set();
+  if(!W.length)return grid;
+  const hs=W.map(w=>w.y1-w.y0).sort((a,b)=>a-b),mh=hs[hs.length>>1]||20,SP=mh*.17,COL=mh*.6;
+  W.sort((a,b)=>(a.y0+a.y1)-(b.y0+b.y1));
+  const rows=[];
+  for(const w of W){const cy=(w.y0+w.y1)/2,r=rows[rows.length-1];
+    if(r&&Math.abs(cy-r.cy)<mh*.6){r.w.push(w);r.cy=(r.cy*(r.w.length-1)+cy)/r.w.length}else rows.push({cy,w:[w]})}
+  const TH=/[\u0E01-\u0E4E]/,hasPre=s=>/^(เด็ก|นาย|นาง|ด\.ช|ด\.ญ|น\.ส)/.test(s);
+  for(const r of rows){
+    r.w.sort((a,b)=>a.x0-b.x0);
+    const segs=[];
+    for(const w of r.w){
+      const c=TH.test(w.t)?'T':'D',s=segs[segs.length-1],gap=s?w.x0-s.x1:0;
+      if(s&&s.c===c&&gap<COL){s.t+=(gap>=SP?' ':'')+w.t;s.x1=Math.max(s.x1,w.x1)}else segs.push({c,t:w.t,x0:w.x0,x1:w.x1});
+    }
+    const runs=[];
+    for(let j=0;j<segs.length;j++){if(segs[j].c!=='T')continue;
+      const last=runs[runs.length-1];
+      if(last&&last.e===j-1){last.t+=' '+segs[j].t;last.e=j}else runs.push({t:segs[j].t,e:j})}
+    let pick=runs.findIndex(x=>hasPre(fixPre(x.t.trim())));
+    if(pick<0){let b=0;runs.forEach((x,k)=>{if(x.t.length>runs[b].t.length)b=k});pick=runs.length?b:-1}
+    let name=pick>=0?runs[pick].t:'',note=runs.filter((_,k)=>k!==pick).map(x=>x.t).join(' ');
+    name=fixPre(name.trim());
+    const dig=t=>t.replace(/[๐-๙]/g,c=>'๐๑๒๓๔๕๖๗๘๙'.indexOf(c));
+    const D=segs.filter(s=>s.c==='D').map(s=>dig(s.t));
+    const alnum=t=>t.replace(/[^0-9A-Za-z]/g,'');
+    const ii=D.findIndex(t=>alnum(t).length>=10);
+    let id='';if(ii>=0){id=alnum(D[ii]).toUpperCase();D.splice(ii,1)}
+    if(id){const f=fixId13(id);id=f.id;if(f.fixed)grid.fixed.add(id)}
+    const sm=D.map(t=>alnum(t));
+    let ci=sm.findIndex(t=>/^\d{4}$/.test(t));if(ci<0)ci=sm.findIndex((t,k)=>k>0&&/^\d{3,6}$/.test(t));
+    const code=ci>=0?sm[ci]:'';if(ci>=0){sm.splice(ci,1);D.splice(ci,1)}
+    const si=D.findIndex(t=>/^\d{1,3}$/.test(alnum(t)));const seq=si>=0?alnum(D[si]):'';if(si>=0)D.splice(si,1);
+    if(id||code||(name&&hasPre(name)))grid.push([seq,code,id,name,D.join(' '),note]);
+    else grid.push([segs.map(s=>s.t).join(' ')]);
+  }
+  return grid;
+}
+function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error('โหลดตัวอ่าน PDF ไม่สำเร็จ ต้องต่ออินเทอร์เน็ต'));document.head.appendChild(s)})}
+async function readPdf(buf){
+  const st=$('st'),V='https://cdn.jsdelivr.net/npm/';
+  st.textContent='กำลังเตรียมตัวอ่าน PDF…';
+  if(!window.pdfjsLib){await loadScript(V+'pdfjs-dist@3.11.174/build/pdf.min.js');pdfjsLib.GlobalWorkerOptions.workerSrc=V+'pdfjs-dist@3.11.174/build/pdf.worker.min.js'}
+  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise,out=[];let worker=null;
+  try{
+    for(let p=1;p<=pdf.numPages;p++){
+      st.textContent=`กำลังอ่านหน้า ${p}/${pdf.numPages}… (หน้าสแกนใช้เวลาหน้าละประมาณครึ่งนาที ครั้งแรกจะโหลดข้อมูลภาษาไทยเพิ่ม)`;
+      const page=await pdf.getPage(p),v1=page.getViewport({scale:1}),tc=await page.getTextContent();
+      const items=tc.items.filter(i=>i.str&&i.str.trim());
+      const txt=items.map(i=>i.str).join(''),junk=(txt.match(/[\u0000-\u0008\u000E-\u001F\uE000-\uF8FF\uFFFD]/g)||[]).length;
+      if(items.length>=40&&junk<txt.length*.02){
+        const H=v1.height;
+        const words=items.map(i=>{const h=Math.abs(i.transform[3])||10;return {text:i.str,bbox:{x0:i.transform[4],x1:i.transform[4]+i.width,y0:H-i.transform[5]-h,y1:H-i.transform[5]}}});
+        const tg=wordsToGrid(words);
+        if(tg.filter(r=>r.length>1).length>=3){out.push({name:'หน้า '+p,g:tg});continue}
+      }
+      const vp=page.getViewport({scale:Math.min(2.8,1650/v1.width)}),cv=document.createElement('canvas');
+      cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);
+      const ctx=cv.getContext('2d',{willReadFrequently:true});
+      await page.render({canvasContext:ctx,viewport:vp}).promise;
+      const th=document.createElement('canvas');th.width=720;th.height=Math.round(cv.height*720/cv.width);
+      th.getContext('2d').drawImage(cv,0,0,th.width,th.height);
+      const thumb=th.toDataURL('image/jpeg',.6);
+      const img=ctx.getImageData(0,0,cv.width,cv.height);binarize(img);ctx.putImageData(img,0,0);
+      if(!worker){
+        await loadScript(V+'tesseract.js@5.1.1/dist/tesseract.min.js');
+        worker=await Tesseract.createWorker('tha+eng');
+        await worker.setParameters({tessedit_pageseg_mode:'6',preserve_interword_spaces:'1'});
+      }
+      const r=await worker.recognize(cv,{},{blocks:true}),words=[];
+      (r.data.blocks||[]).forEach(b=>b.paragraphs.forEach(pa=>pa.lines.forEach(l=>l.words.forEach(w=>words.push(w)))));
+      const g=wordsToGrid(words);
+      out.push({name:'หน้า '+p,g,ocr:true,thumb});
+    }
+  }finally{if(worker)await worker.terminate();st.textContent=''}
+  return out;
+}
+function rv(s,k){
+  if(!s.ocr)return '';
+  const rows=s.rows.map((r,i)=>{
+    const bad=(!r.noid&&/^\d/.test(r.id)&&!checksumOk(r.id))?'bad':(s.fixed.has(r.id)?'fx':'');
+    const inp=(f,v,c='')=>`<input data-rk="${k}" data-ri="${i}" data-rf="${f}" value="${esc(v)}" class="${c}">`;
+    return `<tr><td>${i+1}</td><td>${inp('id',r.noid?'':r.id,bad)}</td><td>${inp('pre',r.pre)}</td><td>${inp('fn',r.fn,r.fn?'':'bad')}</td><td>${inp('ln',r.ln)}</td><td><button type="button" class="x" data-del="${k}:${i}" title="ลบแถว">×</button></td></tr>`;
+  }).join('');
+  return `<details class="rv" ontoggle="S[${k}].open=this.open" ${s.open?'open':''}><summary>ตรวจทานรายชื่อที่อ่านจากสแกน (${s.rows.length} คน) เทียบกับภาพต้นฉบับ</summary>
+<p class="hint">ช่องสีส้ม = เลขบัตรไม่ผ่านการตรวจหลักที่ 13 หรือไม่มีชื่อ · ช่องสีฟ้า = เครื่องมือแก้ตัวเลขให้เอง ตรวจซ้ำ · กดที่ช่องเพื่อแก้ได้ · × ลบแถวที่ไม่ใช่นักเรียน</p>
+${s.thumb?`<img class="th" src="${s.thumb}" alt="ภาพหน้าเอกสารต้นฉบับ">`:''}<div class="rvw"><table class="rt"><tr><th>#</th><th>เลขบัตร</th><th>คำนำหน้า</th><th>ชื่อ</th><th>สกุล</th><th></th></tr>${rows}</table></div></details>`;
+}
 const DOC_MSG='ไฟล์ .doc รุ่นเก่า (Word 97-2003) เบราว์เซอร์อ่านตารางจากไฟล์ชนิดนี้ไม่ได้อย่างแม่นยำ กรุณาเปิดใน Word แล้วเลือก ไฟล์ > บันทึกเป็น > Word Document (.docx) จากนั้นนำเข้าใหม่';
 function decodeText(buf){
   try{return new TextDecoder('utf-8',{fatal:true}).decode(buf)}
@@ -388,6 +521,7 @@ async function readXlsx(buf){
 async function readAny(file){
   const buf=await file.arrayBuffer(),u=new Uint8Array(buf.slice(0,8));
   const ext=((file.name.match(/\.([A-Za-z0-9]+)$/)||[])[1]||'').toLowerCase();
+  if(u[0]===0x25&&u[1]===0x50&&u[2]===0x44&&u[3]===0x46)return readPdf(buf);
   if(u[0]===0x50&&u[1]===0x4B){
     const z=await JSZip.loadAsync(buf);
     if(z.file('word/document.xml'))return readDocx(buf);
@@ -409,12 +543,14 @@ async function load(file){
   let src;
   try{src=await readAny(file)}catch(e){alert('เปิดไฟล์ไม่ได้: '+e.message);return}
   if(!src.length){alert('ไม่พบตารางหรือชีตในไฟล์นี้');return}
-  S=src.map(({name,g})=>{
+  S=src.map(({name,g,ocr,thumb})=>{
     const d=detect(g);let label=labelOf(name);
-    if(label===name){const t=roomOf(g.slice(0,10).map(r=>r.join(' ')).join(' '));if(t)label=t}
-    const s={name,label,g,m:d.m,nc:d.nc,sample:d.sample,auto:true};
+    if(label===name){const ht=g.slice(0,10).map(r=>r.join(' ')).join(' '),t=roomOf(ocr?ht.replace(/\s+/g,''):ht);if(t)label=t}
+    const s={name,label,g,m:d.m,nc:d.nc,sample:d.sample,auto:!ocr,ocr,thumb,fixed:g.fixed||new Set()};
     s.rows=extract(g,s.m,s.auto,s.label);s.on=s.rows.length>0&&!/รวม|สรุป|total/i.test(name);return s;
   });
+  S=S.filter(x=>!x.ocr||x.rows.length);
+  if(!S.length){alert('ไม่พบรายชื่อนักเรียนในไฟล์นี้');return}
   if(!$('school').value){
     const sc=schoolOf((src.paras||[]).join('  ')+'  '+src.slice(0,3).map(x=>x.g.slice(0,6).map(r=>r.join('  ')).join('  ')).join('  '));
     if(sc)$('school').value=sc;
@@ -431,7 +567,7 @@ $('list').addEventListener('change',e=>{
   const f=t.dataset.f;
   if(f==='on')s.on=t.checked;
   else if(f==='auto'){s.auto=t.checked;s.rows=extract(s.g,s.m,s.auto,s.label)}
-  else if(f==='label'){s.label=t.value;s.rows=extract(s.g,s.m,s.auto,s.label)}
+  else if(f==='label'){s.label=t.value;if(!s.ocr)s.rows=extract(s.g,s.m,s.auto,s.label)}
   else{s.m[f]=+t.value;s.rows=extract(s.g,s.m,s.auto,s.label)}
   render();
 });
@@ -548,6 +684,20 @@ $('back').onclick=()=>{$('entry').hidden=true;$('cfg').hidden=false;document.que
 $('clr').onclick=()=>{if(confirm('ล้างผลตรวจที่กรอกไว้ทั้งหมดในเครื่องนี้?')){E={};save();drawRoom()}};
 $('dl2').onclick=()=>$('go').click();
 $('ent').onclick=openEntry;
+
+$('list').addEventListener('change',e=>{
+  const t=e.target,k=t.dataset.rk;if(k==null)return;
+  const s=S[k],r=s.rows[+t.dataset.ri],f=t.dataset.rf,v=t.value.trim();
+  if(f==='id'){
+    if(v===''){if(!r.noid){r.noid=true;r.id=s.label+'#'+(+t.dataset.ri+1)}}
+    else{r.id=idOf(v)||v.replace(/\s/g,'').toUpperCase();r.noid=false;r.bad=false}
+  }else r[f]=v;
+  render();
+});
+$('list').addEventListener('click',e=>{
+  const b=e.target.closest('[data-del]');if(!b)return;
+  const [k,i]=b.dataset.del.split(':').map(Number);S[k].rows.splice(i,1);render();
+});
 $('go').addEventListener('click',()=>build().catch(e=>alert('สร้างไฟล์ไม่สำเร็จ: '+e.message)));
 </script>
 </body>
