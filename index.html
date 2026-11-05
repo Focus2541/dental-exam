@@ -144,10 +144,18 @@ function detect(g){
   const cnt=Array(nc).fill(0);
   g.forEach(r=>r.forEach((c,i)=>{if(idOf(c))cnt[i]++}));
   const mx=Math.max(0,...cnt);
-  const m={id:-1,pre:-1,fn:-1,ln:-1,rm:-1,sq:-1,gr:-1};
-  if(!mx)return {m,nc,sample:g.find(r=>r.some(Boolean))||[]};
-  const id=cnt.indexOf(mx);m.id=id;
-  const rows=g.filter(r=>idOf(r[id]));
+  const m={id:-1,pre:-1,fn:-1,ln:-1,rm:-1,sq:-1,gr:-1,cd:-1};
+  const hasPre=c=>PREFULL.test(c.replace(/\s/g,''))||PRE.some(p=>c.startsWith(p)&&c.length>p.length);
+  let id=-1,rows;
+  if(mx){id=cnt.indexOf(mx);m.id=id;rows=g.filter(r=>idOf(r[id]))}
+  else{
+    const pc=Array(nc).fill(0);
+    g.forEach(r=>r.forEach((c,i)=>{if(c&&hasPre(c))pc[i]++}));
+    const best=Math.max(0,...pc);
+    if(best<3)return {m,nc,sample:g.find(r=>r.some(Boolean))||[]};
+    const nameCol=pc.indexOf(best);
+    rows=g.filter(r=>hasPre(r[nameCol]||''));
+  }
   const GR=/^(ป|ม|อ|อนุบาล)\.?\s?\d$/;
   for(let i=0;i<nc&&m.gr<0;i++){if(i!==id&&rows.filter(r=>GR.test((r[i]||'').trim())).length>=rows.length*.6)m.gr=i}
   if(m.gr>=0)for(let j=m.gr+1;j<=m.gr+3&&j<nc;j++){
@@ -184,6 +192,13 @@ function detect(g){
       if(m.fn>=0&&S2[m.fn].sp<.5)m.ln=dt(m.fn+1)>.6?m.fn+1:-1;
     }
   }
+  if(m.id<0){
+    for(let i=0;i<nc;i++){
+      if([m.sq,m.fn,m.pre,m.ln,m.gr,m.rm].includes(i))continue;
+      const v=rows.map(r=>(r[i]||'').trim());
+      if(v.filter(x=>/^\d{3,7}$/.test(x)).length>=rows.length*.8&&new Set(v).size>=rows.length*.9){m.cd=i;break}
+    }
+  }
   return {m,nc,sample:rows[0]};
 }
 
@@ -210,11 +225,13 @@ function labelOf(n){
   return m?m[1]+m[2]:n;
 }
 function extract(g,m,auto,label){
-  if(m.id<0||m.fn<0)return [];
+  if(m.fn<0)return [];
   const split=auto&&m.rm<0&&m.gr<0,out=[];
   let cur='',last=0,idx=1;
   g.forEach(r=>{
-    const id=idOf(r[m.id]);
+    let id='';
+    if(m.id>=0)id=idOf(r[m.id]);
+    else{const nv=(m.pre>=0?r[m.pre]:r[m.fn])||'';if(PREFULL.test(nv.replace(/\s/g,''))||PRE.some(p=>nv.startsWith(p)&&nv.length>p.length))id='-'}
     if(!id){if(split){const t=roomOf(r.join(' '));if(t)cur=t}return}
     let pre=m.pre>=0?normPre(r[m.pre]):'',fn=(r[m.fn]||'').trim(),ln=m.ln>=0?(r[m.ln]||'').trim():'';
     if(m.ln<0){
@@ -226,7 +243,9 @@ function extract(g,m,auto,label){
     if(/^[-–—.]+$/.test(ln))ln='';
     let rm=m.rm>=0?(r[m.rm]||'').trim():'';
     if(m.gr>=0){const gv=(r[m.gr]||'').replace(/[.\s]/g,'');rm=gv?(rm?gv+'/'+rm:gv):''}
-    const o={id,pre,fn,ln,rm,cur:'',idx:1};
+    const noid=m.id<0;
+    if(noid){const cd=m.cd>=0?(r[m.cd]||'').trim():'';id=cd?'c'+cd:label+'#'+(out.length+1)}
+    const o={id,noid,pre,fn,ln,rm,cur:'',idx:1};
     if(split){
       const sq=m.sq>=0?parseInt(r[m.sq],10):NaN;
       if(!isNaN(sq)){if(sq<last&&sq<=1)idx++;last=sq}
@@ -273,6 +292,8 @@ function validate(){
   if(bad)w.push(`เลขบัตร ${bad} รายการไม่ผ่านการตรวจหลักที่ 13 (อาจพิมพ์ผิด)`);
   const nm=all.filter(r=>!r.ln).length;
   if(nm)w.push(`${nm} คนไม่มีนามสกุล (ถ้าเป็นเด็กที่ไม่มีนามสกุลจริงข้ามได้ ถ้ามากผิดปกติให้ลองตรวจการเลือกคอลัมน์)`);
+  const ni=all.filter(r=>r.noid).length;
+  if(ni)w.push(`${ni} คนไม่มีเลขบัตรในไฟล์ ใช้รหัสนักเรียนแทนในการจดจำ ช่องเลขบัตรในไฟล์ที่ได้จะเว้นว่าง`);
   $('msg').textContent=w.join(' · ');
   $('go').disabled=!used().length;
 }
@@ -418,7 +439,7 @@ async function build(){
       ws.getRow(3).height=21;ws.getRow(4).height=19.8;
       rows.forEach((p,n)=>{
         const r=5+n,row=ws.getRow(r);row.height=rh;
-        row.getCell(1).value=n+1;const num=/^[1-9]\d{12}$/.test(p.id);row.getCell(2).value=num?Number(p.id):p.id;row.getCell(2).numFmt=num?'0':'@';
+        row.getCell(1).value=n+1;if(!p.noid){const num=/^[1-9]\d{12}$/.test(p.id);row.getCell(2).value=num?Number(p.id):p.id;row.getCell(2).numFmt=num?'0':'@'}
         row.getCell(3).value=p.pre;row.getCell(4).value=p.fn;row.getCell(5).value=p.ln;
         for(let c=1;c<=18;c++){
           const cell=row.getCell(c);cell.border=bd;cell.font=font(c<=5?16:14);
