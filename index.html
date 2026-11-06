@@ -684,7 +684,13 @@ if('serviceWorker' in navigator&&location.protocol==='https:'){
 }
 let instEv=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();instEv=e;$('inst').hidden=false});
-$('inst').onclick=async()=>{if(!instEv)return;instEv.prompt();await instEv.userChoice;instEv=null;$('inst').hidden=true};
+const instHelp='ติดตั้งจากปุ่มนี้ไม่ได้ในตอนนี้ (มักเป็นเพราะติดตั้งแอปนี้ไว้แล้ว)\n\n• ถ้าแถบที่อยู่มีปุ่ม "เปิดในแอป" แปลว่าติดตั้งแล้ว กดปุ่มนั้นเพื่อเปิด\n• หรือใช้เมนู ⋮ > ส่ง บันทึก และแชร์ > ติดตั้งหน้าเป็นแอป';
+$('inst').onclick=async()=>{
+  if(!instEv){alert(instHelp);return}
+  try{const ev=instEv;instEv=null;await ev.prompt();const c=await ev.userChoice;if(c&&c.outcome==='accepted')$('inst').hidden=true}
+  catch(e){alert(instHelp)}
+};
+if(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)$('inst').hidden=true;
 window.addEventListener('appinstalled',()=>{$('inst').hidden=true});
 $('go').addEventListener('click',()=>build().catch(e=>alert('สร้างไฟล์ไม่สำเร็จ: '+e.message)));
 </script>
