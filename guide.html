@@ -47,6 +47,11 @@ th{background:var(--bg)}
 kbd{font-family:inherit;font-size:14px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 6px;background:var(--bg)}
 details{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:8px 0}
 summary{cursor:pointer;font-weight:600}
+.tw{overflow-x:auto;margin:6px 0 14px}
+table.ex{font-size:13px;margin:0;white-space:nowrap}
+table.ex th{background:#e8f0fe;color:#1d2b2f;font-weight:600}
+@media (prefers-color-scheme:dark){table.ex th{background:#243447;color:#e6eeef}}
+code{font-size:15px;background:var(--bg);padding:0 4px;border-radius:4px}
 figure{margin:12px 0 18px}
 figure img{display:block;max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
 figure.m img{max-width:300px}
@@ -58,7 +63,7 @@ a{color:var(--acc)}
   body{font-size:12pt}
   header{background:#fff;color:#000;padding:0 0 8mm;border-bottom:2px solid #000}
   header p,.tag{color:#333}.links,nav,.noprint{display:none}
-  section{border:none;padding:0;margin:0 0 7mm}h2{break-after:avoid}figure{break-inside:avoid}figure img{max-height:118mm;width:auto;box-shadow:none}figure.m img{max-width:62mm}
+  section{border:none;padding:0;margin:0 0 7mm}h2{break-after:avoid}.tw{overflow:visible}table.ex{font-size:6.3pt;white-space:nowrap}table.ex th{white-space:normal}table.ex td,table.ex th{padding:1mm .8mm}figure{break-inside:avoid}figure img{max-height:118mm;width:auto;box-shadow:none}figure.m img{max-width:62mm}
   details{border:none;padding:0}details>*{display:block}summary{list-style:none}
   .btn{color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{size:A4;margin:14mm}
@@ -73,7 +78,7 @@ a{color:var(--acc)}
 <div class="links"><a href="entry.html">เปิดแอปกรอกผล</a><a class="o" href="./">เปิดแอปเตรียมแบบตรวจ</a><a class="o noprint" href="#" onclick="print();return false">🖨 พิมพ์ / บันทึก PDF</a></div>
 </div></header>
 <nav><div class="wrap">
-<a href="#apps">มีแอปอะไรบ้าง</a><a href="#install">ติดตั้ง</a><a href="#lead">คนนำทีม</a><a href="#help">คนช่วยกรอก</a><a href="#enter">กรอกผล</a><a href="#offline">ไม่มีเน็ต</a><a href="#print">พิมพ์</a><a href="#staff">ผู้ตรวจ/ลายเซ็น</a><a href="#clean">ลบ/ล้าง</a><a href="#faq">ปัญหาที่พบบ่อย</a>
+<a href="#apps">มีแอปอะไรบ้าง</a><a href="#install">ติดตั้ง</a><a href="#lead">คนนำทีม</a><a href="#help">คนช่วยกรอก</a><a href="#enter">กรอกผล</a><a href="#offline">ไม่มีเน็ต</a><a href="#print">พิมพ์</a><a href="#staff">ผู้ตรวจ/ลายเซ็น</a><a href="#clean">ลบ/ล้าง</a><a href="#data">ข้อมูลใน Sheet</a><a href="#faq">ปัญหาที่พบบ่อย</a>
 </div></nav>
 <main><div class="wrap">
 
@@ -183,7 +188,72 @@ a{color:var(--acc)}
 <figure class="m"><img src="images/16-theme.jpg" alt="เลือกโหมดและสีหลักของแอป" loading="lazy"><figcaption>เลือกโหมดและสีหลักของแอป</figcaption></figure>
 </section>
 
-<section id="faq"><h2><span class="n">10</span>ปัญหาที่พบบ่อย</h2>
+<section id="data"><h2><span class="n">10</span>ข้อมูลใน Google Sheet และไฟล์ Excel</h2>
+<p>เมื่อเปิดให้คนอื่นช่วยกรอก ข้อมูลทั้งหมดจะเก็บใน Google Sheet <b>"ผลตรวจฟันนักเรียน CUP บวกหมื้อ"</b> ของ รพ.สต.บวกหมื้อ มี 4 ชีต (แอปสร้างให้เอง)</p>
+<table>
+<tr><th>ชีต</th><th>เก็บอะไร</th><th>1 แถว =</th></tr>
+<tr><td><b>รอบตรวจ</b></td><td>โรงเรียนที่เปิดรอบตรวจ วันที่ ผู้เปิด</td><td>1 รอบตรวจ (1 โรงเรียน 1 ครั้ง)</td></tr>
+<tr><td><b>รายชื่อ</b></td><td>รายชื่อนักเรียนที่คนนำทีมอัปโหลด แยกห้อง</td><td>นักเรียน 1 คน</td></tr>
+<tr><td><b>ผลตรวจ</b></td><td>ผลตรวจของเด็กแต่ละคน ใครบันทึก เมื่อไร</td><td>นักเรียน 1 คนที่กรอกผลแล้ว</td></tr>
+<tr><td><b>ผู้ตรวจ</b></td><td>ชื่อ ตำแหน่ง หน่วยบริการ และลายเซ็นของผู้ตรวจ</td><td>ผู้ตรวจ 1 คน</td></tr>
+</table>
+<p>ทุกชีตเชื่อมกันด้วยคอลัมน์ <b>รหัสรอบ</b> (เช่น <code>TKHZEU</code>) และนักเรียนเชื่อมกันด้วยคอลัมน์ <b>key</b> (เลขบัตรประชาชน รหัส G หรือรหัสนักเรียน ขึ้นต้นด้วย c ถ้าไม่มีเลขบัตร)</p>
+
+<h3>ชีต "รอบตรวจ"</h3>
+<div class="tw"><table class="ex">
+<tr><th>รหัสรอบ</th><th>PIN</th><th>หน่วยบริการ</th><th>โรงเรียน</th><th>วันที่ตรวจ</th><th>สร้างเมื่อ</th><th>สร้างโดย</th></tr>
+<tr><td>9M6RPM</td><td>389856</td><td></td><td>โรงเรียนตัวอย่าง</td><td>6 พ.ย. 2569</td><td>6/11/2026 14:05</td><td></td></tr>
+</table></div>
+
+<h3>ชีต "รายชื่อ"</h3>
+<div class="tw"><table class="ex">
+<tr><th>รหัสรอบ</th><th>ห้อง</th><th>key</th><th>เลขบัตร</th><th>คำนำหน้า</th><th>ชื่อ</th><th>นามสกุล</th></tr>
+<tr><td>9M6RPM</td><td>ป1/1</td><td>1509100040013</td><td>1509100040013</td><td>ด.ช.</td><td>สมชาย</td><td>ใจดี</td></tr>
+<tr><td>9M6RPM</td><td>ป1/1</td><td>G6650000123456</td><td>G6650000123456</td><td>ด.ญ.</td><td>มะลิ</td><td>ศรีสุข</td></tr>
+<tr><td>9M6RPM</td><td>ป1/2</td><td>c2345</td><td></td><td>ด.ญ.</td><td>กชกร</td><td></td></tr>
+</table></div>
+
+<h3>ชีต "ผลตรวจ"</h3>
+<div class="tw"><table class="ex">
+<tr><th rowspan="2">รหัสรอบ</th><th rowspan="2">key</th><th rowspan="2">ห้อง</th><th rowspan="2">ชื่อ-สกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th rowspan="2">เหงือก<br>อักเสบ</th><th rowspan="2">หินปูน</th><th colspan="3">Tx (ซี่)</th><th rowspan="2">เวลา(ms)</th><th rowspan="2">บันทึกโดย</th><th rowspan="2">แก้ไขล่าสุด</th></tr>
+<tr><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>อุด</th><th>ถอน</th><th>Sealant</th></tr>
+<tr><td>9M6RPM</td><td>1509100040013</td><td>ป1/1</td><td>ด.ช. สมชาย ใจดี</td><td>20</td><td>2</td><td>1</td><td>0</td><td>4</td><td>0</td><td>0</td><td>0</td><td>1</td><td></td><td>1</td><td></td><td></td><td>1762412…</td><td></td><td>6/11/2026 14:10</td></tr>
+<tr><td>9M6RPM</td><td>G6650000123456</td><td>ป1/1</td><td>ด.ญ. มะลิ ศรีสุข</td><td>20</td><td>0</td><td>0</td><td>0</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>1762412…</td><td></td><td>6/11/2026 14:11</td></tr>
+</table></div>
+<p class="hint" style="font-size:15px;color:var(--mut)">เหงือกอักเสบ / หินปูน: 1 = พบ, ว่าง = ไม่พบ · ช่องว่าง = ไม่ได้กรอก (ต่างจาก 0 ที่แปลว่าไม่มี) · คอลัมน์ เวลา(ms) แอปใช้ตัดสินว่าค่าไหนใหม่กว่า ไม่ต้องสนใจ</p>
+
+<h3>ชีต "ผู้ตรวจ"</h3>
+<div class="tw"><table class="ex">
+<tr><th>id</th><th>ชื่อ</th><th>ตำแหน่ง</th><th>หน่วยบริการ</th><th>ลายเซ็น</th><th>แก้ไขล่าสุด</th></tr>
+<tr><td>SMHN2K…</td><td>นายสมศักดิ์ ตัวอย่าง</td><td>เจ้าพนักงานทันตสาธารณสุข</td><td>รพ.สต.บวกหมื้อ</td><td>data:image/png;base64,…</td><td>6/11/2026 15:02</td></tr>
+</table></div>
+<p>คอลัมน์ลายเซ็นเป็นรหัสรูปภาพ อ่านไม่ออกเป็นเรื่องปกติ แก้ลายเซ็นจากในแอปเท่านั้น</p>
+
+<h3>ดูผลของโรงเรียนเดียว</h3>
+<ol>
+<li>ชีต <b>รอบตรวจ</b> หา <b>รหัสรอบ</b> ของโรงเรียนนั้น</li>
+<li>ชีต <b>ผลตรวจ</b> เมนู <b>ข้อมูล &gt; สร้างตัวกรอง</b> กดตัวกรองที่หัว <b>รหัสรอบ</b> แล้วเลือกรหัสนั้น</li>
+<li>หรือง่ายกว่า: เข้ารอบนั้นในแอป แล้ว <b>⋯ เพิ่มเติม &gt; ดาวน์โหลดผลเป็น Excel</b> ได้ไฟล์ที่จัดรูปแบบแล้ว</li>
+</ol>
+
+<div class="warn"><b>ห้ามทำใน Google Sheet</b> (แอปจะหาข้อมูลไม่เจอ)
+<ul style="margin:4px 0 0">
+<li>เปลี่ยนชื่อชีต ลบชีต หรือแก้/ย้ายแถวหัวตาราง (แถวที่ 1)</li>
+<li>สลับหรือแทรกคอลัมน์</li>
+<li>แก้ <b>รหัสรอบ</b> หรือ <b>key</b></li>
+</ul>
+แก้ตัวเลขผลตรวจได้ แต่ควรแก้จากในแอป เพราะถ้าเครื่องที่กรอกส่งค่าซ้ำมา ค่าใน Sheet จะถูกทับ · ใส่คอลัมน์ของตัวเองเพิ่มได้ที่<b>ขวาสุด</b>ถัดจากคอลัมน์สุดท้าย</div>
+
+<h3>ไฟล์ Excel ที่ดาวน์โหลดจากแอป</h3>
+<table>
+<tr><th>ชีต</th><th>มีอะไร</th></tr>
+<tr><td>ป1/1, ป1/2, …</td><td>แบบบันทึกตรวจคัดกรองรูปแบบเดิม 1 ชีตต่อห้อง พร้อมตัวเลขที่กรอก พิมพ์ A4 ได้ทันที</td></tr>
+<tr><td>สรุป</td><td>สรุปรายห้องและรวม: จำนวนตรวจ ร้อยละฟันผุ ไม่มีฟันผุ dmft/DMFT เหงือกอักเสบ หินปูน จำนวนที่ต้องรักษา</td></tr>
+<tr><td>ต้องรักษา</td><td>รายชื่อเด็กที่ต้องอุด ถอน เคลือบหลุมร่องฟัน หรือขูดหินปูน ใช้นัดหมายหรือคีย์เข้า JHCIS</td></tr>
+</table>
+</section>
+
+<section id="faq"><h2><span class="n">11</span>ปัญหาที่พบบ่อย</h2>
 <details><summary>เปิดแอปแล้วยังเป็นหน้าเก่า</summary><p>กด <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> หรือปิดแอปแล้วเปิดใหม่</p></details>
 <details><summary>ไม่เห็นรายการ "โรงเรียนที่กำลังตรวจอยู่"</summary><p>ต้องมีเน็ต และต้องมีคนกด "เปิดให้คนอื่นช่วยกรอก" แล้ว ลองกด <b>รีเฟรช</b></p></details>
 <details><summary>ผลจากอีกเครื่องยังไม่ขึ้น</summary><p>แอปดึงผลทุก 20 วินาที ดูแถบด้านบนของทั้งสองเครื่องว่าขึ้น <b>✓ ส่งครบแล้ว</b></p></details>
