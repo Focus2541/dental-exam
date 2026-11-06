@@ -5,7 +5,7 @@
   "description": "กรอกผลตรวจสุขภาพช่องปากนักเรียนทีละห้องอย่างรวดเร็ว แล้วส่งออกเป็น Excel",
   "lang": "th",
   "start_url": "./entry.html",
-  "scope": "./",
+  "scope": "./entry.html",
   "display": "standalone",
   "background_color": "#1d3f63",
   "theme_color": "#1d3f63",
