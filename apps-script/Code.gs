@@ -26,7 +26,7 @@ function doGet() {
 function doPost(e) {
   try {
     var q = JSON.parse(e.postData.contents);
-    var fn = { create: create_, join: join_, push: push_, pull: pull_, list: list_ }[q.action];
+    var fn = { create: create_, join: join_, push: push_, pull: pull_, list: list_, remove: remove_ }[q.action];
     if (!fn) return out_({ ok: false, error: 'ไม่รู้จักคำสั่ง' });
     return out_(fn(q));
   } catch (err) {
@@ -147,4 +147,22 @@ function list_(q) {
     return { code: c, pin: String(r[1]), unit: r[2], school: r[3], date: r[4], created: t, done: done[c] || 0, total: total[c] || 0 };
   }).filter(function (x) { return x.created >= cut; }).sort(function (a, b) { return b.created - a.created; });
   return { ok: true, sessions: out };
+}
+
+/** ลบรอบตรวจ (รายชื่อ + ผลตรวจ + ข้อมูลรอบ) ต้องมีรหัสรอบและ PIN */
+function remove_(q) {
+  var se = session_(q.code, q.pin);
+  return withLock_(function () {
+    var n = 0;
+    ['X', 'R', 'S'].forEach(function (k) {
+      var s = sheet_(k), data = rows_(s);
+      if (!data.length) return;
+      var keep = data.filter(function (r) { return String(r[0]).toUpperCase() !== se.code; });
+      n += data.length - keep.length;
+      if (keep.length === data.length) return;
+      s.getRange(2, 1, data.length, data[0].length).clearContent();
+      if (keep.length) s.getRange(2, 1, keep.length, keep[0].length).setValues(keep);
+    });
+    return { ok: true, removed: n };
+  });
 }

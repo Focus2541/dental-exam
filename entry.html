@@ -171,6 +171,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 .lv b{font-size:17px;color:var(--acc)}
 .lv span{font-size:14px;color:var(--mut);font-weight:400}
 .lv:hover{border-color:var(--acc);background:var(--card)}
+.danger{color:var(--warn)!important;border-color:var(--warn)!important}
 </style>
 </head>
 <body>
@@ -240,6 +241,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <details class="menu"><summary>⋯ เพิ่มเติม</summary><div class="mbody">
 <button id="dl2" type="button">ดาวน์โหลดผลเป็น Excel</button>
 <button id="clr" class="alt" type="button">ล้างผลที่กรอกในเครื่องนี้</button>
+<button id="delSes" class="alt danger" type="button" hidden>ลบรอบตรวจนี้ออกจาก Google Sheet</button>
 </div></details>
 </div>
 <section id="repv" hidden></section>
@@ -1041,6 +1043,7 @@ function drawSync(){
   const b=$('sync'),n=Object.keys(Q).length;
   $('invite').textContent=SES?'👥 ส่งลิงก์ให้เพื่อน':'👥 เปิดให้คนอื่นช่วยกรอก';
   drawResume();
+  $('delSes').hidden=!SES;
   if(!SES){b.hidden=true;return}
   b.hidden=false;
   b.innerHTML=`<span>👥 กรอกร่วมกัน · <b>${esc(SES.school||'')}</b></span>`+
@@ -1104,6 +1107,21 @@ async function loadLive(){
   }catch(e){$('live').hidden=true}
 }
 $('lvR').onclick=loadLive;
+$('delSes').onclick=async()=>{
+  if(!SES)return;
+  const nm=SES.school||SES.code;
+  if(!confirm(`ลบรอบตรวจ "${nm}" ออกจาก Google Sheet?\n\nรายชื่อและผลตรวจของรอบนี้จะถูกลบจาก Sheet ทั้งหมด ทุกเครื่องจะไม่เห็นรอบนี้อีก และผลในเครื่องนี้จะถูกล้างด้วย\nกู้คืนไม่ได้`))return;
+  if(!confirm(`ยืนยันอีกครั้ง: ลบ "${nm}" ถาวร`))return;
+  const b=$('delSes');b.disabled=true;b.textContent='กำลังลบ…';
+  try{
+    await call({action:'remove',code:SES.code,pin:SES.pin});
+    (SES.keys||[]).forEach(k=>{delete E[k];delete ET[k]});save();
+    SES=null;Q={};syncSave();
+    alert(`ลบรอบตรวจ "${nm}" แล้ว`);
+    $('entry').hidden=true;$('cfg').hidden=true;document.querySelector('main').style.maxWidth='';S=[];drawSync();loadLive();
+  }catch(e){alert('ลบไม่สำเร็จ: '+e.message)}
+  finally{b.disabled=false;b.textContent='ลบรอบตรวจนี้ออกจาก Google Sheet'}
+};
 async function share(){
   const t=`ช่วยกรอกผลตรวจฟัน ${SES.school||''}\nกดลิงก์ หรือเปิดแอปกรอกผลแล้วกดชื่อโรงเรียนนี้ได้เลย\n${joinLink()}`;
   if(navigator.share){try{await navigator.share({title:'กรอกผลตรวจฟัน',text:t});return}catch(e){if(e.name==='AbortError')return}}
