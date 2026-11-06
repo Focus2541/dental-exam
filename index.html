@@ -70,6 +70,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .rt input.bad{background:var(--warnbg);color:var(--warn)}
 .rt input.fx{background:#dbeafe;color:#1e3a8a}
 .rt .x{padding:2px 8px;background:transparent;color:var(--warn);border:1px solid var(--line)}
+.h2{font-size:18px;margin:18px 0 8px}
+.sv{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.sv small{color:var(--mut)}
+.svb{display:flex;gap:6px}
+.svb button{padding:7px 14px}
+#off{margin-top:24px}
 </style>
 </head>
 <body>
@@ -93,6 +99,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 <main>
 <label id="drop"><input type="file" id="f" accept=".xlsx,.xlsm,.xls,.csv,.docx,.doc,.htm,.html,.pdf">เลือกไฟล์รายชื่อ หรือลากมาวางที่นี่<small>Excel (.xlsx .xls .csv) และ Word (.docx) ที่เป็นตารางรายชื่อ และ PDF (ถ้าเป็นภาพสแกนจะอ่านด้วย OCR ซึ่งอาจผิดบ้าง ต้องตรวจทานก่อนใช้) ส่วน .doc รุ่นเก่าที่เป็นไฟล์ Word จริง ให้บันทึกเป็น .docx ก่อน</small></label>
 <p id="st" class="hint" role="status"></p>
+<section id="saved" hidden><h2 class="h2">รายชื่อที่บันทึกไว้ในเครื่องนี้</h2><div id="savedList"></div><p class="hint">เก็บชื่อและเลขบัตรไว้ในเบราว์เซอร์ของเครื่องนี้เท่านั้น ลบได้ทุกเมื่อ ไม่ควรบันทึกในเครื่องที่ใช้ร่วมกับคนอื่น</p></section>
 <section id="cfg" hidden>
 <div class="row">
 <label>ชื่อโรงเรียน<input type="text" id="school" placeholder="เช่น อนุบาลเพชรบูรณ์"></label>
@@ -103,8 +110,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 </div>
 <div id="list"></div>
 <div id="msg" role="status"></div>
-<button id="go" type="button">ดาวน์โหลดไฟล์แบบตรวจ</button>
+<button id="go" type="button">ดาวน์โหลดไฟล์แบบตรวจ</button> <button id="save" class="alt" type="button">บันทึกรายชื่อไว้ในเครื่อง</button>
 </section>
+<p id="off" class="hint"></p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -240,6 +248,7 @@ function extract(g,m,auto,label){
     let id='';
     for(const c of [m.id,...(m.ids||[])]){if(c>=0){id=idOf(r[c]||'');if(id)break}}
     const nv=(m.pre>=0?r[m.pre]:r[m.fn])||'',named=PREFULL.test(nv.replace(/\s/g,''))||PRE.some(p=>nv.startsWith(p)&&nv.length>p.length);
+    if((id||named)&&/ครูประจำชั้น|ผู้อำนวยการ|ผู้บริหาร|ครูที่ปรึกษา|ว่าที่\s*ร้อย/.test(r.join(" ").replace(/\u0E4D\u0E32/g,"\u0E33")))return;
     if(!id&&!named){if(split){const t=roomOf(r.join(' '));if(t)cur=t}return}
     let pre=m.pre>=0?normPre(r[m.pre]):'',fn=(r[m.fn]||'').trim(),ln=m.ln>=0?(r[m.ln]||'').trim():'';
     if(m.ln<0){
@@ -282,13 +291,13 @@ function render(){
     const gp=groupsOf(s.rows,s.label);
     const pv0=s.rows.length?s.rows.slice(0,3).map(r=>esc(`${r.pre} ${r.fn} ${r.ln}`.trim())).join(' / '):'ไม่พบเลขบัตร 13 หลักในชีตนี้ (ถ้าไม่ใช่ชีตรายชื่อ ปล่อยไว้ได้)';
     const pv=(gp.size>1?`<b>แยกได้ ${gp.size} ห้อง:</b> ${[...gp].map(([k,n])=>esc(k)+' ('+n+')').join(', ')}<br>`:'')+pv0;
-    const sel=(f,l)=>`<label>${l}<select data-k="${k}" data-f="${f}">${opts(s,f)}</select></label>`;
+    const sel=(f,l)=>s.saved?'':`<label>${l}<select data-k="${k}" data-f="${f}">${opts(s,f)}</select></label>`;
     return `<div class="card ${s.on?'':'off'}">
 <div class="top"><label><input type="checkbox" data-k="${k}" data-f="on" ${s.on?'checked':''}> <b>ชีต ${esc(s.name)}</b></label><span class="n">${s.rows.length} คน</span></div>
 <div class="grid">
 <label>ชื่อห้อง/ชั้นในหัวแบบ<input type="text" data-k="${k}" data-f="label" value="${esc(s.label)}"></label>
 ${sel('id','เลขบัตร')}${sel('pre','คำนำหน้า')}${sel('fn','ชื่อ (หรือชื่อ-สกุล)')}${sel('ln','สกุล')}${sel('gr','ชั้น (ถ้ามีคอลัมน์ชั้น)')}${sel('rm','ห้อง (ถ้ารวมหลายห้องในชีตเดียว)')}
-</div><label class="auto"><input type="checkbox" data-k="${k}" data-f="auto" ${s.auto?'checked':''}> แยกห้องอัตโนมัติ (ชีตที่รวมหลายห้อง ตัดเมื่อลำดับเริ่มนับ 1 ใหม่ หรือเจอหัวข้อห้อง)</label><p class="pv">${pv}</p>${rv(s,k)}</div>`;
+</div>${s.saved?'':`<label class="auto"><input type="checkbox" data-k="${k}" data-f="auto" ${s.auto?'checked':''}> แยกห้องอัตโนมัติ (ชีตที่รวมหลายห้อง ตัดเมื่อลำดับเริ่มนับ 1 ใหม่ หรือเจอหัวข้อห้อง)</label>`}<p class="pv">${pv}</p>${rv(s,k)}</div>`;
   }).join('');
   validate();
 }
@@ -392,7 +401,7 @@ function wordsToGrid(words){
     const segs=[];
     for(const w of r.w){
       const c=TH.test(w.t)?'T':'D',s=segs[segs.length-1],gap=s?w.x0-s.x1:0;
-      if(s&&s.c===c&&gap<COL){s.t+=(gap>=SP?' ':'')+w.t;s.x1=Math.max(s.x1,w.x1)}else segs.push({c,t:w.t,x0:w.x0,x1:w.x1});
+      if(s&&s.c===c&&gap<COL){s.t+=(gap>=SP?' ':'')+w.t;s.x1=Math.max(s.x1,w.x1);s.y0=Math.min(s.y0,w.y0);s.y1=Math.max(s.y1,w.y1)}else segs.push({c,t:w.t,x0:w.x0,x1:w.x1,y0:w.y0,y1:w.y1});
     }
     const runs=[];
     for(let j=0;j<segs.length;j++){if(segs[j].c!=='T')continue;
@@ -403,26 +412,39 @@ function wordsToGrid(words){
     let name=pick>=0?runs[pick].t:'',note=runs.filter((_,k)=>k!==pick).map(x=>x.t).join(' ');
     name=fixPre(name.trim());
     const dig=t=>t.replace(/[๐-๙]/g,c=>'๐๑๒๓๔๕๖๗๘๙'.indexOf(c));
-    const D=segs.filter(s=>s.c==='D').map(s=>dig(s.t));
+    const DS=segs.filter(s=>s.c==='D'),D=DS.map(s=>dig(s.t));let box=null;
     const alnum=t=>t.replace(/[^0-9A-Za-z]/g,'');
     const ii=D.findIndex(t=>alnum(t).length>=10);
-    let id='';if(ii>=0){id=alnum(D[ii]).toUpperCase();D.splice(ii,1)}
+    let id='';if(ii>=0){id=alnum(D[ii]).toUpperCase();box=[DS[ii].x0,DS[ii].y0,DS[ii].x1,DS[ii].y1];D.splice(ii,1)}
     if(id){const f=fixId13(id);id=f.id;if(f.fixed)grid.fixed.add(id)}
     const sm=D.map(t=>alnum(t));
     let ci=sm.findIndex(t=>/^\d{4}$/.test(t));if(ci<0)ci=sm.findIndex((t,k)=>k>0&&/^\d{3,6}$/.test(t));
     const code=ci>=0?sm[ci]:'';if(ci>=0){sm.splice(ci,1);D.splice(ci,1)}
     const si=D.findIndex(t=>/^\d{1,3}$/.test(alnum(t)));const seq=si>=0?alnum(D[si]):'';if(si>=0)D.splice(si,1);
-    if(id||code||(name&&hasPre(name)))grid.push([seq,code,id,name,D.join(' '),note]);
+    if(id||code||(name&&hasPre(name))){const row=[seq,code,id,name,D.join(' '),note];row.box=box;row.y=[Math.min(...r.w.map(w=>w.y0)),Math.max(...r.w.map(w=>w.y1))];grid.push(row)}
     else grid.push([segs.map(s=>s.t).join(' ')]);
   }
   return grid;
+}
+async function refineIds(g,crop,dw,ck){
+  const st=g.filter(r=>r.length>1),bx=st.filter(r=>r.box).map(r=>r.box);
+  if(!bx.length)return;
+  const med=a=>a.slice().sort((x,y)=>x-y)[a.length>>1],X0=med(bx.map(b=>b[0])),X1=med(bx.map(b=>b[2]));
+  const ok=v=>/^G\d{12}$/.test(v)||(/^\d{13}$/.test(v)&&ck(v));
+  for(const r of st){
+    if(ok(r[2])&&!g.fixed.has(r[2]))continue;
+    const b=r.box||[X0,r.y[0],X1,r.y[1]];
+    const t=(await dw(crop(b))).replace(/[^0-9A-Za-z]/g,'').toUpperCase().replace(/^[^G0-9]+/,'');
+    if(ok(t)){if(t!==r[2]){g.fixed.delete(r[2]);r[2]=t}continue}
+    if(!r[2]&&t.length>=12){const f=fixId13(t);r[2]=f.id;if(f.fixed)g.fixed.add(f.id)}
+  }
 }
 function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error('โหลดตัวอ่าน PDF ไม่สำเร็จ ต้องต่ออินเทอร์เน็ต'));document.head.appendChild(s)})}
 async function readPdf(buf){
   const st=$('st'),V='https://cdn.jsdelivr.net/npm/';
   st.textContent='กำลังเตรียมตัวอ่าน PDF…';
   if(!window.pdfjsLib){await loadScript(V+'pdfjs-dist@3.11.174/build/pdf.min.js');pdfjsLib.GlobalWorkerOptions.workerSrc=V+'pdfjs-dist@3.11.174/build/pdf.worker.min.js'}
-  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise,out=[];let worker=null;
+  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise,out=[];let worker=null,dw=null;
   try{
     for(let p=1;p<=pdf.numPages;p++){
       st.textContent=`กำลังอ่านหน้า ${p}/${pdf.numPages}… (หน้าสแกนใช้เวลาหน้าละประมาณครึ่งนาที ครั้งแรกจะโหลดข้อมูลภาษาไทยเพิ่ม)`;
@@ -451,19 +473,24 @@ async function readPdf(buf){
       const r=await worker.recognize(cv,{},{blocks:true}),words=[];
       (r.data.blocks||[]).forEach(b=>b.paragraphs.forEach(pa=>pa.lines.forEach(l=>l.words.forEach(w=>words.push(w)))));
       const g=wordsToGrid(words);
+      st.textContent=`กำลังอ่านเลขบัตรซ้ำแบบตัวเลขล้วน หน้า ${p}/${pdf.numPages}…`;
+      if(!dw){dw=await Tesseract.createWorker('eng');await dw.setParameters({tessedit_char_whitelist:'0123456789G',tessedit_pageseg_mode:'7'})}
+      const crop=b=>{const pad=8,x=Math.max(0,Math.round(b[0]-pad)),y=Math.max(0,Math.round(b[1]-pad)),w=Math.min(cv.width-x,Math.round(b[2]-b[0]+2*pad)),h=Math.min(cv.height-y,Math.round(b[3]-b[1]+2*pad));
+        const c=document.createElement('canvas');c.width=w*2;c.height=h*2;const x2=c.getContext('2d');x2.imageSmoothingEnabled=false;x2.drawImage(cv,x,y,w,h,0,0,w*2,h*2);return c};
+      await refineIds(g,crop,async im=>(await dw.recognize(im)).data.text,checksumOk);
       out.push({name:'หน้า '+p,g,ocr:true,thumb});
     }
-  }finally{if(worker)await worker.terminate();st.textContent=''}
+  }finally{if(worker)await worker.terminate();if(dw)await dw.terminate();st.textContent=''}
   return out;
 }
 function rv(s,k){
-  if(!s.ocr)return '';
+  if(!s.ocr&&!s.saved)return '';
   const rows=s.rows.map((r,i)=>{
     const bad=(!r.noid&&/^\d/.test(r.id)&&!checksumOk(r.id))?'bad':(s.fixed.has(r.id)?'fx':'');
     const inp=(f,v,c='')=>`<input data-rk="${k}" data-ri="${i}" data-rf="${f}" value="${esc(v)}" class="${c}">`;
     return `<tr><td>${i+1}</td><td>${inp('id',r.noid?'':r.id,bad)}</td><td>${inp('pre',r.pre)}</td><td>${inp('fn',r.fn,r.fn?'':'bad')}</td><td>${inp('ln',r.ln)}</td><td><button type="button" class="x" data-del="${k}:${i}" title="ลบแถว">×</button></td></tr>`;
   }).join('');
-  return `<details class="rv" ontoggle="S[${k}].open=this.open" ${s.open?'open':''}><summary>ตรวจทานรายชื่อที่อ่านจากสแกน (${s.rows.length} คน) เทียบกับภาพต้นฉบับ</summary>
+  return `<details class="rv" ontoggle="S[${k}].open=this.open" ${s.open?'open':''}><summary>${s.ocr?`ตรวจทานรายชื่อที่อ่านจากสแกน (${s.rows.length} คน) เทียบกับภาพต้นฉบับ`:`ดูและแก้ไขรายชื่อ (${s.rows.length} คน)`}</summary>
 <p class="hint">ช่องสีส้ม = เลขบัตรไม่ผ่านการตรวจหลักที่ 13 หรือไม่มีชื่อ · ช่องสีฟ้า = เครื่องมือแก้ตัวเลขให้เอง ตรวจซ้ำ · กดที่ช่องเพื่อแก้ได้ · × ลบแถวที่ไม่ใช่นักเรียน</p>
 ${s.thumb?`<img class="th" src="${s.thumb}" alt="ภาพหน้าเอกสารต้นฉบับ">`:''}<div class="rvw"><table class="rt"><tr><th>#</th><th>เลขบัตร</th><th>คำนำหน้า</th><th>ชื่อ</th><th>สกุล</th><th></th></tr>${rows}</table></div></details>`;
 }
@@ -540,7 +567,7 @@ $('list').addEventListener('change',e=>{
   const f=t.dataset.f;
   if(f==='on')s.on=t.checked;
   else if(f==='auto'){s.auto=t.checked;s.rows=extract(s.g,s.m,s.auto,s.label)}
-  else if(f==='label'){s.label=t.value;if(!s.ocr)s.rows=extract(s.g,s.m,s.auto,s.label)}
+  else if(f==='label'){s.label=t.value;if(!s.ocr&&!s.saved)s.rows=extract(s.g,s.m,s.auto,s.label)}
   else{s.m[f]=+t.value;s.rows=extract(s.g,s.m,s.auto,s.label)}
   render();
 });
@@ -604,6 +631,55 @@ $('list').addEventListener('click',e=>{
   const b=e.target.closest('[data-del]');if(!b)return;
   const [k,i]=b.dataset.del.split(':').map(Number);S[k].rows.splice(i,1);render();
 });
+
+const RK='dentalRosters';
+const getR=()=>{try{return JSON.parse(localStorage.getItem(RK)||'{}')}catch(e){return {}}};
+const putR=o=>{try{localStorage.setItem(RK,JSON.stringify(o));return true}catch(e){alert('บันทึกไม่สำเร็จ พื้นที่ในเบราว์เซอร์อาจเต็ม');return false}};
+function dlFile(buf,name){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  a.download=name;document.body.appendChild(a);a.click();a.remove();
+}
+function drawSaved(){
+  const R=getR(),ks=Object.keys(R).sort((a,b)=>R[b].at-R[a].at);
+  $('saved').hidden=!ks.length;
+  $('savedList').innerHTML=ks.map(id=>{const r=R[id],n=r.sheets.reduce((a,x)=>a+x.rows.length,0);
+    return `<div class="sv"><div><b>${esc(r.school)}</b> · ${n} คน<br><small>${esc(r.sheets.map(x=>x.label).join(', '))} · บันทึกเมื่อ ${new Date(r.at).toLocaleString('th-TH')}</small></div>
+<div class="svb"><button type="button" data-open="${id}">เปิด</button><button type="button" class="alt" data-xl="${id}">Excel</button><button type="button" class="alt" data-rm="${id}">ลบ</button></div></div>`}).join('');
+}
+async function rosterXlsx(r){
+  const wb=new ExcelJS.Workbook(),names=new Set(),groups=new Map();
+  r.sheets.forEach(x=>x.rows.forEach(o=>{const k=o.rm||x.label;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(o)}));
+  for(const [label,rows] of groups){
+    let nm=label.replace(/[:\\\/?*\[\]]/g,'.').slice(0,28)||'ชีต',x=nm,i=2;while(names.has(x))x=nm+'_'+i++;names.add(x);
+    const ws=wb.addWorksheet(x);ws.addRow(['ลำดับ','เลขบัตรประชาชน','รหัสนักเรียน','คำนำหน้า','ชื่อ','นามสกุล']);
+    rows.forEach((o,j)=>{const row=ws.addRow([j+1,o.noid?'':o.id,o.noid&&/^c/.test(o.id)?o.id.slice(1):'',o.pre,o.fn,o.ln]);row.getCell(2).numFmt='@'});
+    [7,18,12,10,16,18].forEach((w,j)=>ws.getColumn(j+1).width=w);
+  }
+  dlFile(await wb.xlsx.writeBuffer(),`รายชื่อ_${r.school}.xlsx`);
+}
+$('save').onclick=()=>{
+  const sh=used().map(s=>({label:s.label,rows:s.rows.map(({id,noid,pre,fn,ln,rm})=>({id,noid,pre,fn,ln,rm}))}));
+  if(!sh.length)return;
+  const R=getR(),school=$('school').value.trim()||'ไม่ระบุโรงเรียน',old=Object.keys(R).find(k=>R[k].school===school);
+  if(old&&!confirm(`มีรายชื่อของ "${school}" บันทึกไว้แล้ว ต้องการแทนที่ไหม?`))return;
+  R[old||Date.now().toString(36)]={school,at:Date.now(),sheets:sh};
+  if(putR(R)){drawSaved();$('save').textContent='บันทึกแล้ว ✓';setTimeout(()=>{$('save').textContent='บันทึกรายชื่อไว้ในเครื่อง'},2000)}
+};
+$('savedList').addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;const R=getR();
+  if(b.dataset.open){
+    const r=R[b.dataset.open];
+    S=r.sheets.map(x=>({name:x.label,label:x.label,g:[],m:{id:-1,pre:-1,fn:-1,ln:-1,rm:-1,sq:-1,gr:-1,cd:-1,ids:[]},nc:0,sample:[],auto:false,saved:true,on:true,fixed:new Set(),rows:x.rows.map(o=>({...o}))}));
+    $('school').value=r.school==='ไม่ระบุโรงเรียน'?'':r.school;$('cfg').hidden=false;render();$('cfg').scrollIntoView({behavior:'smooth'});
+  }else if(b.dataset.rm){
+    if(confirm(`ลบรายชื่อของ "${R[b.dataset.rm].school}" ที่บันทึกไว้ในเครื่องนี้?`)){delete R[b.dataset.rm];putR(R);drawSaved()}
+  }else if(b.dataset.xl){try{await rosterXlsx(R[b.dataset.xl])}catch(err){alert('สร้างไฟล์ไม่สำเร็จ: '+err.message)}}
+});
+drawSaved();
+if('serviceWorker' in navigator&&location.protocol==='https:'){
+  navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{$('off').textContent='✓ เปิดใช้แบบไม่มีอินเทอร์เน็ตได้แล้วในเครื่องนี้ (อ่าน PDF สแกนครั้งแรกยังต้องใช้เน็ต)'}).catch(()=>{});
+}
 $('go').addEventListener('click',()=>build().catch(e=>alert('สร้างไฟล์ไม่สำเร็จ: '+e.message)));
 </script>
 </body>

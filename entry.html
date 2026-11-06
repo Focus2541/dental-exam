@@ -90,6 +90,31 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .rt input.bad{background:var(--warnbg);color:var(--warn)}
 .rt input.fx{background:#dbeafe;color:#1e3a8a}
 .rt .x{padding:2px 8px;background:transparent;color:var(--warn);border:1px solid var(--line)}
+.h2{font-size:18px;margin:18px 0 8px}
+.sv{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.sv small{color:var(--mut)}
+.svb{display:flex;gap:6px}
+.svb button{padding:7px 14px}
+#off{margin-top:24px}
+#pa{display:none}
+@media print{body>*{display:none!important}#pa{display:block!important}@page{size:A4;margin:0}}
+.sheet{width:210mm;height:297mm;box-sizing:border-box;break-after:page;page-break-after:always;overflow:hidden;font-family:'Sarabun',sans-serif;color:#000;background:#fff}
+.slip{height:148.5mm;box-sizing:border-box;padding:6mm 9mm 4mm;font-size:10.5pt;line-height:1.35;overflow:hidden}
+.slip+.slip{border-top:1px dashed #777}
+.slip h3{text-align:center;font-size:12.5pt;margin:0 0 1mm}
+.slip p{margin:1.5mm 0}
+.slip .ln{text-align:center}
+.slip table{width:100%;border-collapse:collapse;font-size:8.5pt;text-align:center;margin:1mm 0 2mm}
+.slip td,.slip th{border:1px solid #000;padding:.5mm .3mm;font-weight:400}
+.slip .val td{font-size:10.5pt;height:7mm}
+.slip .two{display:grid;grid-template-columns:1fr 1fr;gap:0 6mm;margin:1mm 0}
+.slip .box{border:1px solid #000;padding:1.5mm 3mm;margin-top:2mm}
+.slip .sm{font-size:9pt}
+.rpt{padding:12mm;font-family:'Sarabun',sans-serif;color:#000;background:#fff;font-size:10pt}
+.rpt table{border-collapse:collapse;width:100%;margin-bottom:6mm}
+.rpt td,.rpt th{border:1px solid #000;padding:1mm 1.5mm;text-align:center}
+.rep td,.rep th{text-align:center;white-space:nowrap}
+#repv{margin-top:16px}
 </style>
 </head>
 <body>
@@ -113,6 +138,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 <main>
 <label id="drop"><input type="file" id="f" accept=".xlsx,.xlsm,.xls,.csv,.docx,.doc,.htm,.html,.pdf">เลือกไฟล์รายชื่อ หรือลากมาวางที่นี่<small>Excel (.xlsx .xls .csv) และ Word (.docx) ที่เป็นตารางรายชื่อ และ PDF (ถ้าเป็นภาพสแกนจะอ่านด้วย OCR ซึ่งอาจผิดบ้าง ต้องตรวจทานก่อนใช้) ส่วน .doc รุ่นเก่าที่เป็นไฟล์ Word จริง ให้บันทึกเป็น .docx ก่อน</small></label>
 <p id="st" class="hint" role="status"></p>
+<section id="saved" hidden><h2 class="h2">รายชื่อที่บันทึกไว้ในเครื่องนี้</h2><div id="savedList"></div><p class="hint">เก็บชื่อและเลขบัตรไว้ในเบราว์เซอร์ของเครื่องนี้เท่านั้น ลบได้ทุกเมื่อ ไม่ควรบันทึกในเครื่องที่ใช้ร่วมกับคนอื่น</p></section>
 <section id="cfg" hidden>
 <div class="row">
 <label>ชื่อโรงเรียน<input type="text" id="school" placeholder="เช่น อนุบาลเพชรบูรณ์"></label>
@@ -123,7 +149,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 </div>
 <div id="list"></div>
 <div id="msg" role="status"></div>
-<button id="ent" type="button">เริ่มกรอกผลตรวจ</button> <button id="go" class="alt" type="button">ดาวน์โหลดไฟล์ผล (Excel)</button>
+<button id="ent" type="button">เริ่มกรอกผลตรวจ</button> <button id="go" class="alt" type="button">ดาวน์โหลดไฟล์ผล (Excel)</button> <button id="save" class="alt" type="button">บันทึกรายชื่อไว้ในเครื่อง</button>
 </section>
 <section id="entry" hidden>
 <div class="bar"><button id="back" class="alt" type="button">← กลับ</button><select id="room" aria-label="เลือกห้อง"></select><button id="next" class="alt" type="button">ห้องถัดไป ▶</button><label class="chk"><input type="checkbox" id="todo"> เฉพาะที่ยังไม่กรอก</label><span id="prog"></span></div>
@@ -131,7 +157,18 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 <div class="ewrap"><table class="entry"><thead><tr><th rowspan="2">ที่</th><th rowspan="2" class="sticky">ชื่อ-สกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="3">Tx. plan</th><th rowspan="2">สรุป</th><th rowspan="2">ฟันดี</th></tr>
 <tr><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>อักเสบ</th><th>หินปูน</th><th>อุด</th><th>ถอน</th><th>Sealant</th></tr></thead><tbody id="tb"></tbody></table></div>
 <div class="bar"><button id="dl2" type="button">ดาวน์โหลดผลเป็นไฟล์ Excel</button><button id="clr" class="alt" type="button">ล้างข้อมูลที่กรอก</button></div>
+<div class="bar"><button id="slips" type="button">พิมพ์ใบแจ้งผลผู้ปกครอง</button><button id="rep" class="alt" type="button">รายงานสรุป</button></div>
+<details class="rv" id="slipset"><summary>ตั้งค่าใบแจ้งผล</summary><div class="row">
+<label>รพ.สต. ที่รับบริการ<input type="text" id="s_hos" data-set></label>
+<label>โทร.<input type="text" id="s_tel" data-set></label>
+<label>วันที่นัด<input type="text" id="s_day" data-set></label>
+<label>เวลา<input type="text" id="s_time" data-set></label>
+<label>พิมพ์ให้<select id="s_who" data-set><option value="tx">เฉพาะเด็กที่ต้องรักษา</option><option value="all">ทุกคนที่ตรวจแล้ว</option></select></label>
+<label>ขอบเขต<select id="s_scope" data-set><option value="room">ห้องที่เลือกอยู่</option><option value="all">ทุกห้อง</option></select></label>
+</div><p class="hint">A4 แผ่นละ 2 คน ตัดครึ่งตามเส้นประ ในหน้าต่างพิมพ์ให้ตั้งขนาดกระดาษ A4 และระยะขอบ "ไม่มี" ถ้ามีให้เลือก</p></details>
+<section id="repv" hidden></section>
 </section>
+<p id="off" class="hint"></p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -267,6 +304,7 @@ function extract(g,m,auto,label){
     let id='';
     for(const c of [m.id,...(m.ids||[])]){if(c>=0){id=idOf(r[c]||'');if(id)break}}
     const nv=(m.pre>=0?r[m.pre]:r[m.fn])||'',named=PREFULL.test(nv.replace(/\s/g,''))||PRE.some(p=>nv.startsWith(p)&&nv.length>p.length);
+    if((id||named)&&/ครูประจำชั้น|ผู้อำนวยการ|ผู้บริหาร|ครูที่ปรึกษา|ว่าที่\s*ร้อย/.test(r.join(" ").replace(/\u0E4D\u0E32/g,"\u0E33")))return;
     if(!id&&!named){if(split){const t=roomOf(r.join(' '));if(t)cur=t}return}
     let pre=m.pre>=0?normPre(r[m.pre]):'',fn=(r[m.fn]||'').trim(),ln=m.ln>=0?(r[m.ln]||'').trim():'';
     if(m.ln<0){
@@ -309,13 +347,13 @@ function render(){
     const gp=groupsOf(s.rows,s.label);
     const pv0=s.rows.length?s.rows.slice(0,3).map(r=>esc(`${r.pre} ${r.fn} ${r.ln}`.trim())).join(' / '):'ไม่พบเลขบัตร 13 หลักในชีตนี้ (ถ้าไม่ใช่ชีตรายชื่อ ปล่อยไว้ได้)';
     const pv=(gp.size>1?`<b>แยกได้ ${gp.size} ห้อง:</b> ${[...gp].map(([k,n])=>esc(k)+' ('+n+')').join(', ')}<br>`:'')+pv0;
-    const sel=(f,l)=>`<label>${l}<select data-k="${k}" data-f="${f}">${opts(s,f)}</select></label>`;
+    const sel=(f,l)=>s.saved?'':`<label>${l}<select data-k="${k}" data-f="${f}">${opts(s,f)}</select></label>`;
     return `<div class="card ${s.on?'':'off'}">
 <div class="top"><label><input type="checkbox" data-k="${k}" data-f="on" ${s.on?'checked':''}> <b>ชีต ${esc(s.name)}</b></label><span class="n">${s.rows.length} คน</span></div>
 <div class="grid">
 <label>ชื่อห้อง/ชั้นในหัวแบบ<input type="text" data-k="${k}" data-f="label" value="${esc(s.label)}"></label>
 ${sel('id','เลขบัตร')}${sel('pre','คำนำหน้า')}${sel('fn','ชื่อ (หรือชื่อ-สกุล)')}${sel('ln','สกุล')}${sel('gr','ชั้น (ถ้ามีคอลัมน์ชั้น)')}${sel('rm','ห้อง (ถ้ารวมหลายห้องในชีตเดียว)')}
-</div><label class="auto"><input type="checkbox" data-k="${k}" data-f="auto" ${s.auto?'checked':''}> แยกห้องอัตโนมัติ (ชีตที่รวมหลายห้อง ตัดเมื่อลำดับเริ่มนับ 1 ใหม่ หรือเจอหัวข้อห้อง)</label><p class="pv">${pv}</p>${rv(s,k)}</div>`;
+</div>${s.saved?'':`<label class="auto"><input type="checkbox" data-k="${k}" data-f="auto" ${s.auto?'checked':''}> แยกห้องอัตโนมัติ (ชีตที่รวมหลายห้อง ตัดเมื่อลำดับเริ่มนับ 1 ใหม่ หรือเจอหัวข้อห้อง)</label>`}<p class="pv">${pv}</p>${rv(s,k)}</div>`;
   }).join('');
   validate();
 }
@@ -419,7 +457,7 @@ function wordsToGrid(words){
     const segs=[];
     for(const w of r.w){
       const c=TH.test(w.t)?'T':'D',s=segs[segs.length-1],gap=s?w.x0-s.x1:0;
-      if(s&&s.c===c&&gap<COL){s.t+=(gap>=SP?' ':'')+w.t;s.x1=Math.max(s.x1,w.x1)}else segs.push({c,t:w.t,x0:w.x0,x1:w.x1});
+      if(s&&s.c===c&&gap<COL){s.t+=(gap>=SP?' ':'')+w.t;s.x1=Math.max(s.x1,w.x1);s.y0=Math.min(s.y0,w.y0);s.y1=Math.max(s.y1,w.y1)}else segs.push({c,t:w.t,x0:w.x0,x1:w.x1,y0:w.y0,y1:w.y1});
     }
     const runs=[];
     for(let j=0;j<segs.length;j++){if(segs[j].c!=='T')continue;
@@ -430,26 +468,39 @@ function wordsToGrid(words){
     let name=pick>=0?runs[pick].t:'',note=runs.filter((_,k)=>k!==pick).map(x=>x.t).join(' ');
     name=fixPre(name.trim());
     const dig=t=>t.replace(/[๐-๙]/g,c=>'๐๑๒๓๔๕๖๗๘๙'.indexOf(c));
-    const D=segs.filter(s=>s.c==='D').map(s=>dig(s.t));
+    const DS=segs.filter(s=>s.c==='D'),D=DS.map(s=>dig(s.t));let box=null;
     const alnum=t=>t.replace(/[^0-9A-Za-z]/g,'');
     const ii=D.findIndex(t=>alnum(t).length>=10);
-    let id='';if(ii>=0){id=alnum(D[ii]).toUpperCase();D.splice(ii,1)}
+    let id='';if(ii>=0){id=alnum(D[ii]).toUpperCase();box=[DS[ii].x0,DS[ii].y0,DS[ii].x1,DS[ii].y1];D.splice(ii,1)}
     if(id){const f=fixId13(id);id=f.id;if(f.fixed)grid.fixed.add(id)}
     const sm=D.map(t=>alnum(t));
     let ci=sm.findIndex(t=>/^\d{4}$/.test(t));if(ci<0)ci=sm.findIndex((t,k)=>k>0&&/^\d{3,6}$/.test(t));
     const code=ci>=0?sm[ci]:'';if(ci>=0){sm.splice(ci,1);D.splice(ci,1)}
     const si=D.findIndex(t=>/^\d{1,3}$/.test(alnum(t)));const seq=si>=0?alnum(D[si]):'';if(si>=0)D.splice(si,1);
-    if(id||code||(name&&hasPre(name)))grid.push([seq,code,id,name,D.join(' '),note]);
+    if(id||code||(name&&hasPre(name))){const row=[seq,code,id,name,D.join(' '),note];row.box=box;row.y=[Math.min(...r.w.map(w=>w.y0)),Math.max(...r.w.map(w=>w.y1))];grid.push(row)}
     else grid.push([segs.map(s=>s.t).join(' ')]);
   }
   return grid;
+}
+async function refineIds(g,crop,dw,ck){
+  const st=g.filter(r=>r.length>1),bx=st.filter(r=>r.box).map(r=>r.box);
+  if(!bx.length)return;
+  const med=a=>a.slice().sort((x,y)=>x-y)[a.length>>1],X0=med(bx.map(b=>b[0])),X1=med(bx.map(b=>b[2]));
+  const ok=v=>/^G\d{12}$/.test(v)||(/^\d{13}$/.test(v)&&ck(v));
+  for(const r of st){
+    if(ok(r[2])&&!g.fixed.has(r[2]))continue;
+    const b=r.box||[X0,r.y[0],X1,r.y[1]];
+    const t=(await dw(crop(b))).replace(/[^0-9A-Za-z]/g,'').toUpperCase().replace(/^[^G0-9]+/,'');
+    if(ok(t)){if(t!==r[2]){g.fixed.delete(r[2]);r[2]=t}continue}
+    if(!r[2]&&t.length>=12){const f=fixId13(t);r[2]=f.id;if(f.fixed)g.fixed.add(f.id)}
+  }
 }
 function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error('โหลดตัวอ่าน PDF ไม่สำเร็จ ต้องต่ออินเทอร์เน็ต'));document.head.appendChild(s)})}
 async function readPdf(buf){
   const st=$('st'),V='https://cdn.jsdelivr.net/npm/';
   st.textContent='กำลังเตรียมตัวอ่าน PDF…';
   if(!window.pdfjsLib){await loadScript(V+'pdfjs-dist@3.11.174/build/pdf.min.js');pdfjsLib.GlobalWorkerOptions.workerSrc=V+'pdfjs-dist@3.11.174/build/pdf.worker.min.js'}
-  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise,out=[];let worker=null;
+  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise,out=[];let worker=null,dw=null;
   try{
     for(let p=1;p<=pdf.numPages;p++){
       st.textContent=`กำลังอ่านหน้า ${p}/${pdf.numPages}… (หน้าสแกนใช้เวลาหน้าละประมาณครึ่งนาที ครั้งแรกจะโหลดข้อมูลภาษาไทยเพิ่ม)`;
@@ -478,19 +529,24 @@ async function readPdf(buf){
       const r=await worker.recognize(cv,{},{blocks:true}),words=[];
       (r.data.blocks||[]).forEach(b=>b.paragraphs.forEach(pa=>pa.lines.forEach(l=>l.words.forEach(w=>words.push(w)))));
       const g=wordsToGrid(words);
+      st.textContent=`กำลังอ่านเลขบัตรซ้ำแบบตัวเลขล้วน หน้า ${p}/${pdf.numPages}…`;
+      if(!dw){dw=await Tesseract.createWorker('eng');await dw.setParameters({tessedit_char_whitelist:'0123456789G',tessedit_pageseg_mode:'7'})}
+      const crop=b=>{const pad=8,x=Math.max(0,Math.round(b[0]-pad)),y=Math.max(0,Math.round(b[1]-pad)),w=Math.min(cv.width-x,Math.round(b[2]-b[0]+2*pad)),h=Math.min(cv.height-y,Math.round(b[3]-b[1]+2*pad));
+        const c=document.createElement('canvas');c.width=w*2;c.height=h*2;const x2=c.getContext('2d');x2.imageSmoothingEnabled=false;x2.drawImage(cv,x,y,w,h,0,0,w*2,h*2);return c};
+      await refineIds(g,crop,async im=>(await dw.recognize(im)).data.text,checksumOk);
       out.push({name:'หน้า '+p,g,ocr:true,thumb});
     }
-  }finally{if(worker)await worker.terminate();st.textContent=''}
+  }finally{if(worker)await worker.terminate();if(dw)await dw.terminate();st.textContent=''}
   return out;
 }
 function rv(s,k){
-  if(!s.ocr)return '';
+  if(!s.ocr&&!s.saved)return '';
   const rows=s.rows.map((r,i)=>{
     const bad=(!r.noid&&/^\d/.test(r.id)&&!checksumOk(r.id))?'bad':(s.fixed.has(r.id)?'fx':'');
     const inp=(f,v,c='')=>`<input data-rk="${k}" data-ri="${i}" data-rf="${f}" value="${esc(v)}" class="${c}">`;
     return `<tr><td>${i+1}</td><td>${inp('id',r.noid?'':r.id,bad)}</td><td>${inp('pre',r.pre)}</td><td>${inp('fn',r.fn,r.fn?'':'bad')}</td><td>${inp('ln',r.ln)}</td><td><button type="button" class="x" data-del="${k}:${i}" title="ลบแถว">×</button></td></tr>`;
   }).join('');
-  return `<details class="rv" ontoggle="S[${k}].open=this.open" ${s.open?'open':''}><summary>ตรวจทานรายชื่อที่อ่านจากสแกน (${s.rows.length} คน) เทียบกับภาพต้นฉบับ</summary>
+  return `<details class="rv" ontoggle="S[${k}].open=this.open" ${s.open?'open':''}><summary>${s.ocr?`ตรวจทานรายชื่อที่อ่านจากสแกน (${s.rows.length} คน) เทียบกับภาพต้นฉบับ`:`ดูและแก้ไขรายชื่อ (${s.rows.length} คน)`}</summary>
 <p class="hint">ช่องสีส้ม = เลขบัตรไม่ผ่านการตรวจหลักที่ 13 หรือไม่มีชื่อ · ช่องสีฟ้า = เครื่องมือแก้ตัวเลขให้เอง ตรวจซ้ำ · กดที่ช่องเพื่อแก้ได้ · × ลบแถวที่ไม่ใช่นักเรียน</p>
 ${s.thumb?`<img class="th" src="${s.thumb}" alt="ภาพหน้าเอกสารต้นฉบับ">`:''}<div class="rvw"><table class="rt"><tr><th>#</th><th>เลขบัตร</th><th>คำนำหน้า</th><th>ชื่อ</th><th>สกุล</th><th></th></tr>${rows}</table></div></details>`;
 }
@@ -567,7 +623,7 @@ $('list').addEventListener('change',e=>{
   const f=t.dataset.f;
   if(f==='on')s.on=t.checked;
   else if(f==='auto'){s.auto=t.checked;s.rows=extract(s.g,s.m,s.auto,s.label)}
-  else if(f==='label'){s.label=t.value;if(!s.ocr)s.rows=extract(s.g,s.m,s.auto,s.label)}
+  else if(f==='label'){s.label=t.value;if(!s.ocr&&!s.saved)s.rows=extract(s.g,s.m,s.auto,s.label)}
   else{s.m[f]=+t.value;s.rows=extract(s.g,s.m,s.auto,s.label)}
   render();
 });
@@ -610,6 +666,12 @@ async function build(){
         }
       });
     }
+  }
+  if(typeof roomsMap==='function'&&Object.keys(E).length){
+    if(!RM.length)RM=roomsMap();
+    const {rows,tx}=repData(),w1=wb.addWorksheet('สรุป'),w2=wb.addWorksheet('ต้องรักษา');
+    w1.addRow(REP_H);rows.forEach(r=>w1.addRow(r));w1.getRow(1).font={bold:true};REP_H.forEach((_,i)=>w1.getColumn(i+1).width=i?11:12);
+    w2.addRow(TX_H);tx.forEach(r=>w2.addRow(r));w2.getRow(1).font={bold:true};[10,28,14,9,9,11,10].forEach((w,i)=>w2.getColumn(i+1).width=w);
   }
   const buf=await wb.xlsx.writeBuffer();
   const a=document.createElement('a');
@@ -682,6 +744,68 @@ $('next').onclick=()=>{if(cur<RM.length-1){cur++;$('room').value=cur;drawRoom()}
 $('todo').onchange=drawRoom;
 $('back').onclick=()=>{$('entry').hidden=true;$('cfg').hidden=false;document.querySelector('main').style.maxWidth=''};
 $('clr').onclick=()=>{if(confirm('ล้างผลตรวจที่กรอกไว้ทั้งหมดในเครื่องนี้?')){E={};save();drawRoom()}};
+
+const nn=x=>+x||0;
+const needTx=v=>nn(v[1])+nn(v[5])+nn(v[9])+nn(v[10])+nn(v[11])+nn(v[12])>0;
+const SK='dentalSlipSet';
+try{const o=JSON.parse(localStorage.getItem(SK)||'{}');document.querySelectorAll('[data-set]').forEach(el=>{if(o[el.id]!=null)el.value=o[el.id]})}catch(e){}
+document.querySelectorAll('[data-set]').forEach(el=>el.addEventListener('change',()=>{const o={};document.querySelectorAll('[data-set]').forEach(x=>{o[x.id]=x.value});try{localStorage.setItem(SK,JSON.stringify(o))}catch(e){}}));
+function slipHTML(p,room,v,school,date){
+  const cb=b=>b?'☑':'☐',dots=(x,l)=>x?esc(x):'…'.repeat(l),hos=$('s_hos').value.trim(),tel=$('s_tel').value.trim();
+  const gum=nn(v[8])>0,tar=nn(v[9])>0,fill=nn(v[10]),ext=nn(v[11]),seal=nn(v[12]);
+  const good=nn(v[1])===0&&nn(v[5])===0&&!fill&&!ext;
+  const cells=v.map((x,i)=>i===8||i===9?(nn(x)?'✓':''):esc(x||''));
+  const nm=esc((p.pre+' '+p.fn+' '+p.ln).trim());
+  return `<div class="slip"><h3>แบบบันทึกตรวจคัดกรองสุขภาพช่องปากในโรงเรียนและศูนย์เด็กเล็ก</h3>
+<p class="ln">โรงเรียน ${dots(school,14)}&nbsp;&nbsp; ชั้น ${esc(room)}&nbsp;&nbsp; วันที่ตรวจ ${dots(date,12)}</p>
+<table><tr><th rowspan="2">คำนำหน้า</th><th rowspan="2">ชื่อ</th><th rowspan="2">นามสกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="3">Tx. plan</th></tr>
+<tr><th>ฟันทั้งหมด</th><th>ฟันผุ</th><th>อุด</th><th>ถอน/หลุด</th><th>ฟันทั้งหมด</th><th>ฟันผุ</th><th>อุด</th><th>ถอน/หลุด</th><th>อักเสบ</th><th>หินปูน</th><th>อุด</th><th>ถอน</th><th>Sealant</th></tr>
+<tr class="val"><td>${esc(p.pre)}</td><td>${esc(p.fn)}</td><td>${esc(p.ln)}</td>${cells.map(c=>`<td>${c}</td>`).join('')}</tr></table>
+<b>สรุปผลการตรวจ</b><div class="two"><div>${cb(good)} ฟันดี ไม่มีฟันผุ</div><div>${cb(fill)} ต้องอุดฟัน ${fill||'……'} ซี่</div><div>${cb(ext)} ต้องถอนฟัน ${ext||'……'} ซี่</div><div>${cb(seal)} เคลือบหลุมร่องฟัน ${seal||'……'} ซี่</div><div>${cb(tar)} มีหินปูน ต้องได้รับการขูด</div><div>${cb(gum)} เหงือกอักเสบ ควรแปรงฟันให้สะอาด</div></div>
+<p>ท่านสามารถพาบุตรหลานไปรับบริการได้ที่ รพ.สต. ${dots(hos,12)} วันที่ ${dots($('s_day').value.trim(),8)} เวลา ${dots($('s_time').value.trim(),6)} และนำใบแจ้งผลการรักษาด้านล่างส่งคืนครูประจำชั้นเมื่อรักษาเสร็จ</p>
+<div class="box"><b>แบบแจ้งผลการรักษาทางทันตกรรม</b> <span class="sm">(ผู้ให้การรักษากรอก แล้วส่งคืนครูประจำชั้น)</span><br>
+เรียน ครูประจำชั้น&nbsp; ${nm} ชั้น ${esc(room)} มารับบริการที่ ${'…'.repeat(10)} วันที่ ${'…'.repeat(8)}<br>
+ได้รับการรักษา ☐ ถอนฟัน (น้ำนม/แท้) …… ซี่ ☐ อุดฟัน (น้ำนม/แท้) …… ซี่ ☐ เคลือบหลุมร่องฟัน …… ซี่ ☐ ขูดหินปูน ☐ อื่น ๆ ………………<br>
+ลงชื่อ ……………………………… ผู้ให้การรักษา</div>
+<p class="sm">สิทธิการรักษา: ใช้สิทธิตามสถานพยาบาลที่ลงทะเบียนไว้ หากรับบริการนอกเขตสิทธิ์ต้องชำระค่ารักษาเอง · เครือข่ายบริการสุขภาพ CUP บวกหมื้อ งานทันตสาธารณสุข รพ.สต. ${dots(hos,10)} โทร. ${dots(tel,8)}</p></div>`;
+}
+function printSlips(){
+  const rooms=$('s_scope').value==='all'?RM:[RM[cur]],only=$('s_who').value==='tx',list=[];
+  rooms.forEach(([room,rows])=>rows.forEach(p=>{const v=E[p.id];if(!isDone(v))return;if(only&&!needTx(v))return;list.push([p,room,v])}));
+  if(!list.length){alert(only?'ยังไม่มีเด็กที่ต้องรักษาในขอบเขตนี้ (หรือยังไม่ได้กรอกผล)':'ยังไม่มีเด็กที่กรอกผลแล้วในขอบเขตนี้');return}
+  const school=$('school').value.trim(),date=$('date').value.trim();let h='';
+  for(let i=0;i<list.length;i+=2)h+='<div class="sheet">'+list.slice(i,i+2).map(([p,r,v])=>slipHTML(p,r,v,school,date)).join('')+'</div>';
+  $('pa').innerHTML=h;setTimeout(()=>window.print(),300);
+}
+function stats(rows){
+  const t={all:rows.length,ex:0,dk:0,Dk:0,cf:0,sd:0,sD:0,gum:0,tar:0,f:[0,0],x:[0,0],s:[0,0]};
+  rows.forEach(p=>{const v=E[p.id];if(!isDone(v))return;t.ex++;const d=nn(v[1]),D=nn(v[5]);
+    if(d)t.dk++;if(D)t.Dk++;if(!d&&!D)t.cf++;t.sd+=d+nn(v[2])+nn(v[3]);t.sD+=D+nn(v[6])+nn(v[7]);
+    if(nn(v[8]))t.gum++;if(nn(v[9]))t.tar++;
+    [[10,'f'],[11,'x'],[12,'s']].forEach(([i,k])=>{if(nn(v[i])){t[k][0]++;t[k][1]+=nn(v[i])}})});
+  return t;
+}
+const pct=(a,b)=>b?(a*100/b).toFixed(1):'-';
+const REP_H=['ห้อง','นักเรียน','ตรวจแล้ว','ฟันน้ำนมผุ (คน)','%','ฟันแท้ผุ (คน)','%','ไม่มีฟันผุ (คน)','%','dmft เฉลี่ย','DMFT เฉลี่ย','เหงือกอักเสบ','หินปูน','ต้องอุด คน/ซี่','ต้องถอน คน/ซี่','Sealant คน/ซี่'];
+const repRow=(k,t)=>[k,t.all,t.ex,t.dk,pct(t.dk,t.ex),t.Dk,pct(t.Dk,t.ex),t.cf,pct(t.cf,t.ex),t.ex?(t.sd/t.ex).toFixed(2):'-',t.ex?(t.sD/t.ex).toFixed(2):'-',t.gum,t.tar,t.f.join('/'),t.x.join('/'),t.s.join('/')];
+function repData(){
+  const rows=RM.map(([k,r])=>repRow(k,stats(r)));
+  rows.push(repRow('รวม',stats(RM.flatMap(x=>x[1]))));
+  const tx=[];RM.forEach(([k,r])=>r.forEach(p=>{const v=E[p.id];if(isDone(v)&&needTx(v))tx.push([k,(p.pre+' '+p.fn+' '+p.ln).trim(),nn(v[1])+'/'+nn(v[5]),nn(v[10])||'',nn(v[11])||'',nn(v[12])||'',nn(v[9])?'✓':''])}));
+  return {rows,tx};
+}
+const TX_H=['ห้อง','ชื่อ-สกุล','ฟันผุ น้ำนม/แท้','อุด (ซี่)','ถอน (ซี่)','Sealant (ซี่)','ขูดหินปูน'];
+const tbl=(h,rows)=>`<table class="rt rep"><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(String(c))}</td>`).join('')}</tr>`).join('')}</table>`;
+function repHTML(){
+  const {rows,tx}=repData(),school=$('school').value.trim()||'(ไม่ระบุโรงเรียน)',date=$('date').value.trim();
+  return `<h2 class="h2">รายงานสรุปผลตรวจสุขภาพช่องปาก โรงเรียน${esc(school)}${date?' วันที่ตรวจ '+esc(date):''}</h2>
+<div class="rvw">${tbl(REP_H,rows)}</div><p class="hint">"ไม่มีฟันผุ" = ฟันผุทั้งน้ำนมและแท้เป็น 0 · dmft/DMFT = ผุ + อุด + ถอน/หลุด เฉลี่ยต่อคนที่ตรวจแล้ว</p>
+<h3>รายชื่อเด็กที่ต้องรักษา ${tx.length} คน</h3><div class="rvw">${tbl(TX_H,tx)}</div>`;
+}
+$('slips').onclick=printSlips;
+$('rep').onclick=()=>{const v=$('repv');v.innerHTML=repHTML()+'<div class="bar"><button id="rpP" type="button">พิมพ์รายงาน</button><button id="rpC" class="alt" type="button">ปิดรายงาน</button></div>';v.hidden=false;
+  $('rpP').onclick=()=>{$('pa').innerHTML='<div class="rpt">'+repHTML()+'</div>';setTimeout(()=>window.print(),300)};
+  $('rpC').onclick=()=>{v.hidden=true};v.scrollIntoView({behavior:'smooth'})};
 $('dl2').onclick=()=>$('go').click();
 $('ent').onclick=openEntry;
 
@@ -698,7 +822,57 @@ $('list').addEventListener('click',e=>{
   const b=e.target.closest('[data-del]');if(!b)return;
   const [k,i]=b.dataset.del.split(':').map(Number);S[k].rows.splice(i,1);render();
 });
+
+const RK='dentalRosters';
+const getR=()=>{try{return JSON.parse(localStorage.getItem(RK)||'{}')}catch(e){return {}}};
+const putR=o=>{try{localStorage.setItem(RK,JSON.stringify(o));return true}catch(e){alert('บันทึกไม่สำเร็จ พื้นที่ในเบราว์เซอร์อาจเต็ม');return false}};
+function dlFile(buf,name){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  a.download=name;document.body.appendChild(a);a.click();a.remove();
+}
+function drawSaved(){
+  const R=getR(),ks=Object.keys(R).sort((a,b)=>R[b].at-R[a].at);
+  $('saved').hidden=!ks.length;
+  $('savedList').innerHTML=ks.map(id=>{const r=R[id],n=r.sheets.reduce((a,x)=>a+x.rows.length,0);
+    return `<div class="sv"><div><b>${esc(r.school)}</b> · ${n} คน<br><small>${esc(r.sheets.map(x=>x.label).join(', '))} · บันทึกเมื่อ ${new Date(r.at).toLocaleString('th-TH')}</small></div>
+<div class="svb"><button type="button" data-open="${id}">เปิด</button><button type="button" class="alt" data-xl="${id}">Excel</button><button type="button" class="alt" data-rm="${id}">ลบ</button></div></div>`}).join('');
+}
+async function rosterXlsx(r){
+  const wb=new ExcelJS.Workbook(),names=new Set(),groups=new Map();
+  r.sheets.forEach(x=>x.rows.forEach(o=>{const k=o.rm||x.label;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(o)}));
+  for(const [label,rows] of groups){
+    let nm=label.replace(/[:\\\/?*\[\]]/g,'.').slice(0,28)||'ชีต',x=nm,i=2;while(names.has(x))x=nm+'_'+i++;names.add(x);
+    const ws=wb.addWorksheet(x);ws.addRow(['ลำดับ','เลขบัตรประชาชน','รหัสนักเรียน','คำนำหน้า','ชื่อ','นามสกุล']);
+    rows.forEach((o,j)=>{const row=ws.addRow([j+1,o.noid?'':o.id,o.noid&&/^c/.test(o.id)?o.id.slice(1):'',o.pre,o.fn,o.ln]);row.getCell(2).numFmt='@'});
+    [7,18,12,10,16,18].forEach((w,j)=>ws.getColumn(j+1).width=w);
+  }
+  dlFile(await wb.xlsx.writeBuffer(),`รายชื่อ_${r.school}.xlsx`);
+}
+$('save').onclick=()=>{
+  const sh=used().map(s=>({label:s.label,rows:s.rows.map(({id,noid,pre,fn,ln,rm})=>({id,noid,pre,fn,ln,rm}))}));
+  if(!sh.length)return;
+  const R=getR(),school=$('school').value.trim()||'ไม่ระบุโรงเรียน',old=Object.keys(R).find(k=>R[k].school===school);
+  if(old&&!confirm(`มีรายชื่อของ "${school}" บันทึกไว้แล้ว ต้องการแทนที่ไหม?`))return;
+  R[old||Date.now().toString(36)]={school,at:Date.now(),sheets:sh};
+  if(putR(R)){drawSaved();$('save').textContent='บันทึกแล้ว ✓';setTimeout(()=>{$('save').textContent='บันทึกรายชื่อไว้ในเครื่อง'},2000)}
+};
+$('savedList').addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;const R=getR();
+  if(b.dataset.open){
+    const r=R[b.dataset.open];
+    S=r.sheets.map(x=>({name:x.label,label:x.label,g:[],m:{id:-1,pre:-1,fn:-1,ln:-1,rm:-1,sq:-1,gr:-1,cd:-1,ids:[]},nc:0,sample:[],auto:false,saved:true,on:true,fixed:new Set(),rows:x.rows.map(o=>({...o}))}));
+    $('school').value=r.school==='ไม่ระบุโรงเรียน'?'':r.school;$('cfg').hidden=false;render();$('cfg').scrollIntoView({behavior:'smooth'});
+  }else if(b.dataset.rm){
+    if(confirm(`ลบรายชื่อของ "${R[b.dataset.rm].school}" ที่บันทึกไว้ในเครื่องนี้?`)){delete R[b.dataset.rm];putR(R);drawSaved()}
+  }else if(b.dataset.xl){try{await rosterXlsx(R[b.dataset.xl])}catch(err){alert('สร้างไฟล์ไม่สำเร็จ: '+err.message)}}
+});
+drawSaved();
+if('serviceWorker' in navigator&&location.protocol==='https:'){
+  navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{$('off').textContent='✓ เปิดใช้แบบไม่มีอินเทอร์เน็ตได้แล้วในเครื่องนี้ (อ่าน PDF สแกนครั้งแรกยังต้องใช้เน็ต)'}).catch(()=>{});
+}
 $('go').addEventListener('click',()=>build().catch(e=>alert('สร้างไฟล์ไม่สำเร็จ: '+e.message)));
 </script>
+<div id="pa"></div>
 </body>
 </html>
