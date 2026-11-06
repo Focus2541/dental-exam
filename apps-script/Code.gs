@@ -65,7 +65,13 @@ function session_(code, pin) {
   var r = rows_(sheet_('S')).filter(function (x) { return String(x[0]).toUpperCase() === code; })[0];
   if (!r) throw new Error('ไม่พบรหัสรอบตรวจ ' + code);
   if (String(r[1]) !== String(pin || '').trim()) throw new Error('PIN ไม่ถูกต้อง');
-  return { code: code, unit: r[2], school: r[3], date: r[4] };
+  return { code: code, unit: r[2], school: r[3], date: txtDate_(r[4]) };
+}
+
+/** วันที่ที่ Sheet แปลงเป็น Date เอง ให้กลับเป็นข้อความแบบที่พิมพ์ */
+function txtDate_(v) {
+  if (!(v instanceof Date)) return String(v || '');
+  return typeof Utilities !== 'undefined' ? Utilities.formatDate(v, 'Asia/Bangkok', 'd/M/yy') : v.getDate() + '/' + (v.getMonth() + 1) + '/' + String(v.getFullYear()).slice(-2);
 }
 
 function newCode_(used) {
@@ -86,7 +92,7 @@ function create_(q) {
     var s = sheet_('S'), used = {};
     rows_(s).forEach(function (x) { used[String(x[0]).toUpperCase()] = 1; });
     var code = newCode_(used);
-    s.appendRow([code, "'" + pin, q.unit || '', q.school || '', q.date || '', new Date(), q.by || '']);
+    s.appendRow([code, "'" + pin, q.unit || '', q.school || '', q.date ? "'" + q.date : '', new Date(), q.by || '']);
     var R = sheet_('R'), vals = q.roster.map(function (p) {
       return [code, p.room || '', String(p.key), p.noid ? '' : String(p.id || ''), p.pre || '', p.fn || '', p.ln || ''];
     });
@@ -139,14 +145,18 @@ function pull_(q) {
 
 /** รายการรอบตรวจล่าสุด (30 วัน) ให้เลือกเข้าร่วมโดยไม่ต้องใส่รหัส */
 function list_(q) {
-  var days = Number(q.days) || 30, cut = Date.now() - days * 864e5, done = {}, total = {};
-  rows_(sheet_('X')).forEach(function (r) { var c = String(r[0]).toUpperCase(); done[c] = (done[c] || 0) + 1; });
+  var days = Number(q.days) || 30, cut = Date.now() - days * 864e5, done = {}, total = {}, last = {};
+  rows_(sheet_('X')).forEach(function (r) {
+    var c = String(r[0]).toUpperCase(), m = r[6 + NV] instanceof Date ? r[6 + NV].getTime() : Number(new Date(r[6 + NV])) || 0;
+    if (r.slice(4, 4 + NV).some(function (x) { return x !== '' && x != null; })) done[c] = (done[c] || 0) + 1;
+    if (m > (last[c] || 0)) last[c] = m;
+  });
   rows_(sheet_('R')).forEach(function (r) { var c = String(r[0]).toUpperCase(); total[c] = (total[c] || 0) + 1; });
   var out = rows_(sheet_('S')).map(function (r) {
     var c = String(r[0]).toUpperCase(), t = r[5] instanceof Date ? r[5].getTime() : Number(new Date(r[5])) || 0;
-    return { code: c, pin: String(r[1]), unit: r[2], school: r[3], date: r[4], created: t, done: done[c] || 0, total: total[c] || 0 };
+    return { code: c, pin: String(r[1]), unit: r[2], school: r[3], date: txtDate_(r[4]), created: t, last: last[c] || 0, done: done[c] || 0, total: total[c] || 0 };
   }).filter(function (x) { return x.created >= cut; }).sort(function (a, b) { return b.created - a.created; });
-  return { ok: true, sessions: out };
+  return { ok: true, sessions: out, now: Date.now() };
 }
 
 /** ลบรอบตรวจ (รายชื่อ + ผลตรวจ + ข้อมูลรอบ) ต้องมีรหัสรอบและ PIN */

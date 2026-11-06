@@ -109,7 +109,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .slip .two{display:grid;grid-template-columns:1fr 1fr;gap:0 6mm;margin:1mm 0}
 .slip .box{border:1px solid #000;padding:1.5mm 3mm;margin-top:2mm}
 .slip .sm{font-size:9pt}
-.rpt{padding:12mm;font-family:'Sarabun',sans-serif;color:#000;background:#fff;font-size:10pt}
+.rpt{page:land;padding:0;font-family:'Sarabun',sans-serif;color:#000;background:#fff;font-size:10pt}
+.rpt .rvw{overflow:visible!important}
+.rpt h2{font-size:14pt;margin:0 0 3mm;color:#000}.rpt h3{font-size:12pt;margin:4mm 0 2mm}
+.rpt .rep td,.rpt .rep th{white-space:normal;font-size:9pt;padding:.8mm 1mm}
+.rpt .rep tr{break-inside:avoid}
+.rpt .hint{color:#333!important;font-size:9pt}
 .rpt table{border-collapse:collapse;width:100%;margin-bottom:6mm}
 .rpt td,.rpt th{border:1px solid #000;padding:1mm 1.5mm;text-align:center}
 .rep td,.rep th{text-align:center;white-space:nowrap}
@@ -183,6 +188,14 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 .sw button{display:flex;flex-direction:column;align-items:center;gap:4px;background:transparent!important;color:var(--ink)!important;padding:4px 0;font-size:12px;font-weight:400}
 .sw i{display:block;width:34px;height:34px;border-radius:50%;border:3px solid transparent;box-shadow:0 0 0 1px var(--line)}
 .sw button.on i{border-color:var(--card);box-shadow:0 0 0 3px var(--acc)}
+.lvr{display:flex;gap:8px;align-items:stretch}
+.lvr .lv{flex:1;min-width:0}
+.lv em{font-style:normal;font-size:13px;color:var(--mut);font-weight:400}
+.lvDel{flex:0 0 auto;background:transparent!important;border:1px solid var(--line);color:var(--warn)!important;font-size:18px;padding:0 14px}
+.lvDel:hover{border-color:var(--warn)}
+.bd{font-style:normal;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;margin-right:4px;border:1px solid currentColor}
+.bd.on{color:#1a8a4a}.bd.idle{color:var(--warn)}.bd.done{color:var(--acc)}.bd.new{color:var(--mut)}
+:root[data-mode=dark] .bd.on{color:#5fd38f}
 </style>
 </head>
 <body>
@@ -199,7 +212,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <p>ใส่ไฟล์รายชื่อของโรงเรียนไหนก็ได้ แล้วกรอกผลตรวจทีละห้องด้วยแป้นพิมพ์ บันทึกอัตโนมัติ และส่งออกเป็น Excel</p>
 <ol class="cv-steps"><li><b>1</b>ใส่ไฟล์รายชื่อ</li><li><b>2</b>กรอกผลทีละห้อง</li><li><b>3</b>ดาวน์โหลด Excel</li></ol>
 <a class="cv-go" href="#drop">เริ่มเลย</a> <button id="inst" class="cv-go cv-inst" type="button" hidden>ติดตั้งเป็นแอป</button>
-<span class="cv-note">ข้อมูลเด็กอยู่ในเครื่องนี้ ถ้ากด "ชวนเพื่อนช่วยกรอก" จะบันทึกลง Google Sheet ของหน่วยบริการ</span>
+<span class="cv-note">ข้อมูลเด็กอยู่ในเครื่องนี้ ถ้ากด "เปิดให้คนอื่นช่วยกรอก" จะบันทึกลง Google Sheet ของหน่วยบริการ</span>
 </div>
 <svg class="cv-art" viewBox="0 0 160 190" role="img" aria-label="ภาพฟันกับเครื่องหมายถูก">
 <path d="M80 22c-18-12-50-6-58 20-5 18 3 34 8 52 5 21 3 52 16 76 7 13 16 10 19-5 3-16 5-40 15-40s12 24 15 40c3 15 12 18 19 5 13-24 11-55 16-76 5-18 13-34 8-52-8-26-40-32-58-20z" fill="rgba(255,255,255,.12)" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
@@ -865,7 +878,7 @@ function slipHTML(p,room,v,school,date){
 <tr class="val"><td>${esc(p.pre)}</td><td>${esc(p.fn)}</td><td>${esc(p.ln)}</td>${cells.map(c=>`<td>${c}</td>`).join('')}</tr></table>
 <b>สรุปผลการตรวจ</b><div class="two"><div>${cb(good)} ฟันดี ไม่มีฟันผุ</div><div>${cb(fill)} ต้องอุดฟัน ${fill||'……'} ซี่</div><div>${cb(ext)} ต้องถอนฟัน ${ext||'……'} ซี่</div><div>${cb(seal)} เคลือบหลุมร่องฟัน ${seal||'……'} ซี่</div><div>${cb(tar)} มีหินปูน ต้องได้รับการขูด</div><div>${cb(gum)} เหงือกอักเสบ ควรแปรงฟันให้สะอาด</div></div>
 <p>ท่านสามารถพาบุตรหลานไปรับบริการได้ที่ รพ.สต. ${dots(hos,12)} วันที่ ${dots($('s_day').value.trim(),8)} เวลา ${dots($('s_time').value.trim(),6)} และนำใบแจ้งผลการรักษาด้านล่างส่งคืนครูประจำชั้นเมื่อรักษาเสร็จ</p>
-<div class="box"><b>แบบแจ้งผลการรักษาทางทันตกรรม</b> <span class="sm">(ผู้ให้การรักษากรอก แล้วส่งคืนครูประจำชั้น)</span><br>
+<div class="box"><b>แบบแจ้งผลการรักษาทางทันตกรรม</b> <span class="sm">(ทันตบุคลากรที่รักษากรอก แล้วให้เด็กนำกลับมาคืนครูประจำชั้น)</span><br>
 เรียน ครูประจำชั้น&nbsp; ${nm} ชั้น ${esc(room)} มารับบริการที่ ${'…'.repeat(10)} วันที่ ${'…'.repeat(8)}<br>
 ได้รับการรักษา ☐ ถอนฟัน (น้ำนม/แท้) …… ซี่ ☐ อุดฟัน (น้ำนม/แท้) …… ซี่ ☐ เคลือบหลุมร่องฟัน …… ซี่ ☐ ขูดหินปูน ☐ อื่น ๆ ………………<br>
 ลงชื่อ ……………………………… ผู้ให้การรักษา</div>
@@ -897,7 +910,7 @@ function repData(){
   return {rows,tx};
 }
 const TX_H=['ห้อง','ชื่อ-สกุล','ฟันผุ น้ำนม/แท้','อุด (ซี่)','ถอน (ซี่)','Sealant (ซี่)','ขูดหินปูน'];
-const tbl=(h,rows)=>`<table class="rt rep"><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(String(c))}</td>`).join('')}</tr>`).join('')}</table>`;
+const tbl=(h,rows)=>`<table class="rt rep"><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(String(c))}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 function repHTML(){
   const {rows,tx}=repData(),school=$('school').value.trim()||'(ไม่ระบุโรงเรียน)',date=$('date').value.trim();
   return `<h2 class="h2">รายงานสรุปผลตรวจสุขภาพช่องปาก โรงเรียน${esc(school)}${date?' วันที่ตรวจ '+esc(date):''}</h2>
@@ -1114,29 +1127,39 @@ async function joinWith(code,pin){
     $('st').textContent='';
   }catch(e){$('st').textContent='';alert('เข้าร่วมไม่สำเร็จ: '+e.message+(e.message.includes('อินเทอร์เน็ต')?'\nลองใหม่เมื่อมีสัญญาณ':''))}
 }
+function ago(ms){const m=Math.round(ms/60e3);if(m<1)return 'เมื่อสักครู่';if(m<60)return m+' นาทีที่แล้ว';const h=Math.round(m/60);if(h<24)return h+' ชั่วโมงที่แล้ว';return Math.round(h/24)+' วันที่แล้ว'}
+async function removeSession(code,pin,nm,done){
+  if(!confirm(`ลบรอบตรวจ "${nm}" ออกจาก Google Sheet?${done?`\n\nมีผลที่กรอกแล้ว ${done} คน จะถูกลบด้วย`:''}\nทุกเครื่องจะไม่เห็นรอบนี้อีก กู้คืนไม่ได้`))return false;
+  if(done&&!confirm(`ยืนยันอีกครั้ง: ลบ "${nm}" พร้อมผล ${done} คน ถาวร`))return false;
+  try{await call({action:'remove',code,pin});
+    if(SES&&SES.code===code){(SES.keys||[]).forEach(k=>{delete E[k];delete ET[k]});save();SES=null;Q={};syncSave();$('entry').hidden=true;$('cfg').hidden=true;document.querySelector('main').style.maxWidth='';S=[];drawSync()}
+    loadLive();return true;
+  }catch(e){alert('ลบไม่สำเร็จ: '+e.message);return false}
+}
 async function loadLive(){
   if(!apiUrl())return;
   try{const r=await call({action:'list'}),L=r.sessions||[];
     $('live').hidden=!L.length;
-    $('lvList').innerHTML=L.map((x,i)=>`<button type="button" class="lv" data-i="${i}"><b>${esc(x.school||'ไม่ระบุโรงเรียน')}</b><span>${x.date?esc(x.date)+' · ':''}กรอกแล้ว ${x.done}/${x.total} คน${x.unit?' · '+esc(x.unit):''}</span></button>`).join('');
-    $('lvList').onclick=e=>{const b=e.target.closest('.lv');if(!b)return;const x=L[+b.dataset.i];joinWith(x.code,x.pin)};
+    const now=r.now||Date.now();
+    $('lvList').innerHTML=L.map((x,i)=>{
+      const act=x.last||0,mine=SES&&SES.code===x.code,full=x.total&&x.done>=x.total;
+      const [cls,lab]=full?['done','ตรวจครบแล้ว']:act&&now-act<15*60e3?['on','กำลังใช้งาน']:x.done?['idle','พักอยู่']:['new','ยังไม่เริ่มกรอก'];
+      return `<div class="lvr"><button type="button" class="lv" data-i="${i}"><b>${esc(x.school||'ไม่ระบุโรงเรียน')}${mine?' <em>(คุณอยู่ในรอบนี้)</em>':''}</b>
+<span><i class="bd ${cls}">${lab}</i> กรอกแล้ว ${x.done}/${x.total} คน${act?' · แก้ล่าสุด '+ago(now-act):''}</span>
+<span>เปิดรอบ ${new Date(x.created).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'})}${x.date?' · วันตรวจ '+esc(x.date):''}</span></button>
+<button type="button" class="lvDel" data-d="${i}" title="ลบรอบนี้" aria-label="ลบรอบ ${esc(x.school||'')}">🗑</button></div>`}).join('');
+    $('lvList').onclick=async e=>{
+      const d=e.target.closest('.lvDel');
+      if(d){const x=L[+d.dataset.d];await removeSession(x.code,x.pin,x.school||x.code,x.done);return}
+      const b=e.target.closest('.lv');if(!b)return;const x=L[+b.dataset.i];joinWith(x.code,x.pin)};
   }catch(e){$('live').hidden=true}
 }
 $('lvR').onclick=loadLive;
 $('delSes').onclick=async()=>{
-  if(!SES)return;
-  const nm=SES.school||SES.code;
-  if(!confirm(`ลบรอบตรวจ "${nm}" ออกจาก Google Sheet?\n\nรายชื่อและผลตรวจของรอบนี้จะถูกลบจาก Sheet ทั้งหมด ทุกเครื่องจะไม่เห็นรอบนี้อีก และผลในเครื่องนี้จะถูกล้างด้วย\nกู้คืนไม่ได้`))return;
-  if(!confirm(`ยืนยันอีกครั้ง: ลบ "${nm}" ถาวร`))return;
-  const b=$('delSes');b.disabled=true;b.textContent='กำลังลบ…';
-  try{
-    await call({action:'remove',code:SES.code,pin:SES.pin});
-    (SES.keys||[]).forEach(k=>{delete E[k];delete ET[k]});save();
-    SES=null;Q={};syncSave();
-    alert(`ลบรอบตรวจ "${nm}" แล้ว`);
-    $('entry').hidden=true;$('cfg').hidden=true;document.querySelector('main').style.maxWidth='';S=[];drawSync();loadLive();
-  }catch(e){alert('ลบไม่สำเร็จ: '+e.message)}
-  finally{b.disabled=false;b.textContent='ลบรอบตรวจนี้ออกจาก Google Sheet'}
+  if(!SES)return;const b=$('delSes');b.disabled=true;
+  const done=(SES.keys||[]).filter(k=>isDone(E[k])).length;
+  if(await removeSession(SES.code,SES.pin,SES.school||SES.code,done))alert('ลบรอบตรวจแล้ว');
+  b.disabled=false;
 };
 async function share(){
   const t=`ช่วยกรอกผลตรวจฟัน ${SES.school||''}\nกดลิงก์ หรือเปิดแอปกรอกผลแล้วกดชื่อโรงเรียนนี้ได้เลย\n${joinLink()}`;
