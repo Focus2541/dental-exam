@@ -47,6 +47,10 @@ th{background:var(--bg)}
 kbd{font-family:inherit;font-size:14px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 6px;background:var(--bg)}
 details{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:8px 0}
 summary{cursor:pointer;font-weight:600}
+figure{margin:12px 0 18px}
+figure img{display:block;max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+figure.m img{max-width:300px}
+figcaption{font-size:14px;color:var(--mut);margin-top:6px}
 footer{color:var(--mut);font-size:14px;text-align:center;padding:10px 0 30px}
 a{color:var(--acc)}
 @media print{
@@ -54,7 +58,7 @@ a{color:var(--acc)}
   body{font-size:12pt}
   header{background:#fff;color:#000;padding:0 0 8mm;border-bottom:2px solid #000}
   header p,.tag{color:#333}.links,nav,.noprint{display:none}
-  section{break-inside:avoid-page;border:none;padding:0;margin:0 0 7mm}
+  section{border:none;padding:0;margin:0 0 7mm}h2{break-after:avoid}figure{break-inside:avoid}figure img{max-height:118mm;width:auto;box-shadow:none}figure.m img{max-width:62mm}
   details{border:none;padding:0}details>*{display:block}summary{list-style:none}
   .btn{color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{size:A4;margin:14mm}
@@ -65,7 +69,7 @@ a{color:var(--acc)}
 <header><div class="wrap">
 <span class="tag">CUP บวกหมื้อ · งานทันตสาธารณสุข · อนามัยโรงเรียน</span>
 <h1>วิธีใช้แอปตรวจฟันนักเรียน</h1>
-<p>สำหรับทีมที่ออกตรวจสุขภาพช่องปากในโรงเรียน อ่าน 5 นาทีก็ใช้ได้</p>
+<p>สำหรับทีมที่ออกตรวจสุขภาพช่องปากในโรงเรียน อ่าน 5 นาทีก็ใช้ได้ (ภาพประกอบใช้ข้อมูลสมมติ)</p>
 <div class="links"><a href="entry.html">เปิดแอปกรอกผล</a><a class="o" href="./">เปิดแอปเตรียมแบบตรวจ</a><a class="o noprint" href="#" onclick="print();return false">🖨 พิมพ์ / บันทึก PDF</a></div>
 </div></header>
 <nav><div class="wrap">
@@ -88,6 +92,7 @@ a{color:var(--acc)}
 <li>กด <span class="ob">ติดตั้งเป็นแอป</span> บนหน้าปก<br>ถ้าไม่มีปุ่ม: เมนู ⋮ &gt; <b>ส่ง บันทึก และแชร์</b> &gt; <b>ติดตั้งหน้าเป็นแอป</b> (บนมือถือ: ⋮ &gt; <b>เพิ่มลงหน้าจอหลัก</b>)</li>
 <li>เปิดแอปจากไอคอนบนเดสก์ท็อปหรือหน้าจอมือถือได้เลย</li>
 </ol>
+<figure><img src="images/01-install.jpg" alt="หน้าปกแอปกรอกผล กรอบแดง = ปุ่มติดตั้งเป็นแอป" loading="lazy"><figcaption>หน้าปกแอปกรอกผล กรอบแดง = ปุ่มติดตั้งเป็นแอป</figcaption></figure>
 <div class="tip">เปิดแอปตอนมีเน็ต 1 ครั้ง แล้วครั้งต่อไปเปิดได้แม้ไม่มีสัญญาณ</div>
 </section>
 
@@ -99,6 +104,7 @@ a{color:var(--acc)}
 <li>กด <span class="btn">เริ่มกรอกผลตรวจ ▶</span></li>
 <li>ถ้ามีคนช่วยกรอก กด <span class="btn">👥 เปิดให้คนอื่นช่วยกรอก</span> (กดครั้งเดียว) แล้วกด <span class="ob">📋 คัดลอกลิงก์</span> หรือ <span class="ob">ส่งทาง LINE</span></li>
 </ol>
+<figure><img src="images/02-drop.jpg" alt="ขั้นที่ 1: กดหรือลากไฟล์รายชื่อมาวางในกรอบนี้" loading="lazy"><figcaption>ขั้นที่ 1: กดหรือลากไฟล์รายชื่อมาวางในกรอบนี้</figcaption></figure><figure><img src="images/03-check.jpg" alt="ขั้นที่ 2-3: ใส่ชื่อโรงเรียน ดูจำนวนนักเรียนแต่ละห้อง แล้วกดเริ่มกรอกผลตรวจ" loading="lazy"><figcaption>ขั้นที่ 2-3: ใส่ชื่อโรงเรียน ดูจำนวนนักเรียนแต่ละห้อง แล้วกดเริ่มกรอกผลตรวจ</figcaption></figure><figure><img src="images/04-table.jpg" alt="หน้ากรอกผล (แบบตาราง) ปุ่มด้านล่าง = เปิดให้คนอื่นช่วยกรอก" loading="lazy"><figcaption>หน้ากรอกผล (แบบตาราง) ปุ่มด้านล่าง = เปิดให้คนอื่นช่วยกรอก</figcaption></figure><figure><img src="images/05-share.jpg" alt="ขั้นที่ 4: คัดลอกลิงก์หรือส่งทาง LINE ให้ทีม" loading="lazy"><figcaption>ขั้นที่ 4: คัดลอกลิงก์หรือส่งทาง LINE ให้ทีม</figcaption></figure>
 <details><summary>ถ้าแอปอ่านรายชื่อผิด (ชื่อสลับคอลัมน์ ห้องไม่ถูก)</summary>
 <p>ในการ์ดของชีตนั้น กด <b>แก้ชื่อห้อง / คอลัมน์ (ถ้าอ่านผิด)</b> แล้วเลือกคอลัมน์ที่ถูกต้อง ถ้าเป็น PDF สแกน กด <b>ตรวจทานรายชื่อที่อ่านจากสแกน</b> แล้วแก้ชื่อหรือเลขบัตรที่ขึ้นสีส้มเทียบกับภาพต้นฉบับ</p></details>
 <details><summary>ใช้รายชื่อเดิมซ้ำครั้งหน้า</summary>
@@ -111,6 +117,7 @@ a{color:var(--acc)}
 <div><b>ทางที่ 2</b>กดลิงก์ที่คนนำทีมส่งมาใน LINE</div>
 </div>
 <p>จากนั้นเลือกห้องของตัวเองแล้วกรอก ไม่ต้องใส่รหัส ไม่ต้องอัปโหลดรายชื่อ</p>
+<figure class="m"><img src="images/07-live.jpg" alt="บนมือถือ: กดชื่อโรงเรียนในกล่อง "โรงเรียนที่กำลังตรวจอยู่"" loading="lazy"><figcaption>บนมือถือ: กดชื่อโรงเรียนในกล่อง "โรงเรียนที่กำลังตรวจอยู่"</figcaption></figure>
 <p>ป้ายในรายการโรงเรียน: <b>กำลังใช้งาน</b> = มีคนกรอกใน 15 นาทีล่าสุด · <b>พักอยู่</b> · <b>ยังไม่เริ่มกรอก</b> · <b>ตรวจครบแล้ว</b></p>
 <div class="warn">อย่าอัปโหลดรายชื่อโรงเรียนเดิมซ้ำ จะกลายเป็นอีกรอบที่แยกกัน ผลไม่รวมกัน</div>
 </section>
@@ -125,6 +132,7 @@ a{color:var(--acc)}
 <li>ต้องรักษา: ใส่จำนวนซี่ อุด / ถอน / Sealant</li>
 <li>เลือกชื่อจากรายการด้านบนเพื่อข้ามไปคนไหนก็ได้ คนที่กรอกแล้วมี ✓</li>
 </ul>
+<figure class="m"><img src="images/08-card.jpg" alt="แบบทีละคน: กรอบแดง = ปุ่มฟันดี กดแล้วไปคนถัดไป" loading="lazy"><figcaption>แบบทีละคน: กรอบแดง = ปุ่มฟันดี กดแล้วไปคนถัดไป</figcaption></figure>
 <h3>แบบตาราง (เหมาะกับคอม กรอกจากกระดาษ)</h3>
 <ul>
 <li><kbd>Enter</kbd> ช่องถัดไป · <kbd>↑</kbd> <kbd>↓</kbd> เปลี่ยนแถว · <kbd>/</kbd> = ฟันดี · เหงือก/หินปูน พิมพ์ <kbd>1</kbd></li>
@@ -134,6 +142,7 @@ a{color:var(--acc)}
 
 <section id="offline"><h2><span class="n">6</span>ไม่มีสัญญาณ</h2>
 <p>กรอกต่อได้ตามปกติ แถบด้านบนจะขึ้นว่า <b>ยังไม่ได้ส่ง … คน</b> พอมีเน็ต แอปส่งขึ้น Google Sheet ให้เอง ไม่ต้องกดอะไร</p>
+<figure class="m"><img src="images/09-offline.jpg" alt="แถบสถานะตอนไม่มีเน็ต พอมีสัญญาณจะเปลี่ยนเป็น ✓ ส่งครบแล้ว" loading="lazy"><figcaption>แถบสถานะตอนไม่มีเน็ต พอมีสัญญาณจะเปลี่ยนเป็น ✓ ส่งครบแล้ว</figcaption></figure>
 <div class="warn">อย่ากด <b>ออกจากการกรอกร่วม</b> ขณะที่ยังมีผลรอส่ง ผลเหล่านั้นจะอยู่แค่ในเครื่อง</div>
 <p>อ่านไฟล์ PDF สแกนต้องใช้เน็ต ให้อ่านรายชื่อและเปิดรอบตอนอยู่ที่ รพ.สต. ก่อนออกไปโรงเรียน</p>
 </section>
@@ -147,6 +156,7 @@ a{color:var(--acc)}
 <tr><td>รายงานสรุป</td><td>ร้อยละฟันผุ ไม่มีฟันผุ dmft/DMFT รายห้อง และรายชื่อเด็กที่ต้องรักษา</td></tr>
 </table>
 <p>ก่อนพิมพ์ใบแจ้งผลครั้งแรก เปิด <b>ตั้งค่าใบแจ้งผล</b> ใส่ รพ.สต. เบอร์โทร วันนัด (เครื่องจำไว้)</p>
+<figure><img src="images/10-printmenu.jpg" alt="เมนูพิมพ์และตั้งค่าใบแจ้งผล กรอบแดง = เลือกผู้ตรวจ และปุ่มเพิ่มรายชื่อผู้ตรวจ" loading="lazy"><figcaption>เมนูพิมพ์และตั้งค่าใบแจ้งผล กรอบแดง = เลือกผู้ตรวจ และปุ่มเพิ่มรายชื่อผู้ตรวจ</figcaption></figure><figure><img src="images/12-slip.jpg" alt="ตัวอย่างใบแจ้งผลผู้ปกครอง (ครึ่งแผ่น A4)" loading="lazy"><figcaption>ตัวอย่างใบแจ้งผลผู้ปกครอง (ครึ่งแผ่น A4)</figcaption></figure><figure><img src="images/13-roomprint.jpg" alt="ตัวอย่างผลตรวจห้องนี้ (ตาราง A4 แนวนอน)" loading="lazy"><figcaption>ตัวอย่างผลตรวจห้องนี้ (ตาราง A4 แนวนอน)</figcaption></figure><figure><img src="images/14-report.jpg" alt="ตัวอย่างรายงานสรุปรายห้อง และรายชื่อเด็กที่ต้องรักษา" loading="lazy"><figcaption>ตัวอย่างรายงานสรุปรายห้อง และรายชื่อเด็กที่ต้องรักษา</figcaption></figure>
 <div class="tip">ไม่มีเครื่องพิมพ์ที่โรงเรียน: เลือกเครื่องพิมพ์ <b>บันทึกเป็น PDF</b> แล้วส่งไฟล์ให้ครูทาง LINE · ตั้งระยะขอบเป็น <b>ค่าเริ่มต้น</b></div>
 <details><summary>กรอบ "แบบแจ้งผลการรักษา" ในใบแจ้งผล ใครกรอก</summary>
 <p>ทันตบุคลากรที่รักษาเด็กกรอกตอนเด็กมารับบริการ แล้วลงชื่อ ให้เด็กนำกลับไปคืนครูประจำชั้น ครูจะรู้ว่าใครรักษาแล้ว</p></details>
@@ -160,6 +170,7 @@ a{color:var(--acc)}
 <li>ก่อนพิมพ์ เลือกชื่อในช่อง <b>ผู้ตรวจ</b> ชื่อ ตำแหน่ง และลายเซ็นจะพิมพ์ให้เอง</li>
 </ol>
 <p>เพิ่มครั้งเดียว ทุกเครื่องในเครือข่ายเลือกได้ (ต้องมีเน็ตตอนเพิ่มหรือแก้)</p>
+<figure><img src="images/11-staff.jpg" alt="หน้ารายชื่อผู้ตรวจ เพิ่ม แก้ไข หรือลบ พร้อมลายเซ็น" loading="lazy"><figcaption>หน้ารายชื่อผู้ตรวจ เพิ่ม แก้ไข หรือลบ พร้อมลายเซ็น</figcaption></figure>
 </section>
 
 <section id="clean"><h2><span class="n">9</span>ลบรอบ / ล้างข้อมูล</h2>
@@ -167,7 +178,9 @@ a{color:var(--acc)}
 <li><b>ลบรอบตรวจทั้งรอบ</b> (เช่น รอบทดสอบ หรืออัปโหลดซ้ำ): กด 🗑 ข้างชื่อโรงเรียนในรายการ หรือในรอบนั้นกด <span class="ob">⋯ เพิ่มเติม</span> &gt; <b>ลบรอบตรวจนี้ออกจาก Google Sheet</b> กู้คืนไม่ได้ ดาวน์โหลด Excel เก็บไว้ก่อน</li>
 <li><b>ล้างเฉพาะในเครื่องนี้</b>: <span class="ob">⋯ เพิ่มเติม</span> &gt; <b>ล้างผลที่กรอกในเครื่องนี้</b> (ถ้าอยู่ในรอบกรอกร่วม ให้กดออกจากการกรอกร่วมก่อน)</li>
 </ul>
+<figure><img src="images/15-delete.jpg" alt="ปุ่ม 🗑 ข้างชื่อโรงเรียน ใช้ลบรอบตรวจ" loading="lazy"><figcaption>ปุ่ม 🗑 ข้างชื่อโรงเรียน ใช้ลบรอบตรวจ</figcaption></figure>
 <p>เปลี่ยนสีแอปหรือโหมดมืด: ปุ่ม <span class="ob">🎨 ปรับสี</span> มุมขวาบนของหน้าปก</p>
+<figure class="m"><img src="images/16-theme.jpg" alt="เลือกโหมดและสีหลักของแอป" loading="lazy"><figcaption>เลือกโหมดและสีหลักของแอป</figcaption></figure>
 </section>
 
 <section id="faq"><h2><span class="n">10</span>ปัญหาที่พบบ่อย</h2>
