@@ -196,7 +196,12 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 .bd{font-style:normal;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;margin-right:4px;border:1px solid currentColor}
 .bd.on{color:#1a8a4a}.bd.idle{color:var(--warn)}.bd.done{color:var(--acc)}.bd.new{color:var(--mut)}
 :root[data-mode=dark] .bd.on{color:#5fd38f}
-.shp{background:var(--card);border:2px solid var(--acc);border-radius:10px;padding:14px;margin:12px 0;max-width:560px}
+.shp{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:30;width:min(560px,calc(100vw - 20px));background:var(--card);border:2px solid var(--acc);border-radius:14px;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+.shp[hidden]{display:none}
+.shbg{position:fixed;inset:0;z-index:29;background:rgba(0,0,0,.45)}
+.shbg[hidden]{display:none}
+.shp .shb button{flex:1 1 140px;font-size:17px;padding:12px}
+#shLine{background:#06c755!important;color:#fff!important;border-color:#06c755!important}
 .shp input{width:100%;margin:8px 0;font-size:14px}
 .shb{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
 .shb button,.upl{padding:8px 14px;font-size:15px}
@@ -274,9 +279,10 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div class="ewrap"><table class="entry"><thead><tr><th rowspan="2">ที่</th><th rowspan="2" class="sticky">ชื่อ-สกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="3">Tx. plan</th><th rowspan="2">สรุป</th><th rowspan="2">ฟันดี</th></tr>
 <tr><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>อักเสบ</th><th>หินปูน</th><th>อุด</th><th>ถอน</th><th>Sealant</th></tr></thead><tbody id="tb"></tbody></table></div>
 <div id="card" hidden></div>
+<div id="shbg" class="shbg" hidden></div>
 <div id="shp" class="shp" hidden role="dialog" aria-label="ส่งลิงก์ให้เพื่อน"><b>ส่งลิงก์ให้เพื่อนช่วยกรอก</b>
 <input type="text" id="shLink" readonly aria-label="ลิงก์">
-<div class="shb"><button type="button" id="shCopy">📋 คัดลอกลิงก์</button><button type="button" id="shLine" class="alt">ส่งทาง LINE</button><button type="button" id="shMore" class="alt">แชร์อื่น ๆ</button><button type="button" id="shX" class="alt">ปิด</button></div>
+<div class="shb"><button type="button" id="shLine">ส่งทาง LINE</button><button type="button" id="shCopy">📋 คัดลอกลิงก์</button><button type="button" id="shMore" class="alt">แชร์อื่น ๆ</button><button type="button" id="shX" class="alt">ปิด</button></div>
 <p class="hint">หรือให้เพื่อนเปิดแอปกรอกผล แล้วกดชื่อโรงเรียนในรายการ "โรงเรียนที่กำลังตรวจอยู่"</p></div>
 <label class="chk"><input type="checkbox" id="todo"> แสดงเฉพาะคนที่ยังไม่กรอก</label>
 <div class="acts">
@@ -1254,14 +1260,14 @@ $('delSes').onclick=async()=>{
 };
 async function share(){
   const t=`ช่วยกรอกผลตรวจฟัน ${SES.school||''}\nกดลิงก์ หรือเปิดแอปกรอกผลแล้วกดชื่อโรงเรียนนี้ได้เลย\n${joinLink()}`;
-  $('shLink').value=joinLink();$('shp').hidden=false;$('shp').scrollIntoView({behavior:'smooth',block:'center'});
+  $('shLink').value=joinLink();$('shp').hidden=false;$('shbg').hidden=false;
   $('shMore').hidden=!navigator.share;
   $('shCopy').onclick=async()=>{let ok=false;try{await navigator.clipboard.writeText(t);ok=true}catch(e){$('shLink').select();try{ok=document.execCommand('copy')}catch(_){}}
     $('shCopy').textContent=ok?'✓ คัดลอกแล้ว':'คัดลอกไม่ได้ ให้กดค้างที่ลิงก์';setTimeout(()=>{$('shCopy').textContent='📋 คัดลอกลิงก์'},2500)};
   $('shLine').onclick=()=>{const mob=/Android|iPhone|iPad/i.test(navigator.userAgent);
     window.open(mob?'https://line.me/R/share?text='+encodeURIComponent(t):'https://social-plugins.line.me/lineit/share?url='+encodeURIComponent(joinLink())+'&text='+encodeURIComponent(t),'_blank','noopener')};
   $('shMore').onclick=async()=>{try{await navigator.share({title:'กรอกผลตรวจฟัน',text:t})}catch(e){}};
-  $('shX').onclick=()=>{$('shp').hidden=true};
+  $('shX').onclick=$('shbg').onclick=()=>{$('shp').hidden=true;$('shbg').hidden=true};
   return;
 }
 $('invite').onclick=async()=>{
