@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1d3f63">
+<title>วิธีใช้แอปตรวจฟันนักเรียน</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2f3;--ink:#1d2b2f;--mut:#5b6b70;--line:#cfd9db;--card:#fff;--acc:#0f6b6b;--cover:#1d3f63;--tip:#e6f2f1;--warn:#a1480b;--warnbg:#fdf1e4}
+@media (prefers-color-scheme:dark){:root{--bg:#121a1c;--ink:#e6eeef;--mut:#9aabb0;--line:#2c3b3f;--card:#1a2528;--acc:#4cc0b8;--tip:#1c3436;--warn:#f0a35e;--warnbg:#2e2216}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:'Sarabun',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.65}
+header{background:var(--cover);color:#fff;padding:36px 16px 30px}
+.wrap{max-width:820px;margin:0 auto;padding:0 16px}
+header .wrap{padding:0}
+header p{margin:0;color:#cfe0ef}
+h1{margin:4px 0 8px;font-size:34px;line-height:1.2}
+.tag{font-size:14px;font-weight:600;color:#8fd6cf}
+.links{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.links a{background:#fff;color:var(--cover);text-decoration:none;font-weight:700;padding:10px 18px;border-radius:8px}
+.links a.o{background:transparent;color:#fff;border:2px solid #fff}
+nav{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
+nav .wrap{display:flex;gap:4px;overflow-x:auto;padding:8px 16px;scrollbar-width:none}
+nav a{white-space:nowrap;color:var(--acc);text-decoration:none;font-size:15px;font-weight:600;padding:6px 10px;border-radius:6px}
+nav a:hover{background:var(--bg)}
+main{padding:20px 0 60px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 20px 12px;margin:0 0 18px;scroll-margin-top:60px}
+h2{margin:0 0 10px;font-size:23px;display:flex;align-items:center;gap:10px}
+h2 .n{display:inline-block;text-align:center;line-height:32px;width:32px;height:32px;border-radius:50%;background:var(--acc);color:#fff;font-size:16px;flex:0 0 auto}
+@media (prefers-color-scheme:dark){h2 .n{color:#0b1416}}
+h3{margin:16px 0 6px;font-size:18px}
+ol,ul{padding-left:24px;margin:6px 0 12px}
+li{margin:4px 0}
+.btn{display:inline-block;background:var(--acc);color:#fff;border-radius:6px;padding:0 8px;font-size:15px;font-weight:600;white-space:nowrap}
+@media (prefers-color-scheme:dark){.btn{color:#0b1416}}
+.ob{display:inline-block;border:1.5px solid var(--acc);color:var(--acc);border-radius:6px;padding:0 7px;font-size:15px;font-weight:600;white-space:nowrap}
+.tip{background:var(--tip);border-left:4px solid var(--acc);border-radius:6px;padding:10px 14px;margin:10px 0 14px;font-size:16px}
+.warn{background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;padding:10px 14px;margin:10px 0 14px;font-size:16px}
+.who{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:10px 0 14px}
+.who div{border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.who b{display:block;color:var(--acc);margin-bottom:4px}
+table{width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:16px}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+th{background:var(--bg)}
+kbd{font-family:inherit;font-size:14px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 6px;background:var(--bg)}
+details{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:8px 0}
+summary{cursor:pointer;font-weight:600}
+footer{color:var(--mut);font-size:14px;text-align:center;padding:10px 0 30px}
+a{color:var(--acc)}
+@media print{
+  :root{--bg:#fff;--ink:#000;--mut:#333;--line:#999;--card:#fff;--acc:#0f4f4f;--tip:#eef6f5;--warnbg:#fff5ea}
+  body{font-size:12pt}
+  header{background:#fff;color:#000;padding:0 0 8mm;border-bottom:2px solid #000}
+  header p,.tag{color:#333}.links,nav,.noprint{display:none}
+  section{break-inside:avoid-page;border:none;padding:0;margin:0 0 7mm}
+  details{border:none;padding:0}details>*{display:block}summary{list-style:none}
+  .btn{color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:A4;margin:14mm}
+}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<span class="tag">CUP บวกหมื้อ · งานทันตสาธารณสุข · อนามัยโรงเรียน</span>
+<h1>วิธีใช้แอปตรวจฟันนักเรียน</h1>
+<p>สำหรับทีมที่ออกตรวจสุขภาพช่องปากในโรงเรียน อ่าน 5 นาทีก็ใช้ได้</p>
+<div class="links"><a href="entry.html">เปิดแอปกรอกผล</a><a class="o" href="./">เปิดแอปเตรียมแบบตรวจ</a><a class="o noprint" href="#" onclick="print();return false">🖨 พิมพ์ / บันทึก PDF</a></div>
+</div></header>
+<nav><div class="wrap">
+<a href="#apps">มีแอปอะไรบ้าง</a><a href="#install">ติดตั้ง</a><a href="#lead">คนนำทีม</a><a href="#help">คนช่วยกรอก</a><a href="#enter">กรอกผล</a><a href="#offline">ไม่มีเน็ต</a><a href="#print">พิมพ์</a><a href="#staff">ผู้ตรวจ/ลายเซ็น</a><a href="#clean">ลบ/ล้าง</a><a href="#faq">ปัญหาที่พบบ่อย</a>
+</div></nav>
+<main><div class="wrap">
+
+<section id="apps"><h2><span class="n">1</span>มีแอปอะไรบ้าง</h2>
+<table>
+<tr><th>แอป</th><th>ใช้ตอนไหน</th></tr>
+<tr><td><b>กรอกผลตรวจฟันนักเรียน</b> (ไอคอนสีน้ำเงิน)<br><a href="entry.html">focus2541.github.io/dental-exam/entry.html</a></td><td>ใช้เป็นหลัก กรอกผล ช่วยกันกรอกหลายเครื่อง พิมพ์ใบแจ้งผลและรายงานสรุป</td></tr>
+<tr><td><b>เตรียมแบบตรวจฟันนักเรียน</b> (ไอคอนสีเขียว)<br><a href="./">focus2541.github.io/dental-exam/</a></td><td>เมื่ออยากได้แบบตรวจเปล่าไว้เขียนมือ (ไฟล์ Excel แยกห้อง พร้อมพิมพ์ A4)</td></tr>
+</table>
+<p>ทั้งสองแอปอ่านไฟล์รายชื่อได้ทุกแบบ: Excel (.xlsx .xls .csv), Word (.docx) และ PDF (รวมไฟล์สแกน) ไม่ต้องจัดรูปแบบไฟล์ก่อน</p>
+</section>
+
+<section id="install"><h2><span class="n">2</span>ติดตั้ง (ครั้งเดียวต่อเครื่อง)</h2>
+<ol>
+<li>เปิดลิงก์แอปใน <b>Chrome</b> (คอมหรือมือถือ Android)</li>
+<li>กด <span class="ob">ติดตั้งเป็นแอป</span> บนหน้าปก<br>ถ้าไม่มีปุ่ม: เมนู ⋮ &gt; <b>ส่ง บันทึก และแชร์</b> &gt; <b>ติดตั้งหน้าเป็นแอป</b> (บนมือถือ: ⋮ &gt; <b>เพิ่มลงหน้าจอหลัก</b>)</li>
+<li>เปิดแอปจากไอคอนบนเดสก์ท็อปหรือหน้าจอมือถือได้เลย</li>
+</ol>
+<div class="tip">เปิดแอปตอนมีเน็ต 1 ครั้ง แล้วครั้งต่อไปเปิดได้แม้ไม่มีสัญญาณ</div>
+</section>
+
+<section id="lead"><h2><span class="n">3</span>คนนำทีม: เริ่มรอบตรวจ</h2>
+<p>โรงเรียนหนึ่ง<b>ให้คนเดียว</b>เป็นคนใส่รายชื่อ คนอื่นไม่ต้องใส่ซ้ำ</p>
+<ol>
+<li>เปิดแอปกรอกผล กด <span class="ob">เลือกไฟล์รายชื่อ</span> หรือลากไฟล์มาวาง</li>
+<li>ใส่ <b>ชื่อโรงเรียน</b> และ <b>วันที่ตรวจ</b> ดูว่าแต่ละห้องมีจำนวนนักเรียนถูกต้อง</li>
+<li>กด <span class="btn">เริ่มกรอกผลตรวจ ▶</span></li>
+<li>ถ้ามีคนช่วยกรอก กด <span class="btn">👥 เปิดให้คนอื่นช่วยกรอก</span> (กดครั้งเดียว) แล้วกด <span class="ob">📋 คัดลอกลิงก์</span> หรือ <span class="ob">ส่งทาง LINE</span></li>
+</ol>
+<details><summary>ถ้าแอปอ่านรายชื่อผิด (ชื่อสลับคอลัมน์ ห้องไม่ถูก)</summary>
+<p>ในการ์ดของชีตนั้น กด <b>แก้ชื่อห้อง / คอลัมน์ (ถ้าอ่านผิด)</b> แล้วเลือกคอลัมน์ที่ถูกต้อง ถ้าเป็น PDF สแกน กด <b>ตรวจทานรายชื่อที่อ่านจากสแกน</b> แล้วแก้ชื่อหรือเลขบัตรที่ขึ้นสีส้มเทียบกับภาพต้นฉบับ</p></details>
+<details><summary>ใช้รายชื่อเดิมซ้ำครั้งหน้า</summary>
+<p>กด <b>บันทึกรายชื่อไว้ใช้ครั้งหน้า</b> ครั้งต่อไปจะมีชื่อโรงเรียนให้กดเปิดได้เลย ไม่ต้องอ่านไฟล์ใหม่</p></details>
+</section>
+
+<section id="help"><h2><span class="n">4</span>คนช่วยกรอก: เข้าร่วม</h2>
+<div class="who">
+<div><b>ทางที่ 1 (ง่ายที่สุด)</b>เปิดแอปกรอกผล กดชื่อโรงเรียนในกล่อง <b>โรงเรียนที่กำลังตรวจอยู่</b></div>
+<div><b>ทางที่ 2</b>กดลิงก์ที่คนนำทีมส่งมาใน LINE</div>
+</div>
+<p>จากนั้นเลือกห้องของตัวเองแล้วกรอก ไม่ต้องใส่รหัส ไม่ต้องอัปโหลดรายชื่อ</p>
+<p>ป้ายในรายการโรงเรียน: <b>กำลังใช้งาน</b> = มีคนกรอกใน 15 นาทีล่าสุด · <b>พักอยู่</b> · <b>ยังไม่เริ่มกรอก</b> · <b>ตรวจครบแล้ว</b></p>
+<div class="warn">อย่าอัปโหลดรายชื่อโรงเรียนเดิมซ้ำ จะกลายเป็นอีกรอบที่แยกกัน ผลไม่รวมกัน</div>
+</section>
+
+<section id="enter"><h2><span class="n">5</span>กรอกผล</h2>
+<p>มี 2 แบบ สลับได้ด้วยปุ่ม <span class="ob">แบบทีละคน</span> / <span class="ob">แบบตาราง</span> (มือถือเปิดแบบทีละคนให้เอง)</p>
+<h3>แบบทีละคน (เหมาะกับมือถือ)</h3>
+<ul>
+<li>เด็กฟันดี กด <span class="btn">✓ ฟันดี ไม่มีฟันผุ</span> บันทึกแล้วไปคนถัดไปทันที</li>
+<li>กรอกตัวเลขฟันน้ำนม / ฟันแท้ (ทั้งหมด ผุ อุด ถอน) กด <kbd>Enter</kbd> ไปช่องถัดไป</li>
+<li>แตะ <span class="ob">เหงือกอักเสบ</span> <span class="ob">มีหินปูน</span> ถ้าพบ</li>
+<li>ต้องรักษา: ใส่จำนวนซี่ อุด / ถอน / Sealant</li>
+<li>เลือกชื่อจากรายการด้านบนเพื่อข้ามไปคนไหนก็ได้ คนที่กรอกแล้วมี ✓</li>
+</ul>
+<h3>แบบตาราง (เหมาะกับคอม กรอกจากกระดาษ)</h3>
+<ul>
+<li><kbd>Enter</kbd> ช่องถัดไป · <kbd>↑</kbd> <kbd>↓</kbd> เปลี่ยนแถว · <kbd>/</kbd> = ฟันดี · เหงือก/หินปูน พิมพ์ <kbd>1</kbd></li>
+</ul>
+<div class="tip">บันทึกอัตโนมัติทุกครั้งที่พิมพ์ ช่องสีส้ม = ตัวเลขผิดปกติ เช่น ฟันผุมากกว่าฟันทั้งหมด ติ๊ก <b>แสดงเฉพาะคนที่ยังไม่กรอก</b> เพื่อดูคนที่เหลือ</div>
+</section>
+
+<section id="offline"><h2><span class="n">6</span>ไม่มีสัญญาณ</h2>
+<p>กรอกต่อได้ตามปกติ แถบด้านบนจะขึ้นว่า <b>ยังไม่ได้ส่ง … คน</b> พอมีเน็ต แอปส่งขึ้น Google Sheet ให้เอง ไม่ต้องกดอะไร</p>
+<div class="warn">อย่ากด <b>ออกจากการกรอกร่วม</b> ขณะที่ยังมีผลรอส่ง ผลเหล่านั้นจะอยู่แค่ในเครื่อง</div>
+<p>อ่านไฟล์ PDF สแกนต้องใช้เน็ต ให้อ่านรายชื่อและเปิดรอบตอนอยู่ที่ รพ.สต. ก่อนออกไปโรงเรียน</p>
+</section>
+
+<section id="print"><h2><span class="n">7</span>พิมพ์</h2>
+<p>กดเมนู <span class="ob">🖨 พิมพ์</span> ในหน้ากรอกผล</p>
+<table>
+<tr><th>เมนู</th><th>ได้อะไร</th></tr>
+<tr><td>ผลตรวจห้องนี้ (ตาราง)</td><td>แบบตรวจทั้งห้องพร้อมตัวเลข A4 แนวนอน</td></tr>
+<tr><td>ใบแจ้งผลผู้ปกครอง</td><td>A4 แผ่นละ 2 คน ตัดครึ่ง เลือกพิมพ์เฉพาะเด็กที่ต้องรักษาหรือทุกคน ห้องนี้หรือทุกห้อง</td></tr>
+<tr><td>รายงานสรุป</td><td>ร้อยละฟันผุ ไม่มีฟันผุ dmft/DMFT รายห้อง และรายชื่อเด็กที่ต้องรักษา</td></tr>
+</table>
+<p>ก่อนพิมพ์ใบแจ้งผลครั้งแรก เปิด <b>ตั้งค่าใบแจ้งผล</b> ใส่ รพ.สต. เบอร์โทร วันนัด (เครื่องจำไว้)</p>
+<div class="tip">ไม่มีเครื่องพิมพ์ที่โรงเรียน: เลือกเครื่องพิมพ์ <b>บันทึกเป็น PDF</b> แล้วส่งไฟล์ให้ครูทาง LINE · ตั้งระยะขอบเป็น <b>ค่าเริ่มต้น</b></div>
+<details><summary>กรอบ "แบบแจ้งผลการรักษา" ในใบแจ้งผล ใครกรอก</summary>
+<p>ทันตบุคลากรที่รักษาเด็กกรอกตอนเด็กมารับบริการ แล้วลงชื่อ ให้เด็กนำกลับไปคืนครูประจำชั้น ครูจะรู้ว่าใครรักษาแล้ว</p></details>
+<p>ไฟล์ Excel ผลตรวจ (มีชีตสรุปและชีตเด็กที่ต้องรักษา): เมนู <span class="ob">⋯ เพิ่มเติม</span> &gt; <b>ดาวน์โหลดผลเป็น Excel</b> ไฟล์อยู่ในโฟลเดอร์ Downloads (กด <kbd>Ctrl</kbd>+<kbd>J</kbd> เพื่อดู)</p>
+</section>
+
+<section id="staff"><h2><span class="n">8</span>ผู้ตรวจและลายเซ็น</h2>
+<ol>
+<li><span class="ob">🖨 พิมพ์</span> &gt; <b>ตั้งค่าใบแจ้งผล</b> &gt; <span class="ob">👤 เพิ่ม/แก้รายชื่อผู้ตรวจและลายเซ็น</span></li>
+<li>ใส่ชื่อ ตำแหน่ง หน่วยบริการ แล้ว <b>✍ วาดลายเซ็น</b> หรือ <b>📷 อัปโหลดรูป</b> ลายเซ็นบนกระดาษขาว กดบันทึก</li>
+<li>ก่อนพิมพ์ เลือกชื่อในช่อง <b>ผู้ตรวจ</b> ชื่อ ตำแหน่ง และลายเซ็นจะพิมพ์ให้เอง</li>
+</ol>
+<p>เพิ่มครั้งเดียว ทุกเครื่องในเครือข่ายเลือกได้ (ต้องมีเน็ตตอนเพิ่มหรือแก้)</p>
+</section>
+
+<section id="clean"><h2><span class="n">9</span>ลบรอบ / ล้างข้อมูล</h2>
+<ul>
+<li><b>ลบรอบตรวจทั้งรอบ</b> (เช่น รอบทดสอบ หรืออัปโหลดซ้ำ): กด 🗑 ข้างชื่อโรงเรียนในรายการ หรือในรอบนั้นกด <span class="ob">⋯ เพิ่มเติม</span> &gt; <b>ลบรอบตรวจนี้ออกจาก Google Sheet</b> กู้คืนไม่ได้ ดาวน์โหลด Excel เก็บไว้ก่อน</li>
+<li><b>ล้างเฉพาะในเครื่องนี้</b>: <span class="ob">⋯ เพิ่มเติม</span> &gt; <b>ล้างผลที่กรอกในเครื่องนี้</b> (ถ้าอยู่ในรอบกรอกร่วม ให้กดออกจากการกรอกร่วมก่อน)</li>
+</ul>
+<p>เปลี่ยนสีแอปหรือโหมดมืด: ปุ่ม <span class="ob">🎨 ปรับสี</span> มุมขวาบนของหน้าปก</p>
+</section>
+
+<section id="faq"><h2><span class="n">10</span>ปัญหาที่พบบ่อย</h2>
+<details><summary>เปิดแอปแล้วยังเป็นหน้าเก่า</summary><p>กด <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> หรือปิดแอปแล้วเปิดใหม่</p></details>
+<details><summary>ไม่เห็นรายการ "โรงเรียนที่กำลังตรวจอยู่"</summary><p>ต้องมีเน็ต และต้องมีคนกด "เปิดให้คนอื่นช่วยกรอก" แล้ว ลองกด <b>รีเฟรช</b></p></details>
+<details><summary>ผลจากอีกเครื่องยังไม่ขึ้น</summary><p>แอปดึงผลทุก 20 วินาที ดูแถบด้านบนของทั้งสองเครื่องว่าขึ้น <b>✓ ส่งครบแล้ว</b></p></details>
+<details><summary>ติดตั้งแอปไม่ได้ ปุ่มกดไม่ได้</summary><p>ถ้าแถบที่อยู่มีปุ่ม <b>เปิดในแอป</b> แปลว่าติดตั้งแล้ว กดปุ่มนั้นเพื่อเปิด</p></details>
+<details><summary>หาไฟล์ที่ดาวน์โหลดไม่เจอ</summary><p>กด <kbd>Ctrl</kbd>+<kbd>J</kbd> แล้วกดไอคอนโฟลเดอร์ข้างชื่อไฟล์</p></details>
+<details><summary>ข้อมูลเก็บที่ไหน ใครเห็นได้บ้าง</summary><p>ถ้าใช้เครื่องเดียว ข้อมูลอยู่ในเครื่องนั้น ถ้าเปิดให้คนอื่นช่วยกรอก รายชื่อและผลตรวจจะเก็บใน Google Sheet ของ รพ.สต.บวกหมื้อ ทุกคนที่มีแอปเห็นรายการโรงเรียนและเข้ากรอกได้ จึงควรใช้ในทีมเท่านั้น</p></details>
+</section>
+
+<p class="noprint" style="text-align:center"><a href="entry.html">← กลับไปแอปกรอกผล</a></p>
+</div></main>
+<footer>ติดต่อผู้ดูแลระบบ: รพ.สต.บวกหมื้อ (แม่ข่าย CUP)</footer>
+</body>
+</html>
