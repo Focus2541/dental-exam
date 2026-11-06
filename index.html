@@ -13,8 +13,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root{--bg:#eef2f3;--ink:#1d2b2f;--mut:#5b6b70;--line:#cfd9db;--card:#fff;--acc:#0f6b6b;--acc2:#0a4f4f;--warn:#a1480b;--warnbg:#fdf1e4}
-@media (prefers-color-scheme:dark){:root{--bg:#121a1c;--ink:#e6eeef;--mut:#9aabb0;--line:#2c3b3f;--card:#1a2528;--acc:#4cc0b8;--acc2:#7ad8d0;--warn:#f0a35e;--warnbg:#2e2216}}
+:root{--bg:#eef2f3;--ink:#1d2b2f;--mut:#5b6b70;--line:#cfd9db;--card:#fff;--acc:#0f6b6b;--acc2:#0a4f4f;--warn:#a1480b;--warnbg:#fdf1e4;--cover:#0d4f4f;--ok:#e3f1ef}
+@media (prefers-color-scheme:dark){:root:not([data-mode=light]){--bg:#121a1c;--ink:#e6eeef;--mut:#9aabb0;--line:#2c3b3f;--card:#1a2528;--acc:#4cc0b8;--acc2:#7ad8d0;--warn:#f0a35e;--warnbg:#2e2216;--ok:#1c3436}}
+:root[data-mode=dark]{--bg:#121a1c;--ink:#e6eeef;--mut:#9aabb0;--line:#2c3b3f;--card:#1a2528;--acc:#4cc0b8;--acc2:#7ad8d0;--warn:#f0a35e;--warnbg:#2e2216;--ok:#1c3436}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{font-family:'Sarabun',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.55}
@@ -43,9 +44,9 @@ input[type=text],select{width:100%;font:inherit;padding:7px 9px;border:1px solid
 button{font:inherit;font-weight:600;padding:12px 22px;border:0;border-radius:8px;background:var(--acc);color:#fff;cursor:pointer}
 button:hover{background:var(--acc2)}
 button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within{outline:3px solid var(--acc);outline-offset:2px}
-@media (prefers-color-scheme:dark){button{color:#0b1416}}
+:root[data-mode=dark] button{color:#0b1416}
 
-.cover{max-width:none;margin:0;padding:44px 20px 40px;background:#0d4f4f;color:#fff}
+.cover{position:relative;max-width:none;margin:0;padding:44px 20px 40px;background:var(--cover);color:#fff}
 .cv-in{max-width:900px;margin:0 auto;display:flex;gap:32px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .cv-txt{flex:1 1 380px}
 .cover h1{font-size:42px;line-height:1.15;margin:0 0 10px;letter-spacing:-.01em}
@@ -53,8 +54,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .cv-tag{font-size:14px;margin-bottom:10px!important;color:#8fd6cf!important;font-weight:600}
 .cv-steps{list-style:none;margin:0 0 24px;padding:0;display:flex;gap:10px;flex-wrap:wrap}
 .cv-steps li{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border-radius:999px;padding:6px 14px 6px 6px;font-size:15px}
-.cv-steps b{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#fff;color:#0d4f4f;font-size:14px}
-.cv-go{display:inline-block;background:#fff;color:#0d4f4f;text-decoration:none;font-weight:700;padding:12px 26px;border-radius:8px}
+.cv-steps b{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#fff;color:var(--cover);font-size:14px}
+.cv-go{display:inline-block;background:#fff;color:var(--cover);text-decoration:none;font-weight:700;padding:12px 26px;border-radius:8px}
 .cv-go:hover{background:#e3f3f1}
 .cv-go:focus-visible{outline:3px solid #8fd6cf;outline-offset:3px}
 .cv-note{display:block;margin-top:14px;font-size:13px;color:#8fd6cf}
@@ -78,10 +79,27 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 #off{margin-top:24px}
 .cv-inst{border:2px solid #fff;background:transparent;color:#fff;font:inherit;font-weight:700;cursor:pointer;margin-left:8px;padding:10px 22px}
 .cv-inst:hover{background:rgba(255,255,255,.12)}
+.thm{position:absolute;top:12px;right:12px;z-index:5;background:rgba(255,255,255,.14)!important;color:#fff!important;border:1px solid rgba(255,255,255,.35);padding:6px 12px;font-size:14px;font-weight:600}
+.thm:hover{background:rgba(255,255,255,.24)!important}
+.thp{position:absolute;top:52px;right:12px;z-index:6;width:min(300px,calc(100vw - 24px));background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px 14px 14px;box-shadow:0 8px 28px rgba(0,0,0,.25)}
+.thp .thl{margin:4px 0 6px!important;font-size:13px;font-weight:600;color:var(--mut)!important}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;border-radius:0;background:transparent!important;color:var(--ink)!important;padding:8px 4px;font-size:14px;font-weight:600}
+.seg button.on{background:var(--acc)!important;color:#fff!important}
+:root[data-mode=dark] .seg button.on{color:#0b1416!important}
+.sw{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sw button{display:flex;flex-direction:column;align-items:center;gap:4px;background:transparent!important;color:var(--ink)!important;padding:4px 0;font-size:12px;font-weight:400}
+.sw i{display:block;width:34px;height:34px;border-radius:50%;border:3px solid transparent;box-shadow:0 0 0 1px var(--line)}
+.sw button.on i{border-color:var(--card);box-shadow:0 0 0 3px var(--acc)}
 </style>
 </head>
 <body>
 <header class="cover">
+<button type="button" id="thm" class="thm" aria-haspopup="true" aria-expanded="false">🎨 ปรับสี</button>
+<div id="thp" class="thp" hidden role="dialog" aria-label="ปรับสี">
+<p class="thl">โหมด</p><div class="seg" id="thMode"><button type="button" data-m="auto">ตามเครื่อง</button><button type="button" data-m="light">สว่าง</button><button type="button" data-m="dark">มืด</button></div>
+<p class="thl">สีหลัก</p><div class="sw" id="thCol"></div>
+</div>
 <div class="cv-in">
 <div class="cv-txt">
 <p class="cv-tag">งานทันตสาธารณสุข · อนามัยโรงเรียน</p>
@@ -94,7 +112,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 <svg class="cv-art" viewBox="0 0 160 190" role="img" aria-label="ภาพฟันกับเครื่องหมายถูก">
 <path d="M80 22c-18-12-50-6-58 20-5 18 3 34 8 52 5 21 3 52 16 76 7 13 16 10 19-5 3-16 5-40 15-40s12 24 15 40c3 15 12 18 19 5 13-24 11-55 16-76 5-18 13-34 8-52-8-26-40-32-58-20z" fill="rgba(255,255,255,.12)" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
 <circle cx="122" cy="40" r="26" fill="#8fd6cf"/>
-<path d="M110 40l9 9 16-18" fill="none" stroke="#0d4f4f" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M110 40l9 9 16-18" fill="none" style="stroke:var(--cover)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
 </div>
 </header>
@@ -693,6 +711,42 @@ $('inst').onclick=async()=>{
 if(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)$('inst').hidden=true;
 window.addEventListener('appinstalled',()=>{$('inst').hidden=true});
 $('go').addEventListener('click',()=>build().catch(e=>alert('สร้างไฟล์ไม่สำเร็จ: '+e.message)));
+
+/* ===== ปรับสี ===== */
+(function(){
+  const APP='prep',KEY='dentalTheme_'+APP,root=document.documentElement;
+  const P=[
+    ['เขียวน้ำทะเล','#0d4f4f',['#0f6b6b','#0a4f4f'],['#4cc0b8','#7ad8d0']],
+    ['น้ำเงิน','#1d3f63',['#0f6b6b','#0a4f4f'],['#4cc0b8','#7ad8d0']],
+    ['ฟ้า','#174a7c',['#1f5fa8','#174a85'],['#6fa8ef','#9cc3f5']],
+    ['เขียว','#1f5130',['#2f7d46','#246338'],['#6fd08c','#9adfae']],
+    ['ม่วง','#3d2a66',['#6a3fb5','#52308f'],['#b59af0','#cdb9f6']],
+    ['ชมพู','#6b1f45',['#b0306f','#8c2458'],['#f08fbd','#f5b3d3']],
+    ['ส้ม','#6b3410',['#b3540f','#8f430b'],['#f5a35e','#f8c08e']],
+    ['เทา','#2b3440',['#3d5a73','#2e475c'],['#9fbcd6','#c1d5e6']]];
+  const DEF=APP==='entry'?1:0;
+  let st={mode:'auto',c:DEF};try{Object.assign(st,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
+  const mq=window.matchMedia?matchMedia('(prefers-color-scheme: dark)'):null;
+  function apply(){
+    const dark=st.mode==='dark'||(st.mode==='auto'&&mq&&mq.matches),p=P[st.c]||P[DEF],a=dark?p[3]:p[2];
+    root.dataset.mode=dark?'dark':'light';
+    root.style.setProperty('--cover',p[1]);root.style.setProperty('--acc',a[0]);root.style.setProperty('--acc2',a[1]);
+    const m=document.querySelector('meta[name=theme-color]');if(m)m.content=p[1];
+    document.querySelectorAll('#thMode button').forEach(b=>b.classList.toggle('on',b.dataset.m===st.mode));
+    document.querySelectorAll('#thCol button').forEach((b,i)=>b.classList.toggle('on',i===+st.c));
+  }
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}apply()}
+  const col=document.getElementById('thCol');
+  col.innerHTML=P.map((p,i)=>`<button type="button" data-c="${i}" title="${p[0]}"><i style="background:${p[1]}"></i>${p[0]}</button>`).join('');
+  col.onclick=e=>{const b=e.target.closest('button');if(b){st.c=+b.dataset.c;save()}};
+  document.getElementById('thMode').onclick=e=>{const b=e.target.closest('button');if(b){st.mode=b.dataset.m;save()}};
+  const btn=document.getElementById('thm'),pan=document.getElementById('thp');
+  btn.onclick=e=>{e.stopPropagation();pan.hidden=!pan.hidden;btn.setAttribute('aria-expanded',String(!pan.hidden))};
+  document.addEventListener('click',e=>{if(!pan.hidden&&!pan.contains(e.target)&&e.target!==btn){pan.hidden=true;btn.setAttribute('aria-expanded','false')}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pan.hidden){pan.hidden=true;btn.focus()}});
+  if(mq&&mq.addEventListener)mq.addEventListener('change',apply);
+  apply();
+})();
 </script>
 </body>
 </html>
