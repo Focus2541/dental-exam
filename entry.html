@@ -167,7 +167,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 </div>
 <button id="j_go" type="button">เข้าร่วมรอบตรวจ</button>
 <p class="hint">คนสร้างรอบ: ใส่ไฟล์รายชื่อด้านบนก่อน แล้วกด "สร้างรอบตรวจออนไลน์" จะได้รหัสรอบกับ PIN ส่งให้คนอื่นใส่ที่นี่ ทุกเครื่องกรอกคนละห้องได้ ผลรวมกันใน Google Sheet</p>
-<details class="rv"><summary>ตั้งค่าการเชื่อมต่อ</summary><label>ลิงก์ Apps Script (Web app URL)<input type="text" id="api" placeholder="https://script.google.com/macros/s/.../exec"></label><p class="hint">ใส่ครั้งเดียวต่อเครื่อง ถ้าผู้ดูแลตั้งไว้ในแอปแล้วไม่ต้องใส่</p></details>
+<details class="rv"><summary>ตั้งค่าการเชื่อมต่อ</summary><label>ลิงก์ Apps Script (Web app URL)<input type="text" id="api" placeholder="https://script.google.com/macros/s/.../exec"></label><p class="hint">ตั้งไว้ในแอปแล้ว เว้นว่างได้ ใส่เฉพาะเมื่อต้องการใช้ Sheet อื่น</p></details>
 </section>
 <section id="cfg" hidden>
 <div class="row">
@@ -918,7 +918,7 @@ function printRoom(){
 $('prRoom').onclick=printRoom;
 
 /* ===== เชื่อมหลายเครื่องผ่าน Google Sheet ===== */
-const API_DEFAULT='';
+const API_DEFAULT='https://script.google.com/macros/s/AKfycbw7YsvwbjygMoXpzwjgBFSRf12k8eyTWmxVmxY08VNmG6qkKRaIQbjnLx6GMpkkomd0Gw/exec';
 const LS={get:(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 let SES=LS.get('dentalSession',null),ET=LS.get('dentalEntryT',{}),Q=LS.get('dentalQueue',{}),busy=false,lastErr='',timer=null;
 const apiUrl=()=>($('api').value.trim()||API_DEFAULT);
