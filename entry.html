@@ -115,6 +115,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .rpt td,.rpt th{border:1px solid #000;padding:1mm 1.5mm;text-align:center}
 .rep td,.rep th{text-align:center;white-space:nowrap}
 #repv{margin-top:16px}
+.cv-inst{border:2px solid #fff;background:transparent;color:#fff;font:inherit;font-weight:700;cursor:pointer;margin-left:8px;padding:10px 22px}
+.cv-inst:hover{background:rgba(255,255,255,.12)}
 </style>
 </head>
 <body>
@@ -125,7 +127,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 <h1>กรอกผลตรวจฟันนักเรียน</h1>
 <p>ใส่ไฟล์รายชื่อของโรงเรียนไหนก็ได้ แล้วกรอกผลตรวจทีละห้องด้วยแป้นพิมพ์ บันทึกอัตโนมัติ และส่งออกเป็น Excel</p>
 <ol class="cv-steps"><li><b>1</b>ใส่ไฟล์รายชื่อ</li><li><b>2</b>กรอกผลทีละห้อง</li><li><b>3</b>ดาวน์โหลด Excel</li></ol>
-<a class="cv-go" href="#drop">เริ่มเลย</a>
+<a class="cv-go" href="#drop">เริ่มเลย</a> <button id="inst" class="cv-go cv-inst" type="button" hidden>ติดตั้งเป็นแอป</button>
 <span class="cv-note">ข้อมูลเด็กประมวลผลในเครื่องนี้เท่านั้น ไม่ถูกส่งไปที่ไหน</span>
 </div>
 <svg class="cv-art" viewBox="0 0 160 190" role="img" aria-label="ภาพฟันกับเครื่องหมายถูก">
@@ -871,6 +873,10 @@ drawSaved();
 if('serviceWorker' in navigator&&location.protocol==='https:'){
   navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{$('off').textContent='✓ เปิดใช้แบบไม่มีอินเทอร์เน็ตได้แล้วในเครื่องนี้ (อ่าน PDF สแกนครั้งแรกยังต้องใช้เน็ต)'}).catch(()=>{});
 }
+let instEv=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();instEv=e;$('inst').hidden=false});
+$('inst').onclick=async()=>{if(!instEv)return;instEv.prompt();await instEv.userChoice;instEv=null;$('inst').hidden=true};
+window.addEventListener('appinstalled',()=>{$('inst').hidden=true});
 $('go').addEventListener('click',()=>build().catch(e=>alert('สร้างไฟล์ไม่สำเร็จ: '+e.message)));
 </script>
 <div id="pa"></div>
