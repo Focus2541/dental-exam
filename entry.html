@@ -196,6 +196,19 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 .bd{font-style:normal;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;margin-right:4px;border:1px solid currentColor}
 .bd.on{color:#1a8a4a}.bd.idle{color:var(--warn)}.bd.done{color:var(--acc)}.bd.new{color:var(--mut)}
 :root[data-mode=dark] .bd.on{color:#5fd38f}
+.shp{background:var(--card);border:2px solid var(--acc);border-radius:10px;padding:14px;margin:12px 0;max-width:560px}
+.shp input{width:100%;margin:8px 0;font-size:14px}
+.shb{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.shb button,.upl{padding:8px 14px;font-size:15px}
+.upl{display:inline-block;border:2px solid var(--acc);color:var(--acc);border-radius:8px;font-weight:600;cursor:pointer;margin:0}
+.sigbox{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--mut)}
+.sigbox img{max-height:70px;max-width:260px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:4px}
+.sigd{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.sigd[hidden]{display:none}
+.sigw{background:var(--card);color:var(--ink);border-radius:12px;padding:14px;width:min(640px,100%)}
+#sigC{display:block;width:100%;height:auto;background:#fff;border:1px dashed #999;border-radius:8px;margin:8px 0;touch-action:none}
+.slip .sgn{text-align:right;margin:1mm 4mm 0 0;font-size:9.5pt;line-height:1.3}
+.slip .sgn img{height:10mm;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -251,6 +264,10 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div class="ewrap"><table class="entry"><thead><tr><th rowspan="2">ที่</th><th rowspan="2" class="sticky">ชื่อ-สกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="3">Tx. plan</th><th rowspan="2">สรุป</th><th rowspan="2">ฟันดี</th></tr>
 <tr><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>อักเสบ</th><th>หินปูน</th><th>อุด</th><th>ถอน</th><th>Sealant</th></tr></thead><tbody id="tb"></tbody></table></div>
 <div id="card" hidden></div>
+<div id="shp" class="shp" hidden role="dialog" aria-label="ส่งลิงก์ให้เพื่อน"><b>ส่งลิงก์ให้เพื่อนช่วยกรอก</b>
+<input type="text" id="shLink" readonly aria-label="ลิงก์">
+<div class="shb"><button type="button" id="shCopy">📋 คัดลอกลิงก์</button><button type="button" id="shLine" class="alt">ส่งทาง LINE</button><button type="button" id="shMore" class="alt">แชร์อื่น ๆ</button><button type="button" id="shX" class="alt">ปิด</button></div>
+<p class="hint">หรือให้เพื่อนเปิดแอปกรอกผล แล้วกดชื่อโรงเรียนในรายการ "โรงเรียนที่กำลังตรวจอยู่"</p></div>
 <label class="chk"><input type="checkbox" id="todo"> แสดงเฉพาะคนที่ยังไม่กรอก</label>
 <div class="acts">
 <button id="invite" class="big" type="button">👥 ชวนเพื่อนช่วยกรอก</button>
@@ -264,6 +281,11 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <label>วันที่นัด<input type="text" id="s_day" data-set></label>
 <label>เวลา<input type="text" id="s_time" data-set></label>
 <label>พิมพ์ให้<select id="s_who" data-set><option value="tx">เฉพาะเด็กที่ต้องรักษา</option><option value="all">ทุกคนที่ตรวจแล้ว</option></select></label>
+<label>ชื่อผู้ตรวจ<input type="text" id="s_exam" data-set placeholder="เช่น นายพิชยากร วุฒิกิจ"></label>
+<label>ตำแหน่งผู้ตรวจ<input type="text" id="s_pos" data-set placeholder="เช่น เจ้าพนักงานทันตสาธารณสุข"></label>
+<label>ชื่อผู้ให้การรักษา (เว้นว่างได้ ให้เขียนเองตอนรักษา)<input type="text" id="s_txn" data-set></label>
+<div class="sigbox"><span>ลายเซ็นผู้ตรวจ</span><img id="sigImg" alt="" hidden><span id="sigNone" class="hint">ยังไม่มี</span>
+<div class="shb"><button type="button" id="sigDraw" class="alt">✍ วาดลายเซ็น</button><label class="upl alt">📷 อัปโหลดรูป<input type="file" id="sigFile" accept="image/*" hidden></label><button type="button" id="sigDel" class="alt">ลบ</button></div></div>
 <label>ขอบเขต<select id="s_scope" data-set><option value="room">ห้องที่เลือกอยู่</option><option value="all">ทุกห้อง</option></select></label>
 </div><p class="hint">A4 แผ่นละ 2 คน ตัดครึ่งตามเส้นประ</p></details>
 </div></details>
@@ -275,6 +297,8 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 </div>
 <section id="repv" hidden></section>
 </section>
+<div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
+<div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
 </main>
 <script>
@@ -867,7 +891,7 @@ try{const o=JSON.parse(localStorage.getItem(SK)||'{}');document.querySelectorAll
 document.querySelectorAll('[data-set]').forEach(el=>el.addEventListener('change',()=>{const o={};document.querySelectorAll('[data-set]').forEach(x=>{o[x.id]=x.value});try{localStorage.setItem(SK,JSON.stringify(o))}catch(e){}}));
 function slipHTML(p,room,v,school,date){
   const cb=b=>b?'☑':'☐',dots=(x,l)=>x?esc(x):'…'.repeat(l),hos=$('s_hos').value.trim(),tel=$('s_tel').value.trim();
-  const gum=nn(v[8])>0,tar=nn(v[9])>0,fill=nn(v[10]),ext=nn(v[11]),seal=nn(v[12]);
+  const ex=$('s_exam').value.trim(),pos=$('s_pos').value.trim(),txn=$('s_txn').value.trim(),gum=nn(v[8])>0,tar=nn(v[9])>0,fill=nn(v[10]),ext=nn(v[11]),seal=nn(v[12]);
   const good=nn(v[1])===0&&nn(v[5])===0&&!fill&&!ext;
   const cells=v.map((x,i)=>i===8||i===9?(nn(x)?'✓':''):esc(x||''));
   const nm=esc((p.pre+' '+p.fn+' '+p.ln).trim());
@@ -877,11 +901,12 @@ function slipHTML(p,room,v,school,date){
 <tr><th>ฟันทั้งหมด</th><th>ฟันผุ</th><th>อุด</th><th>ถอน/หลุด</th><th>ฟันทั้งหมด</th><th>ฟันผุ</th><th>อุด</th><th>ถอน/หลุด</th><th>อักเสบ</th><th>หินปูน</th><th>อุด</th><th>ถอน</th><th>Sealant</th></tr>
 <tr class="val"><td>${esc(p.pre)}</td><td>${esc(p.fn)}</td><td>${esc(p.ln)}</td>${cells.map(c=>`<td>${c}</td>`).join('')}</tr></table>
 <b>สรุปผลการตรวจ</b><div class="two"><div>${cb(good)} ฟันดี ไม่มีฟันผุ</div><div>${cb(fill)} ต้องอุดฟัน ${fill||'……'} ซี่</div><div>${cb(ext)} ต้องถอนฟัน ${ext||'……'} ซี่</div><div>${cb(seal)} เคลือบหลุมร่องฟัน ${seal||'……'} ซี่</div><div>${cb(tar)} มีหินปูน ต้องได้รับการขูด</div><div>${cb(gum)} เหงือกอักเสบ ควรแปรงฟันให้สะอาด</div></div>
+<div class="sgn">ผู้ตรวจ ${SIG?`<img src="${SIG}" alt="">`:'…'.repeat(14)}<br>(${ex?esc(ex):'…'.repeat(14)})${pos?'<br>'+esc(pos):''}</div>
 <p>ท่านสามารถพาบุตรหลานไปรับบริการได้ที่ รพ.สต. ${dots(hos,12)} วันที่ ${dots($('s_day').value.trim(),8)} เวลา ${dots($('s_time').value.trim(),6)} และนำใบแจ้งผลการรักษาด้านล่างส่งคืนครูประจำชั้นเมื่อรักษาเสร็จ</p>
 <div class="box"><b>แบบแจ้งผลการรักษาทางทันตกรรม</b> <span class="sm">(ทันตบุคลากรที่รักษากรอก แล้วให้เด็กนำกลับมาคืนครูประจำชั้น)</span><br>
 เรียน ครูประจำชั้น&nbsp; ${nm} ชั้น ${esc(room)} มารับบริการที่ ${'…'.repeat(10)} วันที่ ${'…'.repeat(8)}<br>
 ได้รับการรักษา ☐ ถอนฟัน (น้ำนม/แท้) …… ซี่ ☐ อุดฟัน (น้ำนม/แท้) …… ซี่ ☐ เคลือบหลุมร่องฟัน …… ซี่ ☐ ขูดหินปูน ☐ อื่น ๆ ………………<br>
-ลงชื่อ ……………………………… ผู้ให้การรักษา</div>
+ลงชื่อ ……………………………… ผู้ให้การรักษา${txn?' ('+esc(txn)+')':''}</div>
 <p class="sm">สิทธิการรักษา: ใช้สิทธิตามสถานพยาบาลที่ลงทะเบียนไว้ หากรับบริการนอกเขตสิทธิ์ต้องชำระค่ารักษาเอง · เครือข่ายบริการสุขภาพ CUP บวกหมื้อ งานทันตสาธารณสุข รพ.สต. ${dots(hos,10)} โทร. ${dots(tel,8)}</p></div>`;
 }
 function printSlips(){
@@ -918,6 +943,30 @@ function repHTML(){
 <h3>รายชื่อเด็กที่ต้องรักษา ${tx.length} คน</h3><div class="rvw">${tbl(TX_H,tx)}</div>`;
 }
 $('slips').onclick=printSlips;
+/* ===== ลายเซ็นผู้ตรวจ ===== */
+let SIG=(()=>{try{return localStorage.getItem('dentalSig')||''}catch(e){return ''}})();
+function drawSig(){$('sigImg').hidden=!SIG;$('sigNone').hidden=!!SIG;if(SIG)$('sigImg').src=SIG}
+function setSig(d){SIG=d||'';try{SIG?localStorage.setItem('dentalSig',SIG):localStorage.removeItem('dentalSig')}catch(e){alert('บันทึกลายเซ็นไม่สำเร็จ')}drawSig()}
+function trimCanvas(c){const x=c.getContext('2d'),{width:w,height:h}=c,d=x.getImageData(0,0,w,h).data;let a=w,b=h,r=0,t=0;
+  for(let y=0;y<h;y++)for(let i=0;i<w;i++){if(d[(y*w+i)*4+3]>20){if(i<a)a=i;if(i>r)r=i;if(y<b)b=y;if(y>t)t=y}}
+  if(r<a)return '';const o=document.createElement('canvas'),p=6;o.width=r-a+2*p;o.height=t-b+2*p;o.getContext('2d').drawImage(c,a-p,b-p,o.width,o.height,0,0,o.width,o.height);return o.toDataURL('image/png')}
+(()=>{const c=$('sigC');let draw=false,last=null;const ctx=c.getContext&&c.getContext('2d');if(!ctx)return;
+  const pt=e=>{const r=c.getBoundingClientRect();return [(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
+  c.addEventListener('pointerdown',e=>{draw=true;last=pt(e);c.setPointerCapture(e.pointerId)});
+  c.addEventListener('pointermove',e=>{if(!draw)return;const p=pt(e);ctx.lineWidth=3.2;ctx.lineCap='round';ctx.strokeStyle='#0a1f5c';ctx.beginPath();ctx.moveTo(...last);ctx.lineTo(...p);ctx.stroke();last=p});
+  ['pointerup','pointercancel','pointerleave'].forEach(t=>c.addEventListener(t,()=>{draw=false}));
+  $('sigDraw').onclick=()=>{ctx.clearRect(0,0,c.width,c.height);$('sigd').hidden=false};
+  $('sigClr').onclick=()=>ctx.clearRect(0,0,c.width,c.height);
+  $('sigCancel').onclick=()=>{$('sigd').hidden=true};
+  $('sigOk').onclick=()=>{const d=trimCanvas(c);if(!d){alert('ยังไม่ได้วาดลายเซ็น');return}setSig(d);$('sigd').hidden=true};
+})();
+$('sigFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{
+  const k=Math.min(1,400/im.width,160/im.height),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+  const x=c.getContext('2d');x.drawImage(im,0,0,c.width,c.height);
+  const d=x.getImageData(0,0,c.width,c.height);for(let i=0;i<d.data.length;i+=4){const l=(d.data[i]+d.data[i+1]+d.data[i+2])/3;if(l>185)d.data[i+3]=0}x.putImageData(d,0,0);
+  setSig(c.toDataURL('image/png'));URL.revokeObjectURL(im.src);e.target.value=''};im.src=URL.createObjectURL(f)};
+$('sigDel').onclick=()=>{if(SIG&&confirm('ลบลายเซ็นที่บันทึกไว้?'))setSig('')};
+drawSig();
 $('rep').onclick=()=>{const v=$('repv');v.innerHTML=repHTML()+'<div class="bar"><button id="rpP" type="button">พิมพ์รายงาน</button><button id="rpC" class="alt" type="button">ปิดรายงาน</button></div>';v.hidden=false;
   $('rpP').onclick=()=>{$('pa').innerHTML='<div class="rpt">'+repHTML()+'</div>';setTimeout(()=>window.print(),300)};
   $('rpC').onclick=()=>{v.hidden=true};v.scrollIntoView({behavior:'smooth'})};
@@ -1038,7 +1087,7 @@ function printRoom(){
 <p>โรงเรียน ${school?esc(school):'…'.repeat(14)}&nbsp;&nbsp; ชั้น ${esc(room)}&nbsp;&nbsp; วันที่ตรวจ ${date?esc(date):'…'.repeat(12)}</p>
 <table><thead><tr><th rowspan="2">ลำดับ</th><th rowspan="2">คำนำหน้า</th><th rowspan="2">ชื่อ</th><th rowspan="2">นามสกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="3">Tx. plan</th></tr>
 <tr>${H.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>
-<div class="ft">ตรวจแล้ว ${done} จาก ${rows.length} คน &nbsp;&nbsp; ผู้ตรวจ ……………………………………</div></div>`;
+<div class="ft">ตรวจแล้ว ${done} จาก ${rows.length} คน &nbsp;&nbsp; ผู้ตรวจ ${SIG?`<img src="${SIG}" alt="" style="height:12mm;vertical-align:middle">`:'……………………………………'} ${$('s_exam').value.trim()?'('+esc($('s_exam').value.trim())+')':''}</div></div>`;
   setTimeout(()=>window.print(),300);
 }
 $('prRoom').onclick=printRoom;
@@ -1163,8 +1212,15 @@ $('delSes').onclick=async()=>{
 };
 async function share(){
   const t=`ช่วยกรอกผลตรวจฟัน ${SES.school||''}\nกดลิงก์ หรือเปิดแอปกรอกผลแล้วกดชื่อโรงเรียนนี้ได้เลย\n${joinLink()}`;
-  if(navigator.share){try{await navigator.share({title:'กรอกผลตรวจฟัน',text:t});return}catch(e){if(e.name==='AbortError')return}}
-  try{await navigator.clipboard.writeText(t);alert('คัดลอกลิงก์แล้ว ไปวางในกลุ่ม LINE ได้เลย')}catch(e){prompt('คัดลอกข้อความนี้ไปวางใน LINE',t)}
+  $('shLink').value=joinLink();$('shp').hidden=false;$('shp').scrollIntoView({behavior:'smooth',block:'center'});
+  $('shMore').hidden=!navigator.share;
+  $('shCopy').onclick=async()=>{let ok=false;try{await navigator.clipboard.writeText(t);ok=true}catch(e){$('shLink').select();try{ok=document.execCommand('copy')}catch(_){}}
+    $('shCopy').textContent=ok?'✓ คัดลอกแล้ว':'คัดลอกไม่ได้ ให้กดค้างที่ลิงก์';setTimeout(()=>{$('shCopy').textContent='📋 คัดลอกลิงก์'},2500)};
+  $('shLine').onclick=()=>{const mob=/Android|iPhone|iPad/i.test(navigator.userAgent);
+    window.open(mob?'https://line.me/R/share?text='+encodeURIComponent(t):'https://social-plugins.line.me/lineit/share?url='+encodeURIComponent(joinLink())+'&text='+encodeURIComponent(t),'_blank','noopener')};
+  $('shMore').onclick=async()=>{try{await navigator.share({title:'กรอกผลตรวจฟัน',text:t})}catch(e){}};
+  $('shX').onclick=()=>{$('shp').hidden=true};
+  return;
 }
 $('invite').onclick=async()=>{
   if(SES){share();return}
