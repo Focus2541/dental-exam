@@ -117,6 +117,23 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 #repv{margin-top:16px}
 .cv-inst{border:2px solid #fff;background:transparent;color:#fff;font:inherit;font-weight:700;cursor:pointer;margin-left:8px;padding:10px 22px}
 .cv-inst:hover{background:rgba(255,255,255,.12)}
+#online{margin:16px 0}
+#onst{font-size:14px}
+.syncbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 12px;border-radius:8px;background:var(--ok);font-size:14px;margin:10px 0}
+.syncbar b{color:var(--acc)}
+.syncbar .warn{color:var(--warn);font-weight:600}
+.syncbar button{padding:4px 12px;font-size:14px}
+.rsheet{page:land;font-family:'Sarabun',sans-serif;color:#000;background:#fff;padding:0}
+@page land{size:A4 landscape;margin:8mm}
+.rsheet h3{text-align:center;font-size:13pt;margin:0 0 1mm}
+.rsheet p{text-align:center;margin:0 0 2mm;font-size:11pt}
+.rsheet table{width:100%;border-collapse:collapse;font-size:9.5pt;text-align:center}
+.rsheet th,.rsheet td{border:1px solid #000;padding:.6mm .5mm;font-weight:400}
+.rsheet thead{display:table-header-group}
+.rsheet tr{break-inside:avoid}
+.rsheet td.l{text-align:left;padding-left:1.5mm}
+.rsheet tbody td{height:6.2mm;font-size:10.5pt}
+.rsheet .ft{margin-top:3mm;text-align:left;font-size:10pt}
 </style>
 </head>
 <body>
@@ -128,7 +145,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 <p>ใส่ไฟล์รายชื่อของโรงเรียนไหนก็ได้ แล้วกรอกผลตรวจทีละห้องด้วยแป้นพิมพ์ บันทึกอัตโนมัติ และส่งออกเป็น Excel</p>
 <ol class="cv-steps"><li><b>1</b>ใส่ไฟล์รายชื่อ</li><li><b>2</b>กรอกผลทีละห้อง</li><li><b>3</b>ดาวน์โหลด Excel</li></ol>
 <a class="cv-go" href="#drop">เริ่มเลย</a> <button id="inst" class="cv-go cv-inst" type="button" hidden>ติดตั้งเป็นแอป</button>
-<span class="cv-note">ข้อมูลเด็กประมวลผลในเครื่องนี้เท่านั้น ไม่ถูกส่งไปที่ไหน</span>
+<span class="cv-note">ข้อมูลเด็กอยู่ในเครื่องนี้ ยกเว้นเมื่อใช้ "ตรวจพร้อมกันหลายเครื่อง" ซึ่งจะบันทึกลง Google Sheet ของหน่วยบริการ</span>
 </div>
 <svg class="cv-art" viewBox="0 0 160 190" role="img" aria-label="ภาพฟันกับเครื่องหมายถูก">
 <path d="M80 22c-18-12-50-6-58 20-5 18 3 34 8 52 5 21 3 52 16 76 7 13 16 10 19-5 3-16 5-40 15-40s12 24 15 40c3 15 12 18 19 5 13-24 11-55 16-76 5-18 13-34 8-52-8-26-40-32-58-20z" fill="rgba(255,255,255,.12)" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
@@ -141,6 +158,17 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 <label id="drop"><input type="file" id="f" accept=".xlsx,.xlsm,.xls,.csv,.docx,.doc,.htm,.html,.pdf">เลือกไฟล์รายชื่อ หรือลากมาวางที่นี่<small>Excel (.xlsx .xls .csv) และ Word (.docx) ที่เป็นตารางรายชื่อ และ PDF (ถ้าเป็นภาพสแกนจะอ่านด้วย OCR ซึ่งอาจผิดบ้าง ต้องตรวจทานก่อนใช้) ส่วน .doc รุ่นเก่าที่เป็นไฟล์ Word จริง ให้บันทึกเป็น .docx ก่อน</small></label>
 <p id="st" class="hint" role="status"></p>
 <section id="saved" hidden><h2 class="h2">รายชื่อที่บันทึกไว้ในเครื่องนี้</h2><div id="savedList"></div><p class="hint">เก็บชื่อและเลขบัตรไว้ในเบราว์เซอร์ของเครื่องนี้เท่านั้น ลบได้ทุกเมื่อ ไม่ควรบันทึกในเครื่องที่ใช้ร่วมกับคนอื่น</p></section>
+<section id="online" class="card">
+<div class="top"><b>ตรวจพร้อมกันหลายเครื่อง</b><span class="n" id="onst"></span></div>
+<div class="row">
+<label>รหัสรอบตรวจ<input type="text" id="j_code" placeholder="เช่น J72A7H" autocapitalize="characters" maxlength="8"></label>
+<label>PIN<input type="text" id="j_pin" inputmode="numeric" maxlength="6" placeholder="4-6 หลัก"></label>
+<label>ชื่อผู้กรอก / หน่วยบริการ<input type="text" id="j_by" data-set placeholder="เช่น ฟ้า รพ.สต.บวกหมื้อ"></label>
+</div>
+<button id="j_go" type="button">เข้าร่วมรอบตรวจ</button>
+<p class="hint">คนสร้างรอบ: ใส่ไฟล์รายชื่อด้านบนก่อน แล้วกด "สร้างรอบตรวจออนไลน์" จะได้รหัสรอบกับ PIN ส่งให้คนอื่นใส่ที่นี่ ทุกเครื่องกรอกคนละห้องได้ ผลรวมกันใน Google Sheet</p>
+<details class="rv"><summary>ตั้งค่าการเชื่อมต่อ</summary><label>ลิงก์ Apps Script (Web app URL)<input type="text" id="api" placeholder="https://script.google.com/macros/s/.../exec"></label><p class="hint">ใส่ครั้งเดียวต่อเครื่อง ถ้าผู้ดูแลตั้งไว้ในแอปแล้วไม่ต้องใส่</p></details>
+</section>
 <section id="cfg" hidden>
 <div class="row">
 <label>ชื่อโรงเรียน<input type="text" id="school" placeholder="เช่น อนุบาลเพชรบูรณ์"></label>
@@ -151,15 +179,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 </div>
 <div id="list"></div>
 <div id="msg" role="status"></div>
-<button id="ent" type="button">เริ่มกรอกผลตรวจ</button> <button id="go" class="alt" type="button">ดาวน์โหลดไฟล์ผล (Excel)</button> <button id="save" class="alt" type="button">บันทึกรายชื่อไว้ในเครื่อง</button>
+<button id="ent" type="button">เริ่มกรอกผลตรวจ</button> <button id="go" class="alt" type="button">ดาวน์โหลดไฟล์ผล (Excel)</button> <button id="save" class="alt" type="button">บันทึกรายชื่อไว้ในเครื่อง</button> <button id="mk" class="alt" type="button">สร้างรอบตรวจออนไลน์</button>
 </section>
 <section id="entry" hidden>
+<div id="sync" class="syncbar" hidden></div>
 <div class="bar"><button id="back" class="alt" type="button">← กลับ</button><select id="room" aria-label="เลือกห้อง"></select><button id="next" class="alt" type="button">ห้องถัดไป ▶</button><label class="chk"><input type="checkbox" id="todo"> เฉพาะที่ยังไม่กรอก</label><span id="prog"></span></div>
-<p class="hint"><b>Enter</b> = ช่องถัดไป · <b>↑ ↓</b> = เปลี่ยนแถว · <b>/</b> หรือปุ่ม ✓ = ฟันดี (ใส่ 0 ให้ผุ/อุด/ถอนทั้งหมด แล้วข้ามไปคนถัดไป) · เหงือกอักเสบ/หินปูน พิมพ์ 1 ถ้ามี · บันทึกอัตโนมัติในเครื่องนี้ (เก็บตามเลขบัตร ไม่เก็บชื่อ)</p>
+<p class="hint"><b>Enter</b> = ช่องถัดไป · <b>↑ ↓</b> = เปลี่ยนแถว · <b>/</b> หรือปุ่ม ✓ = ฟันดี (ใส่ 0 ให้ผุ/อุด/ถอนทั้งหมด แล้วข้ามไปคนถัดไป) · เหงือกอักเสบ/หินปูน พิมพ์ 1 ถ้ามี · บันทึกอัตโนมัติในเครื่องนี้ ถ้าเข้าร่วมรอบออนไลน์จะส่งขึ้น Google Sheet ให้เอง</p>
 <div class="ewrap"><table class="entry"><thead><tr><th rowspan="2">ที่</th><th rowspan="2" class="sticky">ชื่อ-สกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="3">Tx. plan</th><th rowspan="2">สรุป</th><th rowspan="2">ฟันดี</th></tr>
 <tr><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>อักเสบ</th><th>หินปูน</th><th>อุด</th><th>ถอน</th><th>Sealant</th></tr></thead><tbody id="tb"></tbody></table></div>
 <div class="bar"><button id="dl2" type="button">ดาวน์โหลดผลเป็นไฟล์ Excel</button><button id="clr" class="alt" type="button">ล้างข้อมูลที่กรอก</button></div>
-<div class="bar"><button id="slips" type="button">พิมพ์ใบแจ้งผลผู้ปกครอง</button><button id="rep" class="alt" type="button">รายงานสรุป</button></div>
+<div class="bar"><button id="prRoom" type="button">พิมพ์ผลตรวจห้องนี้</button><button id="slips" type="button">พิมพ์ใบแจ้งผลผู้ปกครอง</button><button id="rep" class="alt" type="button">รายงานสรุป</button></div>
 <details class="rv" id="slipset"><summary>ตั้งค่าใบแจ้งผล</summary><div class="row">
 <label>รพ.สต. ที่รับบริการ<input type="text" id="s_hos" data-set></label>
 <label>โทร.<input type="text" id="s_tel" data-set></label>
@@ -722,6 +751,7 @@ function store(tr){
   const v=rowVals(tr),id=tr.dataset.id;
   if(v.some(x=>x!==''))E[id]=v;else delete E[id];
   save();refresh(tr);prog();
+  if(typeof syncMark==='function')syncMark(id,v);
 }
 function zero(tr){const i=tr.querySelectorAll('input');[1,2,3,5,6,7].forEach(k=>{i[k].value='0'});store(tr)}
 function focusCell(tr,c){const i=tr&&tr.querySelectorAll('input')[c];if(i)i.focus()}
@@ -870,6 +900,129 @@ $('savedList').addEventListener('click',async e=>{
   }else if(b.dataset.xl){try{await rosterXlsx(R[b.dataset.xl])}catch(err){alert('สร้างไฟล์ไม่สำเร็จ: '+err.message)}}
 });
 drawSaved();
+
+/* ===== พิมพ์ผลตรวจห้องนี้ ===== */
+function printRoom(){
+  const [room,rows]=RM[cur],school=$('school').value.trim(),date=$('date').value.trim();
+  const H=['ฟันทั้งหมด','ฟันผุ','อุด','ถอน/หลุด','ฟันทั้งหมด','ฟันผุ','อุด','ถอน/หลุด','อักเสบ','หินปูน','อุด','ถอน','Sealant'];
+  const body=rows.map((p,i)=>{const v=E[p.id]||[];
+    return `<tr><td>${i+1}</td><td>${esc(p.pre)}</td><td class="l">${esc(p.fn)}</td><td class="l">${esc(p.ln)}</td>${H.map((_,c)=>`<td>${c===8||c===9?(nn(v[c])?'✓':''):esc(v[c]||'')}</td>`).join('')}</tr>`}).join('');
+  const done=rows.filter(p=>isDone(E[p.id])).length;
+  $('pa').innerHTML=`<div class="rsheet"><h3>แบบบันทึกตรวจคัดกรองสุขภาพช่องปากในโรงเรียนและศูนย์เด็กเล็ก</h3>
+<p>โรงเรียน ${school?esc(school):'…'.repeat(14)}&nbsp;&nbsp; ชั้น ${esc(room)}&nbsp;&nbsp; วันที่ตรวจ ${date?esc(date):'…'.repeat(12)}</p>
+<table><thead><tr><th rowspan="2">ลำดับ</th><th rowspan="2">คำนำหน้า</th><th rowspan="2">ชื่อ</th><th rowspan="2">นามสกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="3">Tx. plan</th></tr>
+<tr>${H.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>
+<div class="ft">ตรวจแล้ว ${done} จาก ${rows.length} คน &nbsp;&nbsp; ผู้ตรวจ ……………………………………</div></div>`;
+  setTimeout(()=>window.print(),300);
+}
+$('prRoom').onclick=printRoom;
+
+/* ===== เชื่อมหลายเครื่องผ่าน Google Sheet ===== */
+const API_DEFAULT='';
+const LS={get:(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let SES=LS.get('dentalSession',null),ET=LS.get('dentalEntryT',{}),Q=LS.get('dentalQueue',{}),busy=false,lastErr='',timer=null;
+const apiUrl=()=>($('api').value.trim()||API_DEFAULT);
+$('api').value=LS.get('dentalApi','');
+$('api').addEventListener('change',()=>LS.set('dentalApi',$('api').value.trim()));
+async function call(o){
+  const u=apiUrl();if(!u)throw new Error('ยังไม่ได้ตั้งค่าลิงก์ Apps Script (กด "ตั้งค่าการเชื่อมต่อ")');
+  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),25000);
+  try{
+    const r=await fetch(u,{method:'POST',body:JSON.stringify(o),signal:ctl.signal,redirect:'follow'});
+    const j=await r.json();if(!j.ok)throw new Error(j.error||'เซิร์ฟเวอร์ตอบผิดพลาด');return j;
+  }catch(e){if(e.name==='AbortError')throw new Error('เชื่อมต่อนานเกินไป');if(e instanceof TypeError)throw new Error('ไม่มีอินเทอร์เน็ตหรือเข้าถึงลิงก์ไม่ได้');throw e}
+  finally{clearTimeout(tm)}
+}
+function syncSave(){LS.set('dentalSession',SES);LS.set('dentalEntryT',ET);LS.set('dentalQueue',Q)}
+const sesKeys=()=>new Set(((SES&&SES.keys)||[]));
+function nameOf(id){for(const [room,rows] of RM.length?RM:roomsMap())for(const p of rows)if(p.id===id)return [room,(p.pre+' '+p.fn+' '+p.ln).trim()];return ['','']}
+function syncMark(id,v){
+  if(!SES||!sesKeys().has(id))return;
+  const t=Date.now(),[room,name]=nameOf(id);ET[id]=t;Q[id]={key:id,room,name,v,t};syncSave();drawSync();
+  clearTimeout(timer);timer=setTimeout(syncNow,1500);
+}
+function drawSync(){
+  const b=$('sync'),n=Object.keys(Q).length;
+  $('onst').textContent=SES?`ใช้งานรอบ ${SES.code} อยู่`:'';
+  if(!SES){b.hidden=true;return}
+  b.hidden=false;
+  b.innerHTML=`<span>ออนไลน์ รอบ <b>${esc(SES.code)}</b> · PIN <b>${esc(SES.pin)}</b> · ${esc(SES.school||'')}</span>`+
+    `<span class="${n||lastErr?'warn':''}">${busy?'กำลังซิงก์…':lastErr?'⚠ '+esc(lastErr)+(n?` · รอส่ง ${n} คน`:''):n?`รอส่ง ${n} คน`:'✓ ส่งครบแล้ว'}</span>`+
+    `<span>${SES.at?'อัปเดตล่าสุด '+new Date(SES.at).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}):''}</span>`+
+    `<button type="button" class="alt" id="syGo">ซิงก์ตอนนี้</button><button type="button" class="alt" id="syShare">คัดลอกข้อความเชิญ</button><button type="button" class="alt" id="syOut">ออกจากรอบ</button>`;
+  $('syGo').onclick=syncNow;
+  $('syShare').onclick=()=>{const t=`ร่วมกรอกผลตรวจฟัน ${SES.school||''}\nเปิด ${location.origin+location.pathname}#j=${SES.code}\nรหัสรอบ: ${SES.code}\nPIN: ${SES.pin}`;
+    (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>alert('คัดลอกแล้ว ส่งต่อทาง LINE ได้เลย'),()=>prompt('คัดลอกข้อความนี้',t))};
+  $('syOut').onclick=()=>{if(Object.keys(Q).length&&!confirm(`ยังมีผลรอส่ง ${Object.keys(Q).length} คน ถ้าออกตอนนี้ผลเหล่านี้จะอยู่แค่ในเครื่องนี้ ออกเลยไหม?`))return;SES=null;Q={};syncSave();drawSync()};
+}
+function applyRemote(list){
+  let ch=0;
+  for(const r of list){
+    if(Q[r.key]||(ET[r.key]||0)>=r.t)continue;
+    const v=r.v.map(x=>x==null?'':String(x));
+    if(v.some(x=>x!==''))E[r.key]=v;else delete E[r.key];
+    ET[r.key]=r.t;ch++;
+    const tr=document.querySelector(`#tb tr[data-id="${CSS.escape(r.key)}"]`);
+    if(tr&&!tr.contains(document.activeElement)){tr.querySelectorAll('input').forEach((i,c)=>{i.value=v[c]||''});refresh(tr)}
+  }
+  if(ch){save();syncSave();if(!$('entry').hidden)prog()}
+  return ch;
+}
+async function syncNow(){
+  if(!SES||busy)return;busy=true;drawSync();
+  try{
+    const items=Object.values(Q);
+    if(items.length){await call({action:'push',code:SES.code,pin:SES.pin,by:$('j_by').value.trim(),items});
+      items.forEach(it=>{if(Q[it.key]&&Q[it.key].t===it.t)delete Q[it.key]})}
+    const p=await call({action:'pull',code:SES.code,pin:SES.pin,since:SES.since||0});
+    applyRemote(p.results);SES.since=p.now;SES.at=Date.now();lastErr='';
+  }catch(e){lastErr=e.message}
+  finally{busy=false;syncSave();drawSync()}
+}
+function startSession(ses,roster,results){
+  SES=ses;
+  const rooms=new Map();roster.forEach(p=>{if(!rooms.has(p.room))rooms.set(p.room,[]);rooms.get(p.room).push({id:p.key,noid:p.noid,pre:p.pre,fn:p.fn,ln:p.ln,rm:p.room})});
+  SES.keys=roster.map(p=>p.key);
+  S=[...rooms].map(([room,rows])=>({name:room,label:room,g:[],m:{id:-1,pre:-1,fn:-1,ln:-1,rm:-1,sq:-1,gr:-1,cd:-1,ids:[]},nc:0,sample:[],auto:false,saved:true,on:true,fixed:new Set(),rows}));
+  $('school').value=ses.school||'';$('date').value=ses.date||'';$('by').value='room';
+  if(results)applyRemote(results);
+  syncSave();render();openEntry();drawSync();
+}
+$('j_go').onclick=async()=>{
+  const code=$('j_code').value.trim().toUpperCase(),pin=$('j_pin').value.trim();
+  if(!code||!pin){alert('ใส่รหัสรอบตรวจและ PIN');return}
+  $('j_go').disabled=true;$('j_go').textContent='กำลังเชื่อมต่อ…';
+  try{const j=await call({action:'join',code,pin});
+    startSession({code:j.session.code,pin,school:j.session.school,date:j.session.date,unit:j.session.unit,since:j.now,at:Date.now()},j.roster,j.results);
+  }catch(e){alert('เข้าร่วมไม่สำเร็จ: '+e.message)}
+  finally{$('j_go').disabled=false;$('j_go').textContent='เข้าร่วมรอบตรวจ'}
+};
+$('mk').onclick=async()=>{
+  const rm=roomsMap(),roster=[];rm.forEach(([room,rows])=>rows.forEach(p=>roster.push({room,key:p.id,id:p.id,noid:!!p.noid,pre:p.pre,fn:p.fn,ln:p.ln})));
+  if(!roster.length){alert('ยังไม่มีรายชื่อ');return}
+  const school=$('school').value.trim();if(!school){alert('ใส่ชื่อโรงเรียนก่อน');$('school').focus();return}
+  const pin=prompt(`สร้างรอบตรวจออนไลน์ของ "${school}" (${rm.length} ห้อง ${roster.length} คน)\nตั้ง PIN ตัวเลข 4-6 หลัก ไว้ให้คนอื่นใส่ตอนเข้าร่วม`,String(Math.floor(1000+Math.random()*9000)));
+  if(pin==null)return;if(!/^\d{4,6}$/.test(pin.trim())){alert('PIN ต้องเป็นตัวเลข 4-6 หลัก');return}
+  $('mk').disabled=true;$('mk').textContent='กำลังสร้าง…';
+  try{const by=$('j_by').value.trim();
+    const c=await call({action:'create',pin:pin.trim(),school,date:$('date').value.trim(),unit:by,by,roster});
+    startSession({code:c.code,pin:pin.trim(),school,date:$('date').value.trim(),since:0,at:Date.now()},roster,null);
+    roster.forEach(p=>{const v=E[p.key];if(isDone(v)){const t=Date.now();ET[p.key]=t;Q[p.key]={key:p.key,room:p.room,name:(p.pre+' '+p.fn+' '+p.ln).trim(),v,t}}});
+    syncSave();syncNow();
+    alert(`สร้างรอบตรวจแล้ว\nรหัสรอบ: ${c.code}\nPIN: ${pin.trim()}\n\nกด "คัดลอกข้อความเชิญ" ที่แถบด้านบน เพื่อส่งให้คนอื่นทาง LINE`);
+  }catch(e){alert('สร้างรอบไม่สำเร็จ: '+e.message)}
+  finally{$('mk').disabled=false;$('mk').textContent='สร้างรอบตรวจออนไลน์'}
+};
+setInterval(()=>{if(SES&&document.visibilityState==='visible')syncNow()},20000);
+window.addEventListener('online',()=>syncNow());
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncNow()});
+{const m=location.hash.match(/j=([A-Za-z0-9]+)/);if(m){$('j_code').value=m[1].toUpperCase();setTimeout(()=>{$('online').scrollIntoView({behavior:'smooth'});$('j_pin').focus()},300)}}
+if(SES&&SES.keys){
+  $('onst').textContent=`ใช้งานรอบ ${SES.code} อยู่`;
+  $('j_code').value=SES.code;$('j_pin').value=SES.pin;
+}
+drawSync();
+
 if('serviceWorker' in navigator&&location.protocol==='https:'){
   navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{$('off').textContent='✓ เปิดใช้แบบไม่มีอินเทอร์เน็ตได้แล้วในเครื่องนี้ (อ่าน PDF สแกนครั้งแรกยังต้องใช้เน็ต)'}).catch(()=>{});
 }
