@@ -165,6 +165,12 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 @media (prefers-color-scheme:dark){.chip.on{color:#0b1416}}
 #card .nextp{width:100%;font-size:18px;padding:14px}
 .cdone{color:var(--acc);font-weight:600}
+#live .top{align-items:center}
+#lvList{display:flex;flex-direction:column;gap:8px}
+.lv{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--bg);color:var(--ink);border:1px solid var(--line);padding:12px 14px}
+.lv b{font-size:17px;color:var(--acc)}
+.lv span{font-size:14px;color:var(--mut);font-weight:400}
+.lv:hover{border-color:var(--acc);background:var(--card)}
 </style>
 </head>
 <body>
@@ -190,14 +196,9 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <p id="st" class="hint" role="status"></p>
 <section id="saved" hidden><h2 class="h2">รายชื่อที่บันทึกไว้ในเครื่องนี้</h2><div id="savedList"></div><p class="hint">เก็บชื่อและเลขบัตรไว้ในเบราว์เซอร์ของเครื่องนี้เท่านั้น ลบได้ทุกเมื่อ ไม่ควรบันทึกในเครื่องที่ใช้ร่วมกับคนอื่น</p></section>
 <section id="resume" class="card" hidden></section>
-<details id="online" class="rv"><summary>มีรหัสรอบตรวจจากเพื่อน? (ปกติกดลิงก์ที่เพื่อนส่งมาก็พอ)</summary>
-<div class="row">
-<label>รหัสรอบตรวจ<input type="text" id="j_code" placeholder="เช่น J72A7H" autocapitalize="characters" maxlength="8"></label>
-<label>PIN<input type="text" id="j_pin" inputmode="numeric" maxlength="6"></label>
-</div>
-<button id="j_go" type="button">เข้าร่วม</button>
-<details class="rv"><summary>ตั้งค่าการเชื่อมต่อ (ผู้ดูแล)</summary><label>ลิงก์ Apps Script (Web app URL)<input type="text" id="api" placeholder="https://script.google.com/macros/s/.../exec"></label><p class="hint">ตั้งไว้ในแอปแล้ว เว้นว่างได้</p></details>
-</details>
+<section id="live" class="card" hidden><div class="top"><b>โรงเรียนที่กำลังตรวจอยู่</b><button type="button" class="link" id="lvR">รีเฟรช</button></div>
+<p class="hint">กดชื่อโรงเรียนเพื่อช่วยกรอกผล ไม่ต้องใส่รหัส</p><div id="lvList"></div></section>
+<details id="apiset" class="rv"><summary>ตั้งค่าการเชื่อมต่อ (ผู้ดูแล)</summary><label>ลิงก์ Apps Script (Web app URL)<input type="text" id="api" placeholder="https://script.google.com/macros/s/.../exec"></label><p class="hint">ตั้งไว้ในแอปแล้ว เว้นว่างได้</p></details>
 <section id="cfg" hidden>
 <div class="row">
 <label>ชื่อโรงเรียน<input type="text" id="school" placeholder="เช่น อนุบาลเพชรบูรณ์"></label>
@@ -1038,7 +1039,7 @@ function syncMark(id,v){
 const joinLink=()=>`${location.origin+location.pathname}#j=${SES.code}.${SES.pin}`;
 function drawSync(){
   const b=$('sync'),n=Object.keys(Q).length;
-  $('invite').textContent=SES?'👥 ส่งลิงก์ให้เพื่อนอีกครั้ง':'👥 ชวนเพื่อนช่วยกรอก';
+  $('invite').textContent=SES?'👥 ส่งลิงก์ให้เพื่อน':'👥 เปิดให้คนอื่นช่วยกรอก';
   drawResume();
   if(!SES){b.hidden=true;return}
   b.hidden=false;
@@ -1094,9 +1095,17 @@ async function joinWith(code,pin){
     $('st').textContent='';
   }catch(e){$('st').textContent='';alert('เข้าร่วมไม่สำเร็จ: '+e.message+(e.message.includes('อินเทอร์เน็ต')?'\nลองใหม่เมื่อมีสัญญาณ':''))}
 }
-$('j_go').onclick=()=>{const c=$('j_code').value.trim().toUpperCase(),p=$('j_pin').value.trim();if(!c||!p){alert('ใส่รหัสรอบตรวจและ PIN');return}joinWith(c,p)};
+async function loadLive(){
+  if(!apiUrl())return;
+  try{const r=await call({action:'list'}),L=r.sessions||[];
+    $('live').hidden=!L.length;
+    $('lvList').innerHTML=L.map((x,i)=>`<button type="button" class="lv" data-i="${i}"><b>${esc(x.school||'ไม่ระบุโรงเรียน')}</b><span>${x.date?esc(x.date)+' · ':''}กรอกแล้ว ${x.done}/${x.total} คน${x.unit?' · '+esc(x.unit):''}</span></button>`).join('');
+    $('lvList').onclick=e=>{const b=e.target.closest('.lv');if(!b)return;const x=L[+b.dataset.i];joinWith(x.code,x.pin)};
+  }catch(e){$('live').hidden=true}
+}
+$('lvR').onclick=loadLive;
 async function share(){
-  const t=`ช่วยกรอกผลตรวจฟัน ${SES.school||''}\nกดลิงก์แล้วเลือกห้องที่จะกรอกได้เลย\n${joinLink()}`;
+  const t=`ช่วยกรอกผลตรวจฟัน ${SES.school||''}\nกดลิงก์ หรือเปิดแอปกรอกผลแล้วกดชื่อโรงเรียนนี้ได้เลย\n${joinLink()}`;
   if(navigator.share){try{await navigator.share({title:'กรอกผลตรวจฟัน',text:t});return}catch(e){if(e.name==='AbortError')return}}
   try{await navigator.clipboard.writeText(t);alert('คัดลอกลิงก์แล้ว ไปวางในกลุ่ม LINE ได้เลย')}catch(e){prompt('คัดลอกข้อความนี้ไปวางใน LINE',t)}
 }
@@ -1121,7 +1130,8 @@ window.addEventListener('online',()=>syncNow());
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncNow()});
 {const m=location.hash.match(/j=([A-Za-z0-9]+)(?:\.(\d{4,6}))?/);
  if(m){if(m[2]){history.replaceState(null,'',location.pathname);joinWith(m[1].toUpperCase(),m[2])}
-  else{$('j_code').value=m[1].toUpperCase();$('online').open=true;setTimeout(()=>$('j_pin').focus(),300)}}}
+  }}
+loadLive();
 drawSync();
 
 if('serviceWorker' in navigator&&location.protocol==='https:'){

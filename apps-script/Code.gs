@@ -26,7 +26,7 @@ function doGet() {
 function doPost(e) {
   try {
     var q = JSON.parse(e.postData.contents);
-    var fn = { create: create_, join: join_, push: push_, pull: pull_ }[q.action];
+    var fn = { create: create_, join: join_, push: push_, pull: pull_, list: list_ }[q.action];
     if (!fn) return out_({ ok: false, error: 'ไม่รู้จักคำสั่ง' });
     return out_(fn(q));
   } catch (err) {
@@ -135,4 +135,16 @@ function pull_(q) {
     return { key: String(r[1]), v: r.slice(4, 4 + NV).map(function (x) { return x === '' || x == null ? '' : String(x); }), t: Number(r[4 + NV]) };
   });
   return { ok: true, results: res, now: now };
+}
+
+/** รายการรอบตรวจล่าสุด (30 วัน) ให้เลือกเข้าร่วมโดยไม่ต้องใส่รหัส */
+function list_(q) {
+  var days = Number(q.days) || 30, cut = Date.now() - days * 864e5, done = {}, total = {};
+  rows_(sheet_('X')).forEach(function (r) { var c = String(r[0]).toUpperCase(); done[c] = (done[c] || 0) + 1; });
+  rows_(sheet_('R')).forEach(function (r) { var c = String(r[0]).toUpperCase(); total[c] = (total[c] || 0) + 1; });
+  var out = rows_(sheet_('S')).map(function (r) {
+    var c = String(r[0]).toUpperCase(), t = r[5] instanceof Date ? r[5].getTime() : Number(new Date(r[5])) || 0;
+    return { code: c, pin: String(r[1]), unit: r[2], school: r[3], date: r[4], created: t, done: done[c] || 0, total: total[c] || 0 };
+  }).filter(function (x) { return x.created >= cut; }).sort(function (a, b) { return b.created - a.created; });
+  return { ok: true, sessions: out };
 }

@@ -1,5 +1,5 @@
 // ใช้งานแบบไม่มีอินเทอร์เน็ต: เก็บหน้าแอปและไลบรารีที่ใช้ไว้ในเครื่อง
-const C='dental-v9';
+const C='dental-v10';
 const CORE=['./','./index.html','./entry.html','./manifest.webmanifest','./entry.webmanifest','./icon-192.png','./icon-512.png','./entry-icon-192.png','./entry-icon-512.png'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(C).then(c=>Promise.all(CORE.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()));
