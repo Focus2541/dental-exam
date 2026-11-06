@@ -11,6 +11,7 @@
 var SH = {
   S: ['รอบตรวจ', ['รหัสรอบ', 'PIN', 'หน่วยบริการ', 'โรงเรียน', 'วันที่ตรวจ', 'สร้างเมื่อ', 'สร้างโดย']],
   R: ['รายชื่อ', ['รหัสรอบ', 'ห้อง', 'key', 'เลขบัตร', 'คำนำหน้า', 'ชื่อ', 'นามสกุล']],
+  T: ['ผู้ตรวจ', ['id', 'ชื่อ', 'ตำแหน่ง', 'หน่วยบริการ', 'ลายเซ็น', 'แก้ไขล่าสุด']],
   X: ['ผลตรวจ', ['รหัสรอบ', 'key', 'ห้อง', 'ชื่อ-สกุล',
     'น้ำนม-ทั้งหมด', 'น้ำนม-ผุ', 'น้ำนม-อุด', 'น้ำนม-ถอน/หลุด',
     'แท้-ทั้งหมด', 'แท้-ผุ', 'แท้-อุด', 'แท้-ถอน/หลุด',
@@ -26,7 +27,7 @@ function doGet() {
 function doPost(e) {
   try {
     var q = JSON.parse(e.postData.contents);
-    var fn = { create: create_, join: join_, push: push_, pull: pull_, list: list_, remove: remove_ }[q.action];
+    var fn = { create: create_, join: join_, push: push_, pull: pull_, list: list_, remove: remove_, staff: staff_, staffSave: staffSave_, staffDel: staffDel_ }[q.action];
     if (!fn) return out_({ ok: false, error: 'ไม่รู้จักคำสั่ง' });
     return out_(fn(q));
   } catch (err) {
@@ -174,5 +175,40 @@ function remove_(q) {
       if (keep.length) s.getRange(2, 1, keep.length, keep[0].length).setValues(keep);
     });
     return { ok: true, removed: n };
+  });
+}
+
+/** รายชื่อผู้ตรวจพร้อมลายเซ็น ใช้ร่วมกันทั้งเครือข่าย */
+function staff_() {
+  return { ok: true, staff: rows_(sheet_('T')).filter(function (r) { return r[0]; }).map(function (r) {
+    return { id: String(r[0]), name: String(r[1]), pos: String(r[2]), unit: String(r[3]), sig: String(r[4] || '') };
+  }) };
+}
+
+function staffSave_(q) {
+  var name = String(q.name || '').trim();
+  if (!name) throw new Error('ใส่ชื่อผู้ตรวจ');
+  var sig = String(q.sig || '');
+  if (sig && !/^data:image\/(png|jpeg);base64,/.test(sig)) throw new Error('ไฟล์ลายเซ็นไม่ถูกต้อง');
+  if (sig.length > 48000) throw new Error('ลายเซ็นใหญ่เกินไป');
+  return withLock_(function () {
+    var T = sheet_('T'), data = rows_(T), id = String(q.id || ''), i = -1;
+    if (id) data.forEach(function (r, k) { if (String(r[0]) === id) i = k; });
+    if (!id) id = 'S' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
+    var row = [id, name, q.pos || '', q.unit || '', sig, new Date()];
+    if (i >= 0) T.getRange(i + 2, 1, 1, row.length).setValues([row]); else T.appendRow(row);
+    return { ok: true, id: id };
+  });
+}
+
+function staffDel_(q) {
+  var id = String(q.id || '');
+  return withLock_(function () {
+    var T = sheet_('T'), data = rows_(T);
+    var keep = data.filter(function (r) { return String(r[0]) !== id; });
+    if (keep.length === data.length) return { ok: true };
+    T.getRange(2, 1, data.length, data[0].length).clearContent();
+    if (keep.length) T.getRange(2, 1, keep.length, keep[0].length).setValues(keep);
+    return { ok: true };
   });
 }

@@ -203,12 +203,20 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 .upl{display:inline-block;border:2px solid var(--acc);color:var(--acc);border-radius:8px;font-weight:600;cursor:pointer;margin:0}
 .sigbox{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--mut)}
 .sigbox img{max-height:70px;max-width:260px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:4px}
-.sigd{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.sigd{position:fixed;inset:0;z-index:20;overflow:auto;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
 .sigd[hidden]{display:none}
 .sigw{background:var(--card);color:var(--ink);border-radius:12px;padding:14px;width:min(640px,100%)}
 #sigC{display:block;width:100%;height:auto;background:#fff;border:1px dashed #999;border-radius:8px;margin:8px 0;touch-action:none}
 .slip .sgn{text-align:right;margin:1mm 4mm 0 0;font-size:9.5pt;line-height:1.3}
 .slip .sgn img{height:10mm;vertical-align:middle}
+#sigd{z-index:22}
+.stfw{max-height:92vh;overflow:auto}
+.stfw .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.stfo{grid-column:1/-1}
+.sti{display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px}
+.sti img{height:40px;max-width:120px;background:#fff;border-radius:4px;padding:2px}
+.sti .nm{flex:1;min-width:0}.sti .nm small{display:block;color:var(--mut)}
+.sti button{padding:6px 10px;font-size:14px}
 </style>
 </head>
 <body>
@@ -281,11 +289,10 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <label>วันที่นัด<input type="text" id="s_day" data-set></label>
 <label>เวลา<input type="text" id="s_time" data-set></label>
 <label>พิมพ์ให้<select id="s_who" data-set><option value="tx">เฉพาะเด็กที่ต้องรักษา</option><option value="all">ทุกคนที่ตรวจแล้ว</option></select></label>
-<label>ชื่อผู้ตรวจ<input type="text" id="s_exam" data-set placeholder="เช่น นายพิชยากร วุฒิกิจ"></label>
-<label>ตำแหน่งผู้ตรวจ<input type="text" id="s_pos" data-set placeholder="เช่น เจ้าพนักงานทันตสาธารณสุข"></label>
+<label>ผู้ตรวจ (ชื่อและลายเซ็นในใบแจ้งผล)<select id="s_ex"><option value="">— ไม่ระบุ เว้นให้เขียนเอง —</option></select></label>
+<div class="stfo"><button type="button" id="stfOpen" class="alt">👤 เพิ่ม/แก้รายชื่อผู้ตรวจและลายเซ็น</button></div>
 <label>ชื่อผู้ให้การรักษา (เว้นว่างได้ ให้เขียนเองตอนรักษา)<input type="text" id="s_txn" data-set></label>
-<div class="sigbox"><span>ลายเซ็นผู้ตรวจ</span><img id="sigImg" alt="" hidden><span id="sigNone" class="hint">ยังไม่มี</span>
-<div class="shb"><button type="button" id="sigDraw" class="alt">✍ วาดลายเซ็น</button><label class="upl alt">📷 อัปโหลดรูป<input type="file" id="sigFile" accept="image/*" hidden></label><button type="button" id="sigDel" class="alt">ลบ</button></div></div>
+
 <label>ขอบเขต<select id="s_scope" data-set><option value="room">ห้องที่เลือกอยู่</option><option value="all">ทุกห้อง</option></select></label>
 </div><p class="hint">A4 แผ่นละ 2 คน ตัดครึ่งตามเส้นประ</p></details>
 </div></details>
@@ -297,6 +304,17 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 </div>
 <section id="repv" hidden></section>
 </section>
+<div id="stfd" class="sigd" hidden role="dialog" aria-label="รายชื่อผู้ตรวจ"><div class="sigw stfw">
+<div class="top"><b>รายชื่อผู้ตรวจ (ใช้ร่วมกันทั้งเครือข่าย)</b><button type="button" id="stfX" class="alt">ปิด</button></div>
+<div id="stfList"></div>
+<fieldset class="cgrp" id="stfForm"><legend id="stfTitle">เพิ่มผู้ตรวจ</legend>
+<div class="row"><label>ชื่อ-สกุล<input type="text" id="f_name" placeholder="เช่น นายพิชยากร วุฒิกิจ"></label>
+<label>ตำแหน่ง<input type="text" id="f_pos" placeholder="เช่น เจ้าพนักงานทันตสาธารณสุข"></label>
+<label>หน่วยบริการ<input type="text" id="f_unit" placeholder="เช่น รพ.สต.บวกหมื้อ"></label></div>
+<div class="sigbox"><span>ลายเซ็น</span><img id="f_sigImg" alt="" hidden><span id="f_sigNone" class="hint">ยังไม่มีลายเซ็น</span>
+<div class="shb"><button type="button" id="sigDraw" class="alt">✍ วาดลายเซ็น</button><label class="upl alt">📷 อัปโหลดรูป<input type="file" id="sigFile" accept="image/*" hidden></label><button type="button" id="sigDel" class="alt">ลบลายเซ็น</button></div></div>
+<div class="shb"><button type="button" id="f_save">บันทึก</button><button type="button" id="f_new" class="alt">ล้างฟอร์ม (เพิ่มคนใหม่)</button></div>
+</fieldset></div></div>
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
@@ -891,7 +909,7 @@ try{const o=JSON.parse(localStorage.getItem(SK)||'{}');document.querySelectorAll
 document.querySelectorAll('[data-set]').forEach(el=>el.addEventListener('change',()=>{const o={};document.querySelectorAll('[data-set]').forEach(x=>{o[x.id]=x.value});try{localStorage.setItem(SK,JSON.stringify(o))}catch(e){}}));
 function slipHTML(p,room,v,school,date){
   const cb=b=>b?'☑':'☐',dots=(x,l)=>x?esc(x):'…'.repeat(l),hos=$('s_hos').value.trim(),tel=$('s_tel').value.trim();
-  const ex=$('s_exam').value.trim(),pos=$('s_pos').value.trim(),txn=$('s_txn').value.trim(),gum=nn(v[8])>0,tar=nn(v[9])>0,fill=nn(v[10]),ext=nn(v[11]),seal=nn(v[12]);
+  const X=curEx(),ex=X.name,pos=X.pos,SIG=X.sig,txn=$('s_txn').value.trim(),gum=nn(v[8])>0,tar=nn(v[9])>0,fill=nn(v[10]),ext=nn(v[11]),seal=nn(v[12]);
   const good=nn(v[1])===0&&nn(v[5])===0&&!fill&&!ext;
   const cells=v.map((x,i)=>i===8||i===9?(nn(x)?'✓':''):esc(x||''));
   const nm=esc((p.pre+' '+p.fn+' '+p.ln).trim());
@@ -943,30 +961,52 @@ function repHTML(){
 <h3>รายชื่อเด็กที่ต้องรักษา ${tx.length} คน</h3><div class="rvw">${tbl(TX_H,tx)}</div>`;
 }
 $('slips').onclick=printSlips;
-/* ===== ลายเซ็นผู้ตรวจ ===== */
-let SIG=(()=>{try{return localStorage.getItem('dentalSig')||''}catch(e){return ''}})();
-function drawSig(){$('sigImg').hidden=!SIG;$('sigNone').hidden=!!SIG;if(SIG)$('sigImg').src=SIG}
-function setSig(d){SIG=d||'';try{SIG?localStorage.setItem('dentalSig',SIG):localStorage.removeItem('dentalSig')}catch(e){alert('บันทึกลายเซ็นไม่สำเร็จ')}drawSig()}
+/* ===== รายชื่อผู้ตรวจ + ลายเซ็น ===== */
+const lsG=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},lsS=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+let STAFF=lsG('dentalStaff',[]),fId='',fSig='';
+function curEx(){return STAFF.find(x=>x.id===$('s_ex').value)||{name:'',pos:'',sig:''}}
+function fillEx(){const v=lsG('dentalEx','');$('s_ex').innerHTML='<option value="">— ไม่ระบุ เว้นให้เขียนเอง —</option>'+STAFF.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}${x.unit?' · '+esc(x.unit):''}</option>`).join('');$('s_ex').value=STAFF.some(x=>x.id===v)?v:''}
+$('s_ex').onchange=()=>lsS('dentalEx',$('s_ex').value);
+function drawStaff(){
+  $('stfList').innerHTML=STAFF.length?STAFF.map(x=>`<div class="sti">${x.sig?`<img src="${x.sig}" alt="">`:''}<div class="nm"><b>${esc(x.name)}</b><small>${esc([x.pos,x.unit].filter(Boolean).join(' · '))}${x.sig?'':' · ยังไม่มีลายเซ็น'}</small></div><button type="button" class="alt" data-e="${esc(x.id)}">แก้ไข</button><button type="button" class="alt danger" data-x="${esc(x.id)}">ลบ</button></div>`).join(''):'<p class="hint">ยังไม่มีรายชื่อ เพิ่มด้านล่าง</p>';
+}
+function drawFSig(){$('f_sigImg').hidden=!fSig;$('f_sigNone').hidden=!!fSig;if(fSig)$('f_sigImg').src=fSig}
+function formFor(x){fId=x?x.id:'';$('f_name').value=x?x.name:'';$('f_pos').value=x?x.pos:'';$('f_unit').value=x?x.unit:'';fSig=x?x.sig:'';$('stfTitle').textContent=x?'แก้ไข '+x.name:'เพิ่มผู้ตรวจ';drawFSig()}
+async function loadStaff(){try{const r=await call({action:'staff'});STAFF=r.staff||[];lsS('dentalStaff',STAFF)}catch(e){}fillEx();if(!$('stfd').hidden)drawStaff()}
+$('stfOpen').onclick=()=>{drawStaff();formFor(null);$('stfd').hidden=false;loadStaff()};
+$('stfX').onclick=()=>{$('stfd').hidden=true};
+$('f_new').onclick=()=>formFor(null);
+$('stfList').onclick=async e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.e)formFor(STAFF.find(x=>x.id===b.dataset.e));
+  else if(b.dataset.x){const x=STAFF.find(y=>y.id===b.dataset.x);if(!confirm(`ลบ "${x.name}" ออกจากรายชื่อผู้ตรวจ? (ทุกเครื่องจะไม่เห็นอีก)`))return;
+    try{await call({action:'staffDel',id:x.id});await loadStaff();if(fId===x.id)formFor(null)}catch(err){alert('ลบไม่สำเร็จ: '+err.message)}}};
+$('f_save').onclick=async()=>{const name=$('f_name').value.trim();if(!name){alert('ใส่ชื่อ-สกุล');$('f_name').focus();return}
+  const b=$('f_save');b.disabled=true;b.textContent='กำลังบันทึก…';
+  try{const r=await call({action:'staffSave',id:fId,name,pos:$('f_pos').value.trim(),unit:$('f_unit').value.trim(),sig:fSig});
+    await loadStaff();$('s_ex').value=r.id;lsS('dentalEx',r.id);formFor(null);drawStaff();
+  }catch(err){alert('บันทึกไม่สำเร็จ: '+err.message+(err.message.includes('อินเทอร์เน็ต')?' (ต้องมีเน็ตตอนเพิ่มหรือแก้รายชื่อ)':''))}
+  finally{b.disabled=false;b.textContent='บันทึก'}};
+function shrink(c,mw=360,mh=120){const k=Math.min(1,mw/c.width,mh/c.height),o=document.createElement('canvas');o.width=Math.max(1,Math.round(c.width*k));o.height=Math.max(1,Math.round(c.height*k));o.getContext('2d').drawImage(c,0,0,o.width,o.height);return o.toDataURL('image/png')}
 function trimCanvas(c){const x=c.getContext('2d'),{width:w,height:h}=c,d=x.getImageData(0,0,w,h).data;let a=w,b=h,r=0,t=0;
   for(let y=0;y<h;y++)for(let i=0;i<w;i++){if(d[(y*w+i)*4+3]>20){if(i<a)a=i;if(i>r)r=i;if(y<b)b=y;if(y>t)t=y}}
-  if(r<a)return '';const o=document.createElement('canvas'),p=6;o.width=r-a+2*p;o.height=t-b+2*p;o.getContext('2d').drawImage(c,a-p,b-p,o.width,o.height,0,0,o.width,o.height);return o.toDataURL('image/png')}
+  if(r<a)return '';const o=document.createElement('canvas'),p=6;o.width=r-a+2*p;o.height=t-b+2*p;o.getContext('2d').drawImage(c,a-p,b-p,o.width,o.height,0,0,o.width,o.height);return shrink(o)}
 (()=>{const c=$('sigC');let draw=false,last=null;const ctx=c.getContext&&c.getContext('2d');if(!ctx)return;
   const pt=e=>{const r=c.getBoundingClientRect();return [(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
   c.addEventListener('pointerdown',e=>{draw=true;last=pt(e);c.setPointerCapture(e.pointerId)});
-  c.addEventListener('pointermove',e=>{if(!draw)return;const p=pt(e);ctx.lineWidth=3.2;ctx.lineCap='round';ctx.strokeStyle='#0a1f5c';ctx.beginPath();ctx.moveTo(...last);ctx.lineTo(...p);ctx.stroke();last=p});
+  c.addEventListener('pointermove',e=>{if(!draw)return;const p=pt(e);ctx.lineWidth=3.6;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#0a1f5c';ctx.beginPath();ctx.moveTo(...last);ctx.lineTo(...p);ctx.stroke();last=p});
   ['pointerup','pointercancel','pointerleave'].forEach(t=>c.addEventListener(t,()=>{draw=false}));
   $('sigDraw').onclick=()=>{ctx.clearRect(0,0,c.width,c.height);$('sigd').hidden=false};
   $('sigClr').onclick=()=>ctx.clearRect(0,0,c.width,c.height);
   $('sigCancel').onclick=()=>{$('sigd').hidden=true};
-  $('sigOk').onclick=()=>{const d=trimCanvas(c);if(!d){alert('ยังไม่ได้วาดลายเซ็น');return}setSig(d);$('sigd').hidden=true};
+  $('sigOk').onclick=()=>{const d=trimCanvas(c);if(!d){alert('ยังไม่ได้วาดลายเซ็น');return}fSig=d;drawFSig();$('sigd').hidden=true};
 })();
 $('sigFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{
-  const k=Math.min(1,400/im.width,160/im.height),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+  const k=Math.min(1,360/im.width,120/im.height),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
   const x=c.getContext('2d');x.drawImage(im,0,0,c.width,c.height);
   const d=x.getImageData(0,0,c.width,c.height);for(let i=0;i<d.data.length;i+=4){const l=(d.data[i]+d.data[i+1]+d.data[i+2])/3;if(l>185)d.data[i+3]=0}x.putImageData(d,0,0);
-  setSig(c.toDataURL('image/png'));URL.revokeObjectURL(im.src);e.target.value=''};im.src=URL.createObjectURL(f)};
-$('sigDel').onclick=()=>{if(SIG&&confirm('ลบลายเซ็นที่บันทึกไว้?'))setSig('')};
-drawSig();
+  fSig=c.toDataURL('image/png');drawFSig();URL.revokeObjectURL(im.src);e.target.value=''};im.src=URL.createObjectURL(f)};
+$('sigDel').onclick=()=>{fSig='';drawFSig()};
+fillEx();setTimeout(loadStaff,0);
 $('rep').onclick=()=>{const v=$('repv');v.innerHTML=repHTML()+'<div class="bar"><button id="rpP" type="button">พิมพ์รายงาน</button><button id="rpC" class="alt" type="button">ปิดรายงาน</button></div>';v.hidden=false;
   $('rpP').onclick=()=>{$('pa').innerHTML='<div class="rpt">'+repHTML()+'</div>';setTimeout(()=>window.print(),300)};
   $('rpC').onclick=()=>{v.hidden=true};v.scrollIntoView({behavior:'smooth'})};
@@ -1087,7 +1127,7 @@ function printRoom(){
 <p>โรงเรียน ${school?esc(school):'…'.repeat(14)}&nbsp;&nbsp; ชั้น ${esc(room)}&nbsp;&nbsp; วันที่ตรวจ ${date?esc(date):'…'.repeat(12)}</p>
 <table><thead><tr><th rowspan="2">ลำดับ</th><th rowspan="2">คำนำหน้า</th><th rowspan="2">ชื่อ</th><th rowspan="2">นามสกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="3">Tx. plan</th></tr>
 <tr>${H.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>
-<div class="ft">ตรวจแล้ว ${done} จาก ${rows.length} คน &nbsp;&nbsp; ผู้ตรวจ ${SIG?`<img src="${SIG}" alt="" style="height:12mm;vertical-align:middle">`:'……………………………………'} ${$('s_exam').value.trim()?'('+esc($('s_exam').value.trim())+')':''}</div></div>`;
+<div class="ft">ตรวจแล้ว ${done} จาก ${rows.length} คน &nbsp;&nbsp; ผู้ตรวจ ${curEx().sig?`<img src="${curEx().sig}" alt="" style="height:12mm;vertical-align:middle">`:'……………………………………'} ${curEx().name?'('+esc(curEx().name)+')':''}</div></div>`;
   setTimeout(()=>window.print(),300);
 }
 $('prRoom').onclick=printRoom;
