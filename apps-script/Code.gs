@@ -5,7 +5,8 @@
  * Sheet ที่ใช้ (สร้างให้อัตโนมัติ):
  *   รอบตรวจ  : รหัสรอบ | PIN | หน่วยบริการ | โรงเรียน | วันที่ตรวจ | สร้างเมื่อ | สร้างโดย
  *   รายชื่อ   : รหัสรอบ | ห้อง | key | เลขบัตร | คำนำหน้า | ชื่อ | นามสกุล
- *   ผลตรวจ   : รหัสรอบ | key | ห้อง | ชื่อ-สกุล | ฟันน้ำนม(ทั้งหมด ผุ อุด ถอน) | ฟันแท้(…) | เหงือกอักเสบ | หินปูน | Tx อุด | Tx ถอน | Sealant | เวลา(ms) | บันทึกโดย | แก้ไขล่าสุด
+ *   ผลตรวจ   : รหัสรอบ | key | ห้อง | ชื่อ-สกุล | ฟันน้ำนม(ทั้งหมด ผุ อุด ถอน) | ฟันแท้(…) | เหงือกอักเสบ | หินปูน | Tx อุดน้ำนม | Tx ถอนน้ำนม | Sealant | เวลา(ms) | บันทึกโดย | แก้ไขล่าสุด | Tx อุดแท้ | Tx ถอนแท้
+ *   (2 คอลัมน์ท้ายเพิ่มทีหลัง ต่อท้ายไว้เพื่อไม่ให้คอลัมน์เดิมเลื่อน ข้อมูลเก่าในชีตอ่านได้เหมือนเดิม)
  */
 
 var SH = {
@@ -15,10 +16,12 @@ var SH = {
   X: ['ผลตรวจ', ['รหัสรอบ', 'key', 'ห้อง', 'ชื่อ-สกุล',
     'น้ำนม-ทั้งหมด', 'น้ำนม-ผุ', 'น้ำนม-อุด', 'น้ำนม-ถอน/หลุด',
     'แท้-ทั้งหมด', 'แท้-ผุ', 'แท้-อุด', 'แท้-ถอน/หลุด',
-    'เหงือกอักเสบ', 'หินปูน', 'Tx-อุด', 'Tx-ถอน', 'Tx-Sealant',
-    'เวลา(ms)', 'บันทึกโดย', 'แก้ไขล่าสุด']]
+    'เหงือกอักเสบ', 'หินปูน', 'Tx-อุดน้ำนม', 'Tx-ถอนน้ำนม', 'Tx-Sealant',
+    'เวลา(ms)', 'บันทึกโดย', 'แก้ไขล่าสุด', 'Tx-อุดแท้', 'Tx-ถอนแท้']]
 };
-var NV = 13; // จำนวนช่องผลตรวจ
+var NV = 13; // ช่องผลตรวจชุดเดิม (ตำแหน่งในชีตคงที่ ห้ามเปลี่ยน)
+var NX = 2;  // ช่องที่เพิ่ม: Tx อุดแท้, Tx ถอนแท้ (ในแอปคือ v[13], v[14])
+var XC = 4 + NV + 3; // คอลัมน์แรกของช่องที่เพิ่ม (นับจาก 0) อยู่ถัดจาก 'แก้ไขล่าสุด'
 
 function doGet() {
   return out_({ ok: true, app: 'dental-exam', msg: 'ระบบเชื่อมข้อมูลทำงานอยู่' });
@@ -46,6 +49,8 @@ function sheet_(k) {
     s.getRange(1, 1, 1, d[1].length).setValues([d[1]]).setFontWeight('bold');
     s.setFrozenRows(1);
     if (k === 'R' || k === 'X') s.getRange('B:D').setNumberFormat('@'); // เลขบัตรขึ้นต้น 0 / G ไม่เพี้ยน
+  } else if (k === 'X' && s.getLastColumn() < d[1].length) {
+    s.getRange(1, 1, 1, d[1].length).setValues([d[1]]).setFontWeight('bold'); // อัปเกรดหัวตารางชีตเดิม
   }
   return s;
 }
@@ -111,17 +116,17 @@ function join_(q) {
   return { ok: true, session: se, roster: roster, results: p.results, now: p.now };
 }
 
-/** ส่งผลขึ้น: items:[{key, room, name, v:[13], t}] — เก็บค่าที่ใหม่กว่า (ตามเวลา t) */
+/** ส่งผลขึ้น: items:[{key, room, name, v:[13 หรือ 15], t}] — เก็บค่าที่ใหม่กว่า (ตามเวลา t) */
 function push_(q) {
   var se = session_(q.code, q.pin), items = q.items || [];
   return withLock_(function () {
     var X = sheet_('X'), data = rows_(X), idx = {}, now = new Date(), saved = 0, appends = [];
     data.forEach(function (r, i) { if (String(r[0]).toUpperCase() === se.code) idx[String(r[1])] = i; });
     items.forEach(function (it) {
-      var v = (it.v || []).slice(0, NV); while (v.length < NV) v.push('');
+      var v = (it.v || []).slice(0, NV + NX); while (v.length < NV + NX) v.push('');
       v = v.map(function (x) { return x === '' || x == null ? '' : Number(x); });
       var t = Number(it.t) || now.getTime();
-      var row = [se.code, String(it.key), it.room || '', it.name || ''].concat(v, [t, q.by || '', now]);
+      var row = [se.code, String(it.key), it.room || '', it.name || ''].concat(v.slice(0, NV), [t, q.by || '', now], v.slice(NV));
       var i = idx[String(it.key)];
       if (i == null) { appends.push(row); idx[String(it.key)] = -1; saved++; }
       else if (i >= 0 && t >= Number(data[i][4 + NV])) { X.getRange(i + 2, 1, 1, row.length).setValues([row]); saved++; }
@@ -139,7 +144,8 @@ function pull_(q) {
     var m = r[6 + NV] instanceof Date ? r[6 + NV].getTime() : Number(new Date(r[6 + NV]));
     return !since || m >= since - 5000;
   }).map(function (r) {
-    return { key: String(r[1]), v: r.slice(4, 4 + NV).map(function (x) { return x === '' || x == null ? '' : String(x); }), t: Number(r[4 + NV]) };
+    var ex = r.slice(XC, XC + NX); while (ex.length < NX) ex.push('');
+    return { key: String(r[1]), v: r.slice(4, 4 + NV).concat(ex).map(function (x) { return x === '' || x == null ? '' : String(x); }), t: Number(r[4 + NV]) };
   });
   return { ok: true, results: res, now: now };
 }
@@ -149,7 +155,7 @@ function list_(q) {
   var days = Number(q.days) || 30, cut = Date.now() - days * 864e5, done = {}, total = {}, last = {};
   rows_(sheet_('X')).forEach(function (r) {
     var c = String(r[0]).toUpperCase(), m = r[6 + NV] instanceof Date ? r[6 + NV].getTime() : Number(new Date(r[6 + NV])) || 0;
-    if (r.slice(4, 4 + NV).some(function (x) { return x !== '' && x != null; })) done[c] = (done[c] || 0) + 1;
+    if (r.slice(4, 4 + NV).concat(r.slice(XC, XC + NX)).some(function (x) { return x !== '' && x != null; })) done[c] = (done[c] || 0) + 1;
     if (m > (last[c] || 0)) last[c] = m;
   });
   rows_(sheet_('R')).forEach(function (r) { var c = String(r[0]).toUpperCase(); total[c] = (total[c] || 0) + 1; });
