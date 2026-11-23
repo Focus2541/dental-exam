@@ -109,6 +109,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .slip{height:148.2mm;box-sizing:border-box;padding:5mm 9mm 3mm;font-size:10.5pt;line-height:1.35;overflow:hidden}
 .slip+.slip{border-top:1px dashed #777}
 .slip h3{text-align:center;font-size:12.5pt;margin:0 0 1mm}
+.slip .hd{display:flex;align-items:center;gap:3mm}.slip .hd img{height:15mm;max-width:30mm;object-fit:contain}.slip .hd>div{flex:1}.slip .hd::after{content:'';width:var(--lw,0)}
+.lgo{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:10px}.lgo img{height:56px;max-width:140px;object-fit:contain;border:1px solid var(--line);border-radius:6px;padding:4px;background:#fff}.lgo img[hidden]{display:none}
 .slip p{margin:1.5mm 0}
 .slip .ln{text-align:center}
 .slip table{width:100%;border-collapse:collapse;font-size:8.5pt;text-align:center;margin:1mm 0 2mm}
@@ -318,6 +320,8 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <label>ผู้ตรวจ (ชื่อและลายเซ็นในใบแจ้งผล)<select id="s_ex"><option value="">— ไม่ระบุ เว้นให้เขียนเอง —</option></select></label>
 <div class="stfo"><button type="button" id="stfOpen" class="alt">👤 เพิ่ม/แก้รายชื่อผู้ตรวจและลายเซ็น</button></div>
 <input type="hidden" id="s_txn">
+<div class="lgo"><span>โลโก้หัวใบแจ้งผล</span><img id="lgPrev" alt=""><span id="lgNone" class="hint" hidden>ไม่ใส่โลโก้</span>
+<div class="shb"><label class="upl alt">🖼 เปลี่ยนโลโก้<input type="file" id="lgFile" accept="image/*" hidden></label><button type="button" id="lgDef" class="alt">↺ ใช้โลโก้เดิม</button><button type="button" id="lgOff" class="alt">ไม่ใส่โลโก้</button></div></div>
 
 <label>ขอบเขต<select id="s_scope" data-set><option value="room">ห้องที่เลือกอยู่</option><option value="all">ทุกห้อง</option></select></label>
 </div><p class="hint">A4 แผ่นละ 2 คน ตัดครึ่งตามเส้นประ</p></details>
@@ -350,7 +354,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.30 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.31 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -976,8 +980,9 @@ function slipHTML(p,room,v,school,date){
   const fill=fd+fp,good=nn(v[1])===0&&nn(v[5])===0&&!fill&&!ext;
   const cells=ORD.map(i=>i===8||i===9?(nn(v[i])?'✓':''):esc(v[i]||''));
   const nm=esc((p.pre+' '+p.fn+' '+p.ln).trim());
-  return `<div class="slip"><h3>แบบบันทึกตรวจคัดกรองสุขภาพช่องปากในโรงเรียนและศูนย์เด็กเล็ก</h3>
-<p class="ln">โรงเรียน ${dots(school,14)}&nbsp;&nbsp; ชั้น ${esc(room)}&nbsp;&nbsp; วันที่ตรวจ ${dots(date,12)}</p>
+  const LG=logoSrc();
+  return `<div class="slip"><div class="hd"${LG?' style="--lw:15mm"':''}>${LG?`<img src="${LG}" alt="">`:''}<div><h3>แบบบันทึกตรวจคัดกรองสุขภาพช่องปากในโรงเรียนและศูนย์เด็กเล็ก</h3>
+<p class="ln">โรงเรียน ${dots(school,14)}&nbsp;&nbsp; ชั้น ${esc(room)}&nbsp;&nbsp; วันที่ตรวจ ${dots(date,12)}</p></div></div>
 <table><tr><th rowspan="2">คำนำหน้า</th><th rowspan="2">ชื่อ</th><th rowspan="2">นามสกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="5">Tx. plan</th></tr>
 <tr><th>ฟันทั้งหมด</th><th>ฟันผุ</th><th>อุด</th><th>ถอน/หลุด</th><th>ฟันทั้งหมด</th><th>ฟันผุ</th><th>อุด</th><th>ถอน/หลุด</th><th>อักเสบ</th><th>หินปูน</th><th>อุด<br>น้ำนม</th><th>ถอน<br>น้ำนม</th><th>อุด<br>แท้</th><th>ถอน<br>แท้</th><th>Sealant</th></tr>
 <tr class="val"><td>${esc(p.pre)}</td><td>${esc(p.fn)}</td><td>${esc(p.ln)}</td>${cells.map(c=>`<td>${c}</td>`).join('')}</tr></table>
@@ -986,6 +991,16 @@ ${noteOf(v).trim()?`<div class="nte"><b>หมายเหตุจากผู�
 <div class="sgn">ผู้ตรวจ<br>${SIG?`<img src="${SIG}" alt="">`:'<span class="dl">'+'…'.repeat(14)+'</span>'}<br>(${ex?esc(ex):'…'.repeat(14)})${pos?'<br>'+esc(pos):''}</div></div>
 <p>ท่านสามารถพาบุตรหลานไปรับบริการได้ที่ ${dots(hos,12)} วันที่ ${dots($('s_day').value.trim(),8)} เวลา ${dots($('s_time').value.trim(),6)} <b>นำใบนี้ไปยื่นให้ทันตแพทย์หรือทันตบุคลากรได้เลย</b>${tel?' · โทร. '+esc(tel):''}</p></div>`;
 }
+/* โลโก้หัวใบแจ้งผล: เก็บในเครื่อง (แต่ละหน่วยบริการใช้โลโก้ของตัวเอง) */
+const LOGO_DEF=document.querySelector('link[rel="icon"]').href;
+function logoSrc(){let v;try{v=localStorage.getItem('dentalLogo')}catch(e){}return v==='none'?'':(v||LOGO_DEF)}
+function drawLogo(){const l=logoSrc();$('lgPrev').hidden=!l;$('lgNone').hidden=!!l;if(l)$('lgPrev').src=l}
+function setLogo(v){try{if(v==null)localStorage.removeItem('dentalLogo');else localStorage.setItem('dentalLogo',v)}catch(e){alert('บันทึกโลโก้ไม่ได้ (พื้นที่เครื่องเต็ม)')}drawLogo()}
+$('lgFile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const im=new Image(),u=URL.createObjectURL(f);
+  im.onload=()=>{const k=Math.min(1,400/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);setLogo(c.toDataURL('image/png'))};
+  im.onerror=()=>alert('เปิดไฟล์รูปนี้ไม่ได้');im.src=u};
+$('lgDef').onclick=()=>setLogo(null);$('lgOff').onclick=()=>setLogo('none');drawLogo();
 function printSlips(){
   const rooms=$('s_scope').value==='all'?RM:[RM[cur]],only=$('s_who').value==='tx',list=[];
   rooms.forEach(([room,rows])=>rows.forEach(p=>{const v=E[p.id];if(!isDone(v))return;if(only&&!needTx(v)&&!needNote(v))return;list.push([p,room,v])}));
