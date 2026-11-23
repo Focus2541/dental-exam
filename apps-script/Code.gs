@@ -17,10 +17,10 @@ var SH = {
     'น้ำนม-ทั้งหมด', 'น้ำนม-ผุ', 'น้ำนม-อุด', 'น้ำนม-ถอน/หลุด',
     'แท้-ทั้งหมด', 'แท้-ผุ', 'แท้-อุด', 'แท้-ถอน/หลุด',
     'เหงือกอักเสบ', 'หินปูน', 'Tx-อุดน้ำนม', 'Tx-ถอนน้ำนม', 'Tx-Sealant',
-    'เวลา(ms)', 'บันทึกโดย', 'แก้ไขล่าสุด', 'Tx-อุดแท้', 'Tx-ถอนแท้', 'ไม่มาตรวจ']]
+    'เวลา(ms)', 'บันทึกโดย', 'แก้ไขล่าสุด', 'Tx-อุดแท้', 'Tx-ถอนแท้', 'ไม่มาตรวจ', 'หมายเหตุ']]
 };
 var NV = 13; // ช่องผลตรวจชุดเดิม (ตำแหน่งในชีตคงที่ ห้ามเปลี่ยน)
-var NX = 3;  // ช่องที่เพิ่ม: Tx อุดแท้, Tx ถอนแท้, ไม่มาตรวจ (ในแอปคือ v[13], v[14], v[15]; ไม่มาตรวจ 1 = ไม่มา)
+var NX = 4;  // ช่องที่เพิ่ม: Tx อุดแท้, Tx ถอนแท้, ไม่มาตรวจ, หมายเหตุ (ในแอปคือ v[13], v[14], v[15], v[16]; ไม่มาตรวจ 1 = ไม่มา)
 var XC = 4 + NV + 3; // คอลัมน์แรกของช่องที่เพิ่ม (นับจาก 0) อยู่ถัดจาก 'แก้ไขล่าสุด'
 
 function doGet() {
@@ -124,7 +124,7 @@ function push_(q) {
     data.forEach(function (r, i) { if (String(r[0]).toUpperCase() === se.code) idx[String(r[1])] = i; });
     items.forEach(function (it) {
       var v = (it.v || []).slice(0, NV + NX); while (v.length < NV + NX) v.push('');
-      v = v.map(function (x) { return x === '' || x == null ? '' : Number(x); });
+      v = v.map(function (x, i) { if (x === '' || x == null) return ''; return i === NV + NX - 1 ? String(x).slice(0, 200).replace(/^([=+\-@])/, "'$1") : Number(x); });
       var t = Number(it.t) || now.getTime();
       var row = [se.code, String(it.key), it.room || '', it.name || ''].concat(v.slice(0, NV), [t, q.by || '', now], v.slice(NV));
       var i = idx[String(it.key)];
