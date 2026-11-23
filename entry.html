@@ -337,7 +337,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <label>ตำแหน่ง<input type="text" id="f_pos" placeholder="เช่น เจ้าพนักงานทันตสาธารณสุข"></label>
 <label>หน่วยบริการ<input type="text" id="f_unit" placeholder="เช่น รพ.สต.บวกหมื้อ"></label></div>
 <div class="sigbox"><span>ลายเซ็น</span><img id="f_sigImg" alt="" hidden><span id="f_sigNone" class="hint">ยังไม่มีลายเซ็น</span>
-<div class="shb"><button type="button" id="sigDraw" class="alt">✍ วาดลายเซ็น</button><label class="upl alt">📷 อัปโหลดรูป<input type="file" id="sigFile" accept="image/*" hidden></label><button type="button" id="sigDel" class="alt">ลบลายเซ็น</button></div></div>
+<div class="shb"><button type="button" id="sigDraw" class="alt">✍ วาดลายเซ็น</button><label class="upl alt">📷 อัปโหลดรูป<input type="file" id="sigFile" accept="image/*" hidden></label><button type="button" id="sigCut" class="alt" hidden>✂ ตัดพื้นหลัง</button><button type="button" id="sigDel" class="alt">ลบลายเซ็น</button></div></div>
 <div class="shb"><button type="button" id="f_save">บันทึก</button><button type="button" id="f_new" class="alt">ล้างฟอร์ม (เพิ่มคนใหม่)</button></div>
 </fieldset></div></div>
 <div id="ntd" class="sigd" hidden role="dialog" aria-label="หมายเหตุถึงผู้ปกครอง"><div class="sigw">
@@ -349,7 +349,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.27 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.28 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -1033,7 +1033,7 @@ $('s_ex').onchange=()=>lsS('dentalEx',$('s_ex').value);
 function drawStaff(){
   $('stfList').innerHTML=STAFF.length?STAFF.map(x=>`<div class="sti">${x.sig?`<img src="${x.sig}" alt="">`:''}<div class="nm"><b>${esc(x.name)}</b><small>${esc([x.pos,x.unit].filter(Boolean).join(' · '))}${x.sig?'':' · ยังไม่มีลายเซ็น'}</small></div><button type="button" class="alt" data-e="${esc(x.id)}">แก้ไข</button><button type="button" class="alt danger" data-x="${esc(x.id)}">ลบ</button></div>`).join(''):'<p class="hint">ยังไม่มีรายชื่อ เพิ่มด้านล่าง</p>';
 }
-function drawFSig(){$('f_sigImg').hidden=!fSig;$('f_sigNone').hidden=!!fSig;if(fSig)$('f_sigImg').src=fSig}
+function drawFSig(){$('f_sigImg').hidden=!fSig;$('sigCut').hidden=!fSig;$('f_sigNone').hidden=!!fSig;if(fSig)$('f_sigImg').src=fSig}
 function formFor(x){fId=x?x.id:'';$('f_name').value=x?x.name:'';$('f_pos').value=x?x.pos:'';$('f_unit').value=x?x.unit:'';fSig=x?x.sig:'';$('stfTitle').textContent=x?'แก้ไข '+x.name:'เพิ่มผู้ตรวจ';drawFSig()}
 async function loadStaff(){try{const r=await call({action:'staff'});STAFF=r.staff||[];lsS('dentalStaff',STAFF)}catch(e){}fillEx();if(!$('stfd').hidden)drawStaff()}
 $('stfOpen').onclick=()=>{drawStaff();formFor(null);$('stfd').hidden=false;loadStaff()};
@@ -1063,11 +1063,30 @@ function trimCanvas(c){const x=c.getContext('2d'),{width:w,height:h}=c,d=x.getIm
   $('sigCancel').onclick=()=>{$('sigd').hidden=true};
   $('sigOk').onclick=()=>{const d=trimCanvas(c);if(!d){alert('ยังไม่ได้วาดลายเซ็น');return}fSig=d;drawFSig();$('sigd').hidden=true};
 })();
+/* ตัดพื้นหลังลายเซ็น: หาสีพื้นจากขอบรูป แล้วทำให้พื้นโปร่งใส ใช้ได้ทั้งพื้นขาว พื้นดำ หรือรูปถ่ายกระดาษ */
+function cutBg(im){
+  const k=Math.min(1,1200/im.width,500/im.height),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));
+  const x=c.getContext('2d');x.drawImage(im,0,0,c.width,c.height);const {width:w,height:h}=c,img=x.getImageData(0,0,w,h),d=img.data;
+  const R=[],G=[],B=[],edge=(i,j)=>{const p=(j*w+i)*4;if(d[p+3]>128){R.push(d[p]);G.push(d[p+1]);B.push(d[p+2])}};
+  const m=Math.max(1,Math.round(Math.min(w,h)*.04));
+  for(let i=0;i<w;i+=2)for(let j=0;j<m;j++){edge(i,j);edge(i,h-1-j)}
+  for(let j=0;j<h;j+=2)for(let i=0;i<m;i++){edge(i,j);edge(w-1-i,j)}
+  const med=a=>{if(!a.length)return 255;a.sort((p,q)=>p-q);return a[a.length>>1]};
+  const br=med(R),bg=med(G),bb=med(B),light=(br+bg+bb)/3>110;
+  /* ความต่างของพื้นจากขอบ ใช้ตั้งเกณฑ์ (รูปถ่ายมีเงา พื้นไม่เรียบ) */
+  const ds=[];for(let n=0;n<R.length;n+=3)ds.push(Math.hypot(R[n]-br,G[n]-bg,B[n]-bb));ds.sort((p,q)=>p-q);
+  const noise=ds.length?ds[Math.floor(ds.length*.95)]:0,t1=Math.max(28,noise+12),t2=t1+45;
+  for(let p=0;p<d.length;p+=4){
+    if(d[p+3]<128){d[p+3]=0;continue}
+    const dist=Math.hypot(d[p]-br,d[p+1]-bg,d[p+2]-bb),a=Math.max(0,Math.min(1,(dist-t1)/(t2-t1)));
+    if(!light){d[p]=10;d[p+1]=31;d[p+2]=92}
+    d[p+3]=Math.round(a*255);
+  }
+  x.putImageData(img,0,0);return trimCanvas(c);
+}
 $('sigFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{
-  const k=Math.min(1,360/im.width,120/im.height),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
-  const x=c.getContext('2d');x.drawImage(im,0,0,c.width,c.height);
-  const d=x.getImageData(0,0,c.width,c.height);for(let i=0;i<d.data.length;i+=4){const l=(d.data[i]+d.data[i+1]+d.data[i+2])/3;if(l>185)d.data[i+3]=0}x.putImageData(d,0,0);
-  fSig=c.toDataURL('image/png');drawFSig();URL.revokeObjectURL(im.src);e.target.value=''};im.src=URL.createObjectURL(f)};
+  const r=cutBg(im);URL.revokeObjectURL(im.src);e.target.value='';if(!r){alert('ไม่พบลายเซ็นในรูป ลองถ่ายบนกระดาษขาว ให้ลายเซ็นชัด ๆ');return}fSig=r;drawFSig()};im.src=URL.createObjectURL(f)};
+$('sigCut').onclick=()=>{if(!fSig)return;const im=new Image();im.onload=()=>{const r=cutBg(im);if(r){fSig=r;drawFSig()}else alert('ตัดพื้นหลังไม่ได้')};im.src=fSig};
 $('sigDel').onclick=()=>{fSig='';drawFSig()};
 fillEx();setTimeout(loadStaff,0);
 $('rep').onclick=()=>{const v=$('repv');v.innerHTML=repHTML()+'<div class="bar"><button id="rpP" type="button">พิมพ์รายงาน</button><button id="rpC" class="alt" type="button">ปิดรายงาน</button></div>';v.hidden=false;
