@@ -349,7 +349,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.26 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.27 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -970,8 +970,9 @@ try{const o=JSON.parse(localStorage.getItem(SK)||'{}');document.querySelectorAll
 document.querySelectorAll('[data-set]').forEach(el=>el.addEventListener('change',()=>{const o={};document.querySelectorAll('[data-set]').forEach(x=>{o[x.id]=x.value});try{localStorage.setItem(SK,JSON.stringify(o))}catch(e){}}));
 function slipHTML(p,room,v,school,date){
   const cb=b=>b?'☑':'☐',dots=(x,l)=>x?esc(x):'…'.repeat(l),hos=$('s_hos').value.trim(),tel=$('s_tel').value.trim();
-  const X=curEx(),ex=X.name,pos=X.pos,SIG=X.sig,txn=$('s_txn').value.trim(),gum=nn(v[8])>0,tar=nn(v[9])>0,fd=nn(v[10]),fp=nn(v[13]),xd=nn(v[11]),xp=nn(v[14]),fill=fd+fp,ext=xd+xp,seal=nn(v[12]),sp=(a,b)=>a+b?` (น้ำนม ${a} / แท้ ${b})`:'';
-  const good=nn(v[1])===0&&nn(v[5])===0&&!fill&&!ext;
+  const X=curEx(),ex=X.name,pos=X.pos,SIG=X.sig,txn=$('s_txn').value.trim(),gum=nn(v[8])>0,tar=nn(v[9])>0,xd=nn(v[11]),xp=nn(v[14]),ext=xd+xp,seal=nn(v[12]),sp=(a,b)=>a+b?` (น้ำนม ${a} / แท้ ${b})`:'';
+  let fd=nn(v[10]),fp=nn(v[13]);if(!(fd+fp+xd+xp)){fd=nn(v[1]);fp=nn(v[5])}/* ยังไม่ได้กรอก Tx plan: ถือว่าฟันผุต้องอุด */
+  const fill=fd+fp,good=nn(v[1])===0&&nn(v[5])===0&&!fill&&!ext;
   const cells=ORD.map(i=>i===8||i===9?(nn(v[i])?'✓':''):esc(v[i]||''));
   const nm=esc((p.pre+' '+p.fn+' '+p.ln).trim());
   return `<div class="slip"><h3>แบบบันทึกตรวจคัดกรองสุขภาพช่องปากในโรงเรียนและศูนย์เด็กเล็ก</h3>
