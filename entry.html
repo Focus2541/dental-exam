@@ -349,7 +349,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.24 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.25 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -927,7 +927,6 @@ $('tb').addEventListener('change',e=>{
   if(t.checked&&isDone(rowVals(tr))&&!confirm('เด็กคนนี้มีผลตรวจที่กรอกไว้ ติ๊กไม่มาแล้วผลจะถูกล้าง ต้องการไหม?')){t.checked=false;return}
   if(t.checked)tr.querySelectorAll('input[data-c]').forEach(i=>{i.value=''});
   store(tr);
-  if($('todo').checked&&t.checked){tr.remove();hidCount()}
 });
 $('tb').addEventListener('focusout',e=>{
   const tr=e.target.closest&&e.target.closest('tr');if(!tr||!e.relatedTarget||tr.contains(e.relatedTarget))return;
