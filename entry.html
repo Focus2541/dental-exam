@@ -80,6 +80,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .entry input:focus{border-color:var(--acc);background:var(--card)}
 .entry input.bad{background:var(--warnbg);color:var(--warn);font-weight:700}
 .entry tr.done td{background:var(--ok)}
+.entry tr.absent td{background:var(--bg);color:var(--mut)}
+.entry tr.absent td.sticky{text-decoration:line-through}
+.entry tr.absent input[data-c]{opacity:.35}
+.entry td.abc{text-align:center}.entry .ab{width:20px;height:20px;accent-color:var(--warn);cursor:pointer}
 .entry .sm{font-size:13px;color:var(--mut);white-space:nowrap;padding:0 6px}
 .entry .ok{padding:4px 10px;background:var(--acc)}
 .rv{margin-top:12px}
@@ -157,6 +161,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 .cnav button{padding:10px 16px;font-size:18px}
 .cname{font-size:22px;font-weight:700;margin:12px 0 2px}
 .cpos{color:var(--mut);font-size:14px;margin-bottom:10px}
+#card .cgr{display:flex;gap:8px;margin-bottom:12px}#card .cgr .good{flex:1;margin:0}#card .chip.abs{flex:0 0 auto;padding:12px 16px;color:var(--warn);border-color:var(--warn)}#card .chip.abs.on{background:var(--warn);color:#fff}
 #card .good{width:100%;font-size:18px;padding:14px;margin-bottom:12px}
 .cgrp{border:1px solid var(--line);border-radius:8px;padding:8px 10px 10px;margin:0 0 10px}
 .cgrp legend{font-weight:600;padding:0 4px}
@@ -279,7 +284,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sync" class="syncbar" hidden></div>
 <div class="bar"><button id="back" class="alt" type="button">← กลับ</button><select id="room" aria-label="เลือกห้อง"></select><button id="next" class="alt" type="button">ห้องถัดไป ▶</button><button id="view" class="alt" type="button"></button><span id="prog"></span></div>
 <p class="hint" id="ehint"></p>
-<div class="ewrap"><table class="entry"><thead><tr><th rowspan="2">ที่</th><th rowspan="2" class="sticky">ชื่อ-สกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="5">Tx. plan</th><th rowspan="2">สรุป</th><th rowspan="2">ฟันดี</th></tr>
+<div class="ewrap"><table class="entry"><thead><tr><th rowspan="2">ที่</th><th rowspan="2" class="sticky">ชื่อ-สกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="5">Tx. plan</th><th rowspan="2">สรุป</th><th rowspan="2">ไม่มา</th><th rowspan="2">ฟันดี</th></tr>
 <tr><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>อักเสบ</th><th>หินปูน</th><th>อุด<br>น้ำนม</th><th>ถอน<br>น้ำนม</th><th>อุด<br>แท้</th><th>ถอน<br>แท้</th><th>Sealant</th></tr></thead><tbody id="tb"></tbody></table></div>
 <div id="card" hidden></div>
 <div id="shbg" class="shbg" hidden></div>
@@ -329,7 +334,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.21 (15 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.22 (15 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -821,7 +826,7 @@ async function build(){
         const r=5+n,row=ws.getRow(r);row.height=rh;
         row.getCell(1).value=n+1;if(!p.noid){const num=/^[1-9]\d{12}$/.test(p.id);row.getCell(2).value=num?Number(p.id):p.id;row.getCell(2).numFmt=num?'0':'@'}
         row.getCell(3).value=p.pre;row.getCell(4).value=p.fn;row.getCell(5).value=p.ln;
-        const ev=E[p.id];if(ev)ev.forEach((x,k)=>{const j=EO.indexOf(k);if(x&&j>=0)row.getCell(6+j).value=(k===8||k===9)?'✓':Number(x)});
+        const ev=E[p.id];if(isAbs(ev)){ws.mergeCells(r,6,r,LC);row.getCell(6).value='ไม่มาตรวจ'}else if(ev)ev.forEach((x,k)=>{const j=EO.indexOf(k);if(x!==''&&x!=null&&j>=0){if(k===8||k===9){if(nn(x))row.getCell(6+j).value='✓'}else row.getCell(6+j).value=Number(x)}});
         for(let c=1;c<=LC;c++){
           const cell=row.getCell(c);cell.border=bd;cell.font=font(c<=5?16:14);
           cell.alignment={horizontal:c<=3?'center':(c<=5?'left':'center'),vertical:'middle'};
@@ -852,18 +857,23 @@ function roomsMap(){
 let RM=[],cur=0;
 /* ช่องข้อมูล: 0-3 ฟันน้ำนม, 4-7 ฟันแท้, 8 เหงือก, 9 หินปูน, 10 อุดน้ำนม, 11 ถอนน้ำนม, 12 Sealant, 13 อุดแท้, 14 ถอนแท้ */
 const NV=15,ORD=[0,1,2,3,4,5,6,7,8,9,10,11,13,14,12];
-const rowVals=tr=>{const v=Array(NV).fill('');tr.querySelectorAll('input').forEach(i=>{v[+i.dataset.c]=i.value});return v};
-const isDone=v=>!!v&&v.slice(0,8).some(x=>x!=='');
+const rowVals=tr=>{const v=Array(16).fill('');tr.querySelectorAll('input[data-c]').forEach(i=>{v[+i.dataset.c]=i.value});const a=tr.querySelector('.ab');v[AB]=a&&a.checked?'1':'';return v};
+const isDone=v=>!!v&&v[15]!=='1'&&v.slice(0,8).some(x=>x!=='');
+const AB=15,isAbs=v=>!!v&&v[AB]==='1',handled=v=>isDone(v)||isAbs(v);
+/* เติม 0 ในช่องที่เว้นว่าง เมื่อเด็กคนนั้นกรอกผลแล้ว */
+function fillZero(v){if(!isDone(v))return false;let ch=false;for(let k=0;k<15;k++){if(v[k]===''||v[k]==null){v[k]='0';ch=true}}return ch}
+function normalizeRooms(list){(list||RM).forEach(([,rows])=>rows.forEach(p=>{const v=E[p.id];if(v){const w=v.slice();while(w.length<16)w.push('');if(fillZero(w))setVals(p.id,w)}}))}
 function refresh(tr){
-  const v=rowVals(tr),inp=tr.querySelectorAll('input'),n=x=>+x||0;
+  const v=rowVals(tr),inp=tr.querySelectorAll('input[data-c]'),n=x=>+x||0;
   [[0,20],[4,32]].forEach(([a,mx])=>{inp[a].classList.toggle('bad',v[a]!==''&&(n(v[a])>mx||n(v[a+1])+n(v[a+2])+n(v[a+3])>n(v[a])))});
   const has=(a,b)=>v.slice(a,b).some(x=>x!=='');
   tr.querySelector('.sm').textContent=[has(0,4)?'dmft '+(n(v[1])+n(v[2])+n(v[3])):'',has(4,8)?'DMFT '+(n(v[5])+n(v[6])+n(v[7])):''].filter(Boolean).join(' · ');
-  tr.classList.toggle('done',isDone(v));
+  tr.classList.toggle('done',isDone(v));tr.classList.toggle('absent',isAbs(v));
+  inp.forEach(i=>{i.disabled=isAbs(v)});
 }
 function prog(){
-  const all=RM.flatMap(x=>x[1]),r=RM[cur][1],c=a=>a.filter(p=>isDone(E[p.id])).length;
-  $('prog').textContent=`ห้องนี้ ${c(r)}/${r.length} คน · ทั้งหมด ${c(all)}/${all.length} คน`;
+  const all=RM.flatMap(x=>x[1]),r=RM[cur][1],c=a=>a.filter(p=>handled(E[p.id])).length,ab=a=>a.filter(p=>isAbs(E[p.id])).length;
+  $('prog').textContent=`ห้องนี้ ${c(r)}/${r.length} คน${ab(r)?` (ไม่มา ${ab(r)})`:''} · ทั้งหมด ${c(all)}/${all.length} คน`;
 }
 let VIEW=(()=>{try{return localStorage.getItem('dentalView')}catch(e){return null}})()||(window.innerWidth<760?'card':'table'),ci=0;
 function drawRoom(){
@@ -871,18 +881,19 @@ function drawRoom(){
   document.querySelector('.ewrap').hidden=card;$('card').hidden=!card;
   $('view').textContent=card?'แบบตาราง':'แบบทีละคน';
   $('ehint').innerHTML=card?'กรอกตัวเลข กด <b>Enter</b> ไปช่องถัดไป · เด็กฟันดีกดปุ่ม <b>✓ ฟันดี</b> · บันทึกอัตโนมัติ':'<b>Enter</b> ช่องถัดไป · <b>← → ↑ ↓</b> เลื่อนช่อง · <b>/</b> หรือ ✓ = ฟันดี · เหงือก/หินปูน พิมพ์ 1 · บันทึกอัตโนมัติ';
-  if(card){const rows=RM[cur][1];ci=Math.max(0,rows.findIndex(p=>!isDone(E[p.id])));drawCard();prog();return}
+  normalizeRooms([RM[cur]]);
+  if(card){const rows=RM[cur][1];ci=Math.max(0,rows.findIndex(p=>!handled(E[p.id])));drawCard();prog();return}
   const rows=RM[cur][1],only=$('todo').checked;
   $('tb').innerHTML=rows.map((p,i)=>{
-    const v=E[p.id]||[];if(only&&isDone(v))return '';
+    const v=E[p.id]||[];if(only&&handled(v))return '';
     return `<tr data-id="${esc(p.id)}"><td>${i+1}</td><td class="sticky">${esc((p.pre+p.fn+' '+p.ln).trim())}</td>`+
       ORD.map(c=>`<td><input inputmode="numeric" maxlength="2" data-c="${c}" value="${v[c]||''}" aria-label="ช่อง ${c+1}"></td>`).join('')+
-      `<td class="sm"></td><td><button class="ok" type="button" tabindex="-1" title="ฟันดี">✓</button></td></tr>`;
+      `<td class="sm"></td><td class="abc"><input type="checkbox" class="ab" tabindex="-1" aria-label="ไม่มาตรวจ" ${isAbs(v)?'checked':''}></td><td><button class="ok" type="button" tabindex="-1" title="ฟันดี">✓</button></td></tr>`;
   }).join('');
   [...$('tb').rows].forEach(refresh);prog();
 }
 function openEntry(){
-  RM=roomsMap();if(!RM.length)return;
+  RM=roomsMap();if(!RM.length)return;normalizeRooms(RM);
   $('room').innerHTML=RM.map(([k,r],i)=>`<option value="${i}">${esc(k)} (${r.length})</option>`).join('');
   cur=0;$('cfg').hidden=true;$('entry').hidden=false;document.querySelector('main').style.maxWidth='1200px';drawRoom();
 }
@@ -892,10 +903,21 @@ function setVals(id,v){
   if(typeof syncMark==='function')syncMark(id,v);
 }
 function store(tr){setVals(tr.dataset.id,rowVals(tr));refresh(tr)}
-function zero(tr){const i=tr.querySelectorAll('input');[1,2,3,5,6,7].forEach(k=>{i[k].value='0'});store(tr)}
+function zero(tr){const a=tr.querySelector('.ab');if(a)a.checked=false;tr.querySelectorAll('input[data-c]').forEach(i=>{if(i.value==='')i.value='0'});store(tr)}
 function focusCell(tr,c){const i=tr&&tr.querySelector('input[data-c="'+c+'"]');if(i){i.focus({preventScroll:true});i.scrollIntoView({block:'nearest',inline:'nearest'})}}
+$('tb').addEventListener('change',e=>{
+  const t=e.target;if(!t.classList.contains('ab'))return;const tr=t.closest('tr');
+  if(t.checked&&isDone(rowVals(tr))&&!confirm('เด็กคนนี้มีผลตรวจที่กรอกไว้ ติ๊กไม่มาแล้วผลจะถูกล้าง ต้องการไหม?')){t.checked=false;return}
+  if(t.checked)tr.querySelectorAll('input[data-c]').forEach(i=>{i.value=''});
+  store(tr);
+  if($('todo').checked&&t.checked)tr.remove();
+});
+$('tb').addEventListener('focusout',e=>{
+  const tr=e.target.closest&&e.target.closest('tr');if(!tr||!e.relatedTarget||tr.contains(e.relatedTarget))return;
+  const v=rowVals(tr);if(fillZero(v)){tr.querySelectorAll('input[data-c]').forEach(i=>{i.value=v[+i.dataset.c]});store(tr)}
+});
 $('tb').addEventListener('input',e=>{
-  const t=e.target;if(t.tagName!=='INPUT')return;
+  const t=e.target;if(t.tagName!=='INPUT'||t.type==='checkbox')return;
   t.value=t.value.replace(/\D/g,'').slice(0,2);store(t.closest('tr'));
 });
 $('tb').addEventListener('focusin',e=>{if(e.target.select)e.target.select()});
@@ -957,16 +979,16 @@ function printSlips(){
   $('pa').innerHTML=h;setTimeout(()=>window.print(),300);
 }
 function stats(rows){
-  const t={all:rows.length,ex:0,dk:0,Dk:0,cf:0,sd:0,sD:0,gum:0,tar:0,f:[0,0],x:[0,0],s:[0,0]};
-  rows.forEach(p=>{const v=E[p.id];if(!isDone(v))return;t.ex++;const d=nn(v[1]),D=nn(v[5]);
+  const t={all:rows.length,ab:0,ex:0,dk:0,Dk:0,cf:0,sd:0,sD:0,gum:0,tar:0,f:[0,0],x:[0,0],s:[0,0]};
+  rows.forEach(p=>{const v=E[p.id];if(isAbs(v))t.ab++;if(!isDone(v))return;t.ex++;const d=nn(v[1]),D=nn(v[5]);
     if(d)t.dk++;if(D)t.Dk++;if(!d&&!D)t.cf++;t.sd+=d+nn(v[2])+nn(v[3]);t.sD+=D+nn(v[6])+nn(v[7]);
     if(nn(v[8]))t.gum++;if(nn(v[9]))t.tar++;
     [[[10,13],'f'],[[11,14],'x'],[[12],'s']].forEach(([ix,k])=>{const q=ix.reduce((a,i)=>a+nn(v[i]),0);if(q){t[k][0]++;t[k][1]+=q}})});
   return t;
 }
 const pct=(a,b)=>b?(a*100/b).toFixed(1):'-';
-const REP_H=['ห้อง','นักเรียน','ตรวจแล้ว','ฟันน้ำนมผุ (คน)','%','ฟันแท้ผุ (คน)','%','ไม่มีฟันผุ (คน)','%','dmft เฉลี่ย','DMFT เฉลี่ย','เหงือกอักเสบ','หินปูน','ต้องอุด คน/ซี่','ต้องถอน คน/ซี่','Sealant คน/ซี่'];
-const repRow=(k,t)=>[k,t.all,t.ex,t.dk,pct(t.dk,t.ex),t.Dk,pct(t.Dk,t.ex),t.cf,pct(t.cf,t.ex),t.ex?(t.sd/t.ex).toFixed(2):'-',t.ex?(t.sD/t.ex).toFixed(2):'-',t.gum,t.tar,t.f.join('/'),t.x.join('/'),t.s.join('/')];
+const REP_H=['ห้อง','นักเรียน','ตรวจแล้ว','ไม่มา','ฟันน้ำนมผุ (คน)','%','ฟันแท้ผุ (คน)','%','ไม่มีฟันผุ (คน)','%','dmft เฉลี่ย','DMFT เฉลี่ย','เหงือกอักเสบ','หินปูน','ต้องอุด คน/ซี่','ต้องถอน คน/ซี่','Sealant คน/ซี่'];
+const repRow=(k,t)=>[k,t.all,t.ex,t.ab,t.dk,pct(t.dk,t.ex),t.Dk,pct(t.Dk,t.ex),t.cf,pct(t.cf,t.ex),t.ex?(t.sd/t.ex).toFixed(2):'-',t.ex?(t.sD/t.ex).toFixed(2):'-',t.gum,t.tar,t.f.join('/'),t.x.join('/'),t.s.join('/')];
 function repData(){
   const rows=RM.map(([k,r])=>repRow(k,stats(r)));
   rows.push(repRow('รวม',stats(RM.flatMap(x=>x[1]))));
@@ -1041,21 +1063,22 @@ function drawCard(){
   const p=rows[ci],v=(E[p.id]||[]).slice();while(v.length<NV)v.push('');
   const n=x=>+x||0,ix=(o,j)=>Array.isArray(o)?o[j]:o+j;
   const grp=([t,labs,o])=>`<fieldset class="cgrp"><legend>${t}</legend><div class="cf ${labs.length===3?'t3':''}">${labs.map((l,j)=>`<label>${l}<input data-c="${ix(o,j)}" inputmode="numeric" maxlength="2" value="${esc(v[ix(o,j)])}"></label>`).join('')}</div></fieldset>`;
-  $('card').innerHTML=`<div class="cnav"><button type="button" class="alt" id="cPrev" aria-label="คนก่อนหน้า">◀</button><select id="cSel">${rows.map((q,i)=>`<option value="${i}" ${i===ci?'selected':''}>${isDone(E[q.id])?'✓ ':''}${i+1}. ${esc((q.pre+q.fn+' '+q.ln).trim())}</option>`).join('')}</select><button type="button" class="alt" id="cNext" aria-label="คนถัดไป">▶</button></div>
-<div class="cname">${esc((p.pre+' '+p.fn+' '+p.ln).trim())}</div><div class="cpos">คนที่ ${ci+1} จาก ${rows.length} ${isDone(v)?'<span class="cdone">· กรอกแล้ว ✓</span>':''}</div>
-<button type="button" class="good" id="cGood">✓ ฟันดี ไม่มีฟันผุ (ไปคนถัดไป)</button>
+  $('card').innerHTML=`<div class="cnav"><button type="button" class="alt" id="cPrev" aria-label="คนก่อนหน้า">◀</button><select id="cSel">${rows.map((q,i)=>`<option value="${i}" ${i===ci?'selected':''}>${isAbs(E[q.id])?'✗ ':isDone(E[q.id])?'✓ ':''}${i+1}. ${esc((q.pre+q.fn+' '+q.ln).trim())}</option>`).join('')}</select><button type="button" class="alt" id="cNext" aria-label="คนถัดไป">▶</button></div>
+<div class="cname">${esc((p.pre+' '+p.fn+' '+p.ln).trim())}</div><div class="cpos">คนที่ ${ci+1} จาก ${rows.length} ${isAbs(v)?'<span class="cdone">· ไม่มาตรวจ</span>':isDone(v)?'<span class="cdone">· กรอกแล้ว ✓</span>':''}</div>
+<div class="cgr"><button type="button" class="good" id="cGood">✓ ฟันดี ไม่มีฟันผุ (ไปคนถัดไป)</button><button type="button" class="chip abs ${isAbs(v)?'on':''}" id="cAbs">ไม่มาตรวจ</button></div>
 ${grp(F[0])}${grp(F[1])}
 <div class="chips"><button type="button" class="chip ${n(v[8])?'on':''}" data-t="8">เหงือกอักเสบ</button><button type="button" class="chip ${n(v[9])?'on':''}" data-t="9">มีหินปูน</button></div>
 ${grp(F[2])}${grp(F[3])}
 <button type="button" class="nextp" id="cGo">บันทึกแล้ว ไปคนถัดไป ▶</button>`;
   chk();
 }
-function cardVals(){const v=Array(NV).fill('');$('card').querySelectorAll('input[data-c]').forEach(i=>{v[+i.dataset.c]=i.value});$('card').querySelectorAll('.chip').forEach(c=>{v[+c.dataset.t]=c.classList.contains('on')?'1':''});return v}
+function cardVals(){const v=Array(16).fill('');const ab=$('cAbs');v[AB]=ab&&ab.classList.contains('on')?'1':'';$('card').querySelectorAll('input[data-c]').forEach(i=>{v[+i.dataset.c]=i.value});$('card').querySelectorAll('.chip').forEach(c=>{v[+c.dataset.t]=c.classList.contains('on')?'1':''});return v}
 function chk(){const v=cardVals(),n=x=>+x||0;[[0,20],[4,32]].forEach(([a,mx])=>{const i=$('card').querySelector(`input[data-c="${a}"]`);if(i)i.classList.toggle('bad',v[a]!==''&&(n(v[a])>mx||n(v[a+1])+n(v[a+2])+n(v[a+3])>n(v[a])))})}
-function cardStore(){const p=RM[cur][1][ci];setVals(p.id,cardVals());chk()}
+function cardStore(){const p=RM[cur][1][ci];setVals(p.id,cardVals());chk();const a=isAbs(cardVals());$('card').querySelectorAll('input[data-c],.chip[data-t]').forEach(i=>{i.disabled=a})}
 function cardGo(d){
-  const rows=RM[cur][1];let j=ci+d;
-  if($('todo').checked&&d>0)while(j<rows.length&&isDone(E[rows[j].id]))j++;
+  const rows=RM[cur][1];{const v=cardVals();if(fillZero(v))setVals(rows[ci].id,v)}
+  let j=ci+d;
+  if($('todo').checked&&d>0)while(j<rows.length&&handled(E[rows[j].id]))j++;
   if(j>=rows.length){if(cur<RM.length-1&&confirm('ห้องนี้ครบแล้ว ไปห้องถัดไปไหม?')){cur++;$('room').value=cur;drawRoom()}return}
   ci=Math.max(0,j);drawCard();const f=$('card').querySelector('input[data-c="0"]');if(f)f.focus();
 }
@@ -1072,7 +1095,10 @@ $('card').addEventListener('click',e=>{
   if(t.dataset.t){t.classList.toggle('on');cardStore()}
   else if(t.id==='cPrev')cardGo(-1);
   else if(t.id==='cNext'||t.id==='cGo')cardGo(1);
-  else if(t.id==='cGood'){$('card').querySelectorAll('input[data-c]').forEach(i=>{if([1,2,3,5,6,7].includes(+i.dataset.c))i.value='0'});cardStore();cardGo(1)}
+  else if(t.id==='cGood'){const a=$('cAbs');if(a)a.classList.remove('on');$('card').querySelectorAll('input[data-c]').forEach(i=>{if(i.value==='')i.value='0'});cardStore();cardGo(1)}
+  else if(t.id==='cAbs'){const on=!t.classList.contains('on');if(on&&isDone(cardVals())&&!confirm('เด็กคนนี้มีผลตรวจที่กรอกไว้ ติ๊กไม่มาแล้วผลจะถูกล้าง ต้องการไหม?'))return;
+    if(on){$('card').querySelectorAll('input[data-c]').forEach(i=>{i.value=''});$('card').querySelectorAll('.chip[data-t]').forEach(c=>c.classList.remove('on'))}
+    t.classList.toggle('on',on);cardStore();if(on)cardGo(1)}
 });
 $('dl2').onclick=()=>$('go').click();
 $('ent').onclick=openEntry;
@@ -1142,6 +1168,7 @@ function printRoom(){
   const [room,rows]=RM[cur],school=$('school').value.trim(),date=$('date').value.trim();
   const H=['ฟันทั้งหมด','ฟันผุ','อุด','ถอน/หลุด','ฟันทั้งหมด','ฟันผุ','อุด','ถอน/หลุด','อักเสบ','หินปูน','อุด<br>น้ำนม','ถอน<br>น้ำนม','อุด<br>แท้','ถอน<br>แท้','Sealant'];
   const body=rows.map((p,i)=>{const v=E[p.id]||[];
+    if(isAbs(v))return `<tr><td>${i+1}</td><td>${esc(p.pre)}</td><td class="l">${esc(p.fn)}</td><td class="l">${esc(p.ln)}</td><td colspan="${ORD.length}">ไม่มาตรวจ</td></tr>`;
     return `<tr><td>${i+1}</td><td>${esc(p.pre)}</td><td class="l">${esc(p.fn)}</td><td class="l">${esc(p.ln)}</td>${ORD.map(c=>`<td>${c===8||c===9?(nn(v[c])?'✓':''):esc(v[c]||'')}</td>`).join('')}</tr>`}).join('');
   const done=rows.filter(p=>isDone(E[p.id])).length;
   $('pa').innerHTML=`<div class="rsheet"><h3>แบบบันทึกตรวจคัดกรองสุขภาพช่องปากในโรงเรียนและศูนย์เด็กเล็ก</h3>
@@ -1294,7 +1321,7 @@ $('invite').onclick=async()=>{
   try{
     const c=await call({action:'create',pin,school,date:$('date').value.trim(),roster});
     SES={code:c.code,pin,school,date:$('date').value.trim(),since:0,at:Date.now(),keys:roster.map(p=>p.key)};
-    roster.forEach(p=>{const v=E[p.key];if(isDone(v)){const t=Date.now();ET[p.key]=t;Q[p.key]={key:p.key,room:p.room,name:(p.pre+' '+p.fn+' '+p.ln).trim(),v,t}}});
+    roster.forEach(p=>{const v=E[p.key];if(handled(v)){const t=Date.now();ET[p.key]=t;Q[p.key]={key:p.key,room:p.room,name:(p.pre+' '+p.fn+' '+p.ln).trim(),v,t}}});
     syncSave();drawSync();syncNow();share();
   }catch(e){alert('สร้างลิงก์ไม่สำเร็จ: '+e.message)}
   finally{b.disabled=false;drawSync()}
