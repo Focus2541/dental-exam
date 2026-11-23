@@ -108,6 +108,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .sheet{width:210mm;height:296.5mm;box-sizing:border-box;break-after:page;page-break-after:always;overflow:hidden;font-family:'Sarabun',sans-serif;color:#000;background:#fff}
 .slip{height:148.2mm;box-sizing:border-box;padding:5mm 9mm 3mm;font-size:10.5pt;line-height:1.35;overflow:hidden}
 .slip+.slip{border-top:1px dashed #777}
+.s3 .slip{height:98.8mm;padding:3.5mm 9mm 2mm}
 .slip h3{text-align:center;font-size:12.5pt;margin:0 0 1mm}
 .slip .hd{display:flex;align-items:center;gap:3mm}.slip .hd img{height:15mm;max-width:30mm;object-fit:contain}.slip .hd>div{flex:1}.slip .hd::after{content:'';width:var(--lw,0)}
 .lgo{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:10px}.lgo img{height:56px;max-width:140px;object-fit:contain;border:1px solid var(--line);border-radius:6px;padding:4px;background:#fff}.lgo img[hidden]{display:none}
@@ -323,8 +324,9 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div class="lgo"><span>โลโก้หัวใบแจ้งผล</span><img id="lgPrev" alt=""><span id="lgNone" class="hint" hidden>ไม่ใส่โลโก้</span>
 <div class="shb"><label class="upl alt">🖼 เปลี่ยนโลโก้<input type="file" id="lgFile" accept="image/*" hidden></label><button type="button" id="lgDef" class="alt">↺ ใช้โลโก้เดิม</button><button type="button" id="lgOff" class="alt">ไม่ใส่โลโก้</button></div></div>
 
+<label>จำนวนต่อแผ่น A4<select id="s_per" data-set><option value="3">3 คน (ประหยัดกระดาษ)</option><option value="2">2 คน (ตัดครึ่ง)</option></select></label>
 <label>ขอบเขต<select id="s_scope" data-set><option value="room">ห้องที่เลือกอยู่</option><option value="all">ทุกห้อง</option></select></label>
-</div><p class="hint">A4 แผ่นละ 2 คน ตัดครึ่งตามเส้นประ</p></details>
+</div><p class="hint">ตัดตามเส้นประ</p></details>
 </div></details>
 <details class="menu"><summary>⋯ เพิ่มเติม</summary><div class="mbody">
 <button id="dl2" type="button">ดาวน์โหลดผลเป็น Excel</button>
@@ -354,7 +356,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.31 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.32 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -1006,7 +1008,8 @@ function printSlips(){
   rooms.forEach(([room,rows])=>rows.forEach(p=>{const v=E[p.id];if(!isDone(v))return;if(only&&!needTx(v)&&!needNote(v))return;list.push([p,room,v])}));
   if(!list.length){alert(only?'ยังไม่มีเด็กที่ต้องรักษาในขอบเขตนี้ (หรือยังไม่ได้กรอกผล)':'ยังไม่มีเด็กที่กรอกผลแล้วในขอบเขตนี้');return}
   const school=$('school').value.trim(),date=$('date').value.trim();let h='';
-  for(let i=0;i<list.length;i+=2)h+='<div class="sheet">'+list.slice(i,i+2).map(([p,r,v])=>slipHTML(p,r,v,school,date)).join('')+'</div>';
+  const per=$('s_per').value==='2'?2:3;
+  for(let i=0;i<list.length;i+=per)h+='<div class="sheet'+(per===3?' s3':'')+'">'+list.slice(i,i+per).map(([p,r,v])=>slipHTML(p,r,v,school,date)).join('')+'</div>';
   $('pa').innerHTML=h;setTimeout(()=>window.print(),300);
 }
 function stats(rows){
