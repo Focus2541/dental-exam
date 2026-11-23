@@ -328,7 +328,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.19 (15 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.20 (15 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -795,9 +795,10 @@ async function build(){
   const widths=[5.2,14.8,9.3,12,13.4,8.7,4.7,4,8,8.7,4.4,3.9,7.4,5.4,6.2,5.6,5.6,5.6,5.6,7.1],LC=widths.length,EO=[0,1,2,3,4,5,6,7,8,9,10,11,13,14,12];
   const ctr={horizontal:'center',vertical:'middle',wrapText:true};
   const font=sz=>({name:'Angsana New',size:sz});
-  for(const s of used()){
-    const groups=new Map();
-    s.rows.forEach(r=>{const k0=r.rm||s.label,k=by==='grade'?k0.split('/')[0]:k0;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(r)});
+  // รวมห้องชื่อเดียวกันจากทุกชีต/ตาราง (เช่น ตาราง ป1 ที่ขาดข้ามหน้าในไฟล์ Word) เป็นชีตเดียว
+  const groups=new Map();
+  for(const s of used())s.rows.forEach(r=>{const k0=(r.rm||s.label||'').trim(),k=by==='grade'?k0.split('/')[0]:k0;if(!groups.has(k))groups.set(k,[]);if(!groups.get(k).some(q=>q.id===r.id))groups.get(k).push(r)});
+  {
     for(const [label,rows] of [...groups].sort((a,b)=>a[0].localeCompare(b[0],'th',{numeric:true}))){
       let nm=label.replace(/[:\\\/?*\[\]]/g,'.').slice(0,28)||'ชีต',x=nm,i=2;
       while(names.has(x))x=nm+'_'+i++;
