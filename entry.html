@@ -325,7 +325,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div class="lgo"><span>โลโก้หัวใบแจ้งผล</span><img id="lgPrev" alt=""><span id="lgNone" class="hint" hidden>ไม่ใส่โลโก้</span>
 <div class="shb"><label class="upl alt">🖼 เปลี่ยนโลโก้<input type="file" id="lgFile" accept="image/*" hidden></label><button type="button" id="lgDef" class="alt">↺ ใช้โลโก้เดิม</button><button type="button" id="lgOff" class="alt">ไม่ใส่โลโก้</button></div></div>
 
-<label>จำนวนต่อแผ่น A4<select id="s_per" data-set><option value="3">3 คน (ประหยัดกระดาษ)</option><option value="2">2 คน (ตัดครึ่ง)</option></select></label>
+<label>จำนวนต่อแผ่น A4<select id="s_lay" data-set><option value="auto">อัตโนมัติ (ปกติ 3 คน ถ้าหมายเหตุยาว 2 คน)</option><option value="3">3 คน (ประหยัดกระดาษ)</option><option value="2">2 คน (ตัดครึ่ง)</option></select></label>
 <label>ขอบเขต<select id="s_scope" data-set><option value="room">ห้องที่เลือกอยู่</option><option value="all">ทุกห้อง</option></select></label>
 </div><p class="hint">ตัดตามเส้นประ</p></details>
 </div></details>
@@ -357,7 +357,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.34 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.35 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -1011,8 +1011,14 @@ function printSlips(){
   rooms.forEach(([room,rows])=>rows.forEach(p=>{const v=E[p.id];if(!isDone(v))return;if(only&&!needTx(v)&&!needNote(v))return;list.push([p,room,v])}));
   if(!list.length){alert(only?'ยังไม่มีเด็กที่ต้องรักษาในขอบเขตนี้ (หรือยังไม่ได้กรอกผล)':'ยังไม่มีเด็กที่กรอกผลแล้วในขอบเขตนี้');return}
   const school=$('school').value.trim(),date=$('date').value.trim();let h='';
-  const per=$('s_per').value==='2'?2:3;
-  for(let i=0;i<list.length;i+=per)h+='<div class="sheet'+(per===3?' s3':'')+'">'+list.slice(i,i+per).map(([p,r,v])=>slipHTML(p,r,v,school,date)).join('')+'</div>';
+  const mode=$('s_lay').value,H=list.map(([p,r,v])=>slipHTML(p,r,v,school,date));
+  const sheet=(a,three)=>'<div class="sheet'+(three?' s3':'')+'">'+a.join('')+'</div>';
+  if(mode==='2'||mode==='3'){const per=+mode;for(let i=0;i<H.length;i+=per)h+=sheet(H.slice(i,i+per),per===3)}
+  else{/* อัตโนมัติ: วัดความสูงจริงของแต่ละใบในขนาด 3 คนต่อแผ่น ใบไหนล้นให้แผ่นนั้นเป็น 2 คน */
+    const m=document.createElement('div');m.style.cssText='position:absolute;left:-9999px;top:0;width:210mm';m.innerHTML=sheet(H,true);document.body.appendChild(m);
+    const fit=[...m.querySelectorAll('.slip')].map(x=>{const t=x.getBoundingClientRect().top,b=x.lastElementChild.getBoundingClientRect().bottom;return (b-t)*25.4/96<=87});m.remove();
+    for(let i=0;i<H.length;){if(i+3<=H.length&&fit[i]&&fit[i+1]&&fit[i+2]||(i+3>H.length&&fit.slice(i).every(Boolean)))
+      {h+=sheet(H.slice(i,i+3),true);i+=3}else{h+=sheet(H.slice(i,i+2),false);i+=2}}}
   $('pa').innerHTML=h;setTimeout(()=>window.print(),300);
 }
 function stats(rows){
