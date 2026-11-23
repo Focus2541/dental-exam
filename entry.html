@@ -66,6 +66,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}
 .bar select{width:auto;min-width:160px}
 .chk{display:flex;gap:6px;align-items:center;font-size:15px}
+.hidbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 8px;padding:8px 12px;border:1px solid var(--warn);border-radius:8px;color:var(--warn);font-size:15px}.hidbar button{padding:6px 14px;margin:0}
 #prog{margin-left:auto;font-weight:600;color:var(--acc)}
 .hint{font-size:14px;color:var(--mut);margin:0 0 10px}
 .ewrap{overflow:auto;max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px);border:1px solid var(--line);border-radius:8px;background:var(--card)}
@@ -291,6 +292,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sync" class="syncbar" hidden></div>
 <div class="bar"><button id="back" class="alt" type="button">← กลับ</button><select id="room" aria-label="เลือกห้อง"></select><button id="next" class="alt" type="button">ห้องถัดไป ▶</button><button id="view" class="alt" type="button"></button><span id="prog"></span></div>
 <p class="hint" id="ehint"></p>
+<div id="hidBar" class="hidbar" hidden><span id="hidTx"></span><button type="button" id="hidAll">แสดงทุกคน</button></div>
 <div class="ewrap"><table class="entry"><thead><tr><th rowspan="2">ที่</th><th rowspan="2" class="sticky">ชื่อ-สกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="5">Tx. plan</th><th rowspan="2">สรุป</th><th rowspan="2">หมายเหตุ</th><th rowspan="2">ไม่มา</th><th rowspan="2">ฟันดี</th></tr>
 <tr><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>อักเสบ</th><th>หินปูน</th><th>อุด<br>น้ำนม</th><th>ถอน<br>น้ำนม</th><th>อุด<br>แท้</th><th>ถอน<br>แท้</th><th>Sealant</th></tr></thead><tbody id="tb"></tbody></table></div>
 <div id="card" hidden></div>
@@ -347,7 +349,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.23 (15 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.24 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -895,7 +897,7 @@ function drawRoom(){
   $('view').textContent=card?'แบบตาราง':'แบบทีละคน';
   $('ehint').innerHTML=card?'กรอกตัวเลข กด <b>Enter</b> ไปช่องถัดไป · เด็กฟันดีกดปุ่ม <b>✓ ฟันดี</b> · บันทึกอัตโนมัติ':'<b>Enter</b> ช่องถัดไป · <b>← → ↑ ↓</b> เลื่อนช่อง · <b>/</b> หรือ ✓ = ฟันดี · เหงือก/หินปูน พิมพ์ 1 · บันทึกอัตโนมัติ';
   normalizeRooms([RM[cur]]);
-  if(card){const rows=RM[cur][1];ci=Math.max(0,rows.findIndex(p=>!handled(E[p.id])));drawCard();prog();return}
+  if(card){const rows=RM[cur][1];ci=Math.max(0,rows.findIndex(p=>!handled(E[p.id])));drawCard();prog();$('hidBar').hidden=true;return}
   const rows=RM[cur][1],only=$('todo').checked;
   $('tb').innerHTML=rows.map((p,i)=>{
     const v=E[p.id]||[];if(only&&handled(v))return '';
@@ -903,8 +905,10 @@ function drawRoom(){
       ORD.map(c=>`<td><input inputmode="numeric" maxlength="2" data-c="${c}" value="${v[c]||''}" aria-label="ช่อง ${c+1}"></td>`).join('')+
       `<td class="sm"></td><td class="ntc"><button type="button" class="nt${noteOf(v)?' has':''}" tabindex="-1" title="${esc(noteOf(v)||'เพิ่มหมายเหตุถึงผู้ปกครอง')}">${noteOf(v)?esc(noteOf(v).slice(0,14))+(noteOf(v).length>14?'…':''):'＋'}</button></td><td class="abc"><input type="checkbox" class="ab" tabindex="-1" aria-label="ไม่มาตรวจ" ${isAbs(v)?'checked':''}></td><td><button class="ok" type="button" tabindex="-1" title="ฟันดี">✓</button></td></tr>`;
   }).join('');
-  [...$('tb').rows].forEach(refresh);prog();
+  [...$('tb').rows].forEach(refresh);prog();hidCount();
 }
+function hidCount(){const rows=RM[cur]?RM[cur][1]:[],n=$('todo').checked&&VIEW!=='card'?rows.length-$('tb').rows.length:0;$('hidBar').hidden=!n;if(n)$('hidTx').textContent=`ซ่อนอยู่ ${n} คนที่กรอกแล้วหรือไม่มา (ติ๊ก "แสดงเฉพาะคนที่ยังไม่กรอก" อยู่)`}
+$('hidAll').onclick=()=>{$('todo').checked=false;drawRoom()};
 function openEntry(){
   RM=roomsMap();if(!RM.length)return;normalizeRooms(RM);
   $('room').innerHTML=RM.map(([k,r],i)=>`<option value="${i}">${esc(k)} (${r.length})</option>`).join('');
@@ -923,7 +927,7 @@ $('tb').addEventListener('change',e=>{
   if(t.checked&&isDone(rowVals(tr))&&!confirm('เด็กคนนี้มีผลตรวจที่กรอกไว้ ติ๊กไม่มาแล้วผลจะถูกล้าง ต้องการไหม?')){t.checked=false;return}
   if(t.checked)tr.querySelectorAll('input[data-c]').forEach(i=>{i.value=''});
   store(tr);
-  if($('todo').checked&&t.checked)tr.remove();
+  if($('todo').checked&&t.checked){tr.remove();hidCount()}
 });
 $('tb').addEventListener('focusout',e=>{
   const tr=e.target.closest&&e.target.closest('tr');if(!tr||!e.relatedTarget||tr.contains(e.relatedTarget))return;
