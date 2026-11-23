@@ -358,7 +358,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.37 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.38 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -929,9 +929,9 @@ function setVals(id,v){
   save();prog();
   if(typeof syncMark==='function')syncMark(id,v);
 }
-/* เวลาที่กรอกผลแต่ละคน (ใช้พิมพ์วันที่-เวลาตรวจในใบแจ้งผล) */
+/* เวลาที่กรอกผลแต่ละคนครั้งแรก (ใช้พิมพ์วันที่-เวลาตรวจในใบแจ้งผล แก้ผลทีหลังเวลาไม่เปลี่ยน) */
 let TT=(()=>{try{return JSON.parse(localStorage.getItem('dentalTime')||'{}')}catch(e){return {}}})();
-function stamp(id,v){if(isDone(v)){TT[id]=Date.now();try{localStorage.setItem('dentalTime',JSON.stringify(TT))}catch(e){}}}
+function stamp(id,v){if(isDone(v)&&!TT[id]){TT[id]=Date.now();try{localStorage.setItem('dentalTime',JSON.stringify(TT))}catch(e){}}}
 function store(tr){const v=rowVals(tr);setVals(tr.dataset.id,v);stamp(tr.dataset.id,v);refresh(tr)}
 function zero(tr){const a=tr.querySelector('.ab');if(a)a.checked=false;tr.querySelectorAll('input[data-c]').forEach(i=>{if(gv(i)==='')sv(i,'0')});store(tr)}
 function focusCell(tr,c){const i=tr&&tr.querySelector('input[data-c="'+c+'"]');if(i){i.focus({preventScroll:true});i.scrollIntoView({block:'nearest',inline:'nearest'})}}
@@ -1319,7 +1319,7 @@ function applyRemote(list){
     if(Q[r.key]||(ET[r.key]||0)>=r.t)continue;
     const v=r.v.map(x=>x==null?'':String(x));
     if(v.some(x=>x!==''))E[r.key]=v;else delete E[r.key];
-    ET[r.key]=r.t;ch++;
+    ET[r.key]=r.t;ch++;if(isDone(v)&&!TT[r.key]){TT[r.key]=r.t;try{localStorage.setItem('dentalTime',JSON.stringify(TT))}catch(e){}}
     const tr=document.querySelector(`#tb tr[data-id="${CSS.escape(r.key)}"]`);
     if(tr&&!tr.contains(document.activeElement)){tr.querySelectorAll('input[data-c]').forEach(i=>sv(i,v[+i.dataset.c]||''));const ab=tr.querySelector('.ab');if(ab)ab.checked=isAbs(v);tr.dataset.note=noteOf(v);refresh(tr)}
   }
