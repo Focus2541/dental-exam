@@ -105,8 +105,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 #off{margin-top:24px}
 #pa{display:none}
 @media print{body>*{display:none!important}#pa{display:block!important}@page{size:A4;margin:0}}
-.sheet{width:210mm;height:297mm;box-sizing:border-box;break-after:page;page-break-after:always;overflow:hidden;font-family:'Sarabun',sans-serif;color:#000;background:#fff}
-.slip{height:148.5mm;box-sizing:border-box;padding:6mm 9mm 4mm;font-size:10.5pt;line-height:1.35;overflow:hidden}
+.sheet{width:210mm;height:296.5mm;box-sizing:border-box;break-after:page;page-break-after:always;overflow:hidden;font-family:'Sarabun',sans-serif;color:#000;background:#fff}
+.slip{height:148.2mm;box-sizing:border-box;padding:5mm 9mm 3mm;font-size:10.5pt;line-height:1.35;overflow:hidden}
 .slip+.slip{border-top:1px dashed #777}
 .slip h3{text-align:center;font-size:12.5pt;margin:0 0 1mm}
 .slip p{margin:1.5mm 0}
@@ -221,8 +221,9 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 .sigd[hidden]{display:none}
 .sigw{background:var(--card);color:var(--ink);border-radius:12px;padding:14px;width:min(640px,100%)}
 #sigC{display:block;width:100%;height:auto;background:#fff;border:1px dashed #999;border-radius:8px;margin:8px 0;touch-action:none}
-.slip .sgn{text-align:right;margin:1mm 4mm 0 0;font-size:9.5pt;line-height:1.3}
-.slip .sgn img{height:10mm;vertical-align:middle}
+.slip .sumr{display:flex;gap:4mm;align-items:flex-start}.slip .sml{flex:1;min-width:0}
+.slip .sgn{flex:0 0 52mm;text-align:center;margin-top:1mm;font-size:9.5pt;line-height:1.3}.slip .sgn .dl{display:inline-block;margin:4mm 0 1mm}
+.slip .sgn img{height:11mm;max-width:50mm;object-fit:contain;display:block;margin:.5mm auto}
 #sigd{z-index:22}
 .stfw{max-height:92vh;overflow:auto}
 .stfw .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
@@ -349,7 +350,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.28 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.29 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -980,9 +981,9 @@ function slipHTML(p,room,v,school,date){
 <table><tr><th rowspan="2">คำนำหน้า</th><th rowspan="2">ชื่อ</th><th rowspan="2">นามสกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="5">Tx. plan</th></tr>
 <tr><th>ฟันทั้งหมด</th><th>ฟันผุ</th><th>อุด</th><th>ถอน/หลุด</th><th>ฟันทั้งหมด</th><th>ฟันผุ</th><th>อุด</th><th>ถอน/หลุด</th><th>อักเสบ</th><th>หินปูน</th><th>อุด<br>น้ำนม</th><th>ถอน<br>น้ำนม</th><th>อุด<br>แท้</th><th>ถอน<br>แท้</th><th>Sealant</th></tr>
 <tr class="val"><td>${esc(p.pre)}</td><td>${esc(p.fn)}</td><td>${esc(p.ln)}</td>${cells.map(c=>`<td>${c}</td>`).join('')}</tr></table>
-<b>สรุปผลการตรวจ</b><div class="two"><div>${cb(good)} ฟันดี ไม่มีฟันผุ</div><div>${cb(fill)} ต้องอุดฟัน ${fill||'……'} ซี่${sp(fd,fp)}</div><div>${cb(ext)} ต้องถอนฟัน ${ext||'……'} ซี่${sp(xd,xp)}</div><div>${cb(seal)} เคลือบหลุมร่องฟัน ${seal||'……'} ซี่</div><div>${cb(tar)} มีหินปูน ต้องได้รับการขูด</div><div>${cb(gum)} เหงือกอักเสบ ควรแปรงฟันให้สะอาด</div></div>
-${noteOf(v).trim()?`<div class="nte"><b>หมายเหตุจากผู้ตรวจ:</b> ${esc(noteOf(v))}</div>`:''}
-<div class="sgn">ผู้ตรวจ ${SIG?`<img src="${SIG}" alt="">`:'…'.repeat(14)}<br>(${ex?esc(ex):'…'.repeat(14)})${pos?'<br>'+esc(pos):''}</div>
+<div class="sumr"><div class="sml"><b>สรุปผลการตรวจ</b><div class="two"><div>${cb(good)} ฟันดี ไม่มีฟันผุ</div><div>${cb(fill)} ต้องอุดฟัน ${fill||'……'} ซี่${sp(fd,fp)}</div><div>${cb(ext)} ต้องถอนฟัน ${ext||'……'} ซี่${sp(xd,xp)}</div><div>${cb(seal)} เคลือบหลุมร่องฟัน ${seal||'……'} ซี่</div><div>${cb(tar)} มีหินปูน ต้องได้รับการขูด</div><div>${cb(gum)} เหงือกอักเสบ ควรแปรงฟันให้สะอาด</div></div>
+${noteOf(v).trim()?`<div class="nte"><b>หมายเหตุจากผู้ตรวจ:</b> ${esc(noteOf(v))}</div>`:''}</div>
+<div class="sgn">ผู้ตรวจ<br>${SIG?`<img src="${SIG}" alt="">`:'<span class="dl">'+'…'.repeat(14)+'</span>'}<br>(${ex?esc(ex):'…'.repeat(14)})${pos?'<br>'+esc(pos):''}</div></div>
 <p>ท่านสามารถพาบุตรหลานไปรับบริการได้ที่ รพ.สต. ${dots(hos,12)} วันที่ ${dots($('s_day').value.trim(),8)} เวลา ${dots($('s_time').value.trim(),6)} และนำใบแจ้งผลการรักษาด้านล่างส่งคืนครูประจำชั้นเมื่อรักษาเสร็จ</p>
 <div class="box"><b>แบบแจ้งผลการรักษาทางทันตกรรม</b> <span class="sm">(ทันตบุคลากรที่รักษากรอก แล้วให้เด็กนำกลับมาคืนครูประจำชั้น)</span><br>
 เรียน ครูประจำชั้น&nbsp; ${nm} ชั้น ${esc(room)} มารับบริการที่ ${'…'.repeat(10)} วันที่ ${'…'.repeat(8)}<br>
