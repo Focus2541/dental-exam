@@ -72,6 +72,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .entry{border-collapse:collapse;font-size:15px;min-width:100%}
 .entry th,.entry td{border:1px solid var(--line);padding:2px 3px;text-align:center}
 .entry thead{position:sticky;top:0;z-index:3}
+.entry tbody input{scroll-margin:108px 8px 8px 250px}
 .entry thead th{background:var(--bg);font-weight:600;box-shadow:inset 0 -1px 0 var(--line)}
 .entry thead th.sticky{left:0;z-index:4}
 .entry .sticky{position:sticky;left:0;background:var(--card);text-align:left;white-space:nowrap;padding:2px 8px;z-index:1}
@@ -328,7 +329,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.20 (15 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.21 (15 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -869,7 +870,7 @@ function drawRoom(){
   const card=VIEW==='card';
   document.querySelector('.ewrap').hidden=card;$('card').hidden=!card;
   $('view').textContent=card?'แบบตาราง':'แบบทีละคน';
-  $('ehint').innerHTML=card?'กรอกตัวเลข กด <b>Enter</b> ไปช่องถัดไป · เด็กฟันดีกดปุ่ม <b>✓ ฟันดี</b> · บันทึกอัตโนมัติ':'<b>Enter</b> ช่องถัดไป · <b>↑↓</b> เปลี่ยนแถว · <b>/</b> หรือ ✓ = ฟันดี · เหงือก/หินปูน พิมพ์ 1 · บันทึกอัตโนมัติ';
+  $('ehint').innerHTML=card?'กรอกตัวเลข กด <b>Enter</b> ไปช่องถัดไป · เด็กฟันดีกดปุ่ม <b>✓ ฟันดี</b> · บันทึกอัตโนมัติ':'<b>Enter</b> ช่องถัดไป · <b>← → ↑ ↓</b> เลื่อนช่อง · <b>/</b> หรือ ✓ = ฟันดี · เหงือก/หินปูน พิมพ์ 1 · บันทึกอัตโนมัติ';
   if(card){const rows=RM[cur][1];ci=Math.max(0,rows.findIndex(p=>!isDone(E[p.id])));drawCard();prog();return}
   const rows=RM[cur][1],only=$('todo').checked;
   $('tb').innerHTML=rows.map((p,i)=>{
@@ -892,7 +893,7 @@ function setVals(id,v){
 }
 function store(tr){setVals(tr.dataset.id,rowVals(tr));refresh(tr)}
 function zero(tr){const i=tr.querySelectorAll('input');[1,2,3,5,6,7].forEach(k=>{i[k].value='0'});store(tr)}
-function focusCell(tr,c){const i=tr&&tr.querySelector('input[data-c="'+c+'"]');if(i)i.focus()}
+function focusCell(tr,c){const i=tr&&tr.querySelector('input[data-c="'+c+'"]');if(i){i.focus({preventScroll:true});i.scrollIntoView({block:'nearest',inline:'nearest'})}}
 $('tb').addEventListener('input',e=>{
   const t=e.target;if(t.tagName!=='INPUT')return;
   t.value=t.value.replace(/\D/g,'').slice(0,2);store(t.closest('tr'));
@@ -904,6 +905,12 @@ $('tb').addEventListener('keydown',e=>{
   if(e.key==='Enter'){e.preventDefault();c!==ORD[NV-1]?focusCell(tr,ORD[ORD.indexOf(c)+1]):focusCell(tr.nextElementSibling,0)}
   else if(e.key==='ArrowDown'){e.preventDefault();focusCell(tr.nextElementSibling,c)}
   else if(e.key==='ArrowUp'){e.preventDefault();focusCell(tr.previousElementSibling,c)}
+  else if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+    e.preventDefault();const k=ORD.indexOf(c)+(e.key==='ArrowRight'?1:-1);
+    if(k>=0&&k<ORD.length)focusCell(tr,ORD[k]);
+    else if(k<0)focusCell(tr.previousElementSibling,ORD[ORD.length-1]);
+    else focusCell(tr.nextElementSibling,ORD[0]);
+  }
   else if(e.key==='/'){e.preventDefault();zero(tr);focusCell(tr.nextElementSibling,0)}
 });
 $('tb').addEventListener('click',e=>{
