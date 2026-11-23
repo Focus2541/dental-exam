@@ -310,14 +310,14 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <button id="slips" type="button">ใบแจ้งผลผู้ปกครอง</button>
 <button id="rep" type="button">รายงานสรุป</button>
 <details class="rv" id="slipset"><summary>ตั้งค่าใบแจ้งผล</summary><div class="row">
-<label>รพ.สต. ที่รับบริการ<input type="text" id="s_hos" data-set></label>
+<label>สถานที่รับบริการ (เช่น รพ.สต.บวกหมื้อ, รพ.แม่แตง)<input type="text" id="s_hos" data-set></label>
 <label>โทร.<input type="text" id="s_tel" data-set></label>
 <label>วันที่นัด<input type="text" id="s_day" data-set></label>
 <label>เวลา<input type="text" id="s_time" data-set></label>
 <label>พิมพ์ให้<select id="s_who" data-set><option value="tx">เฉพาะเด็กที่ต้องรักษา</option><option value="all">ทุกคนที่ตรวจแล้ว</option></select></label>
 <label>ผู้ตรวจ (ชื่อและลายเซ็นในใบแจ้งผล)<select id="s_ex"><option value="">— ไม่ระบุ เว้นให้เขียนเอง —</option></select></label>
 <div class="stfo"><button type="button" id="stfOpen" class="alt">👤 เพิ่ม/แก้รายชื่อผู้ตรวจและลายเซ็น</button></div>
-<label>ชื่อผู้ให้การรักษา (เว้นว่างได้ ให้เขียนเองตอนรักษา)<input type="text" id="s_txn" data-set></label>
+<input type="hidden" id="s_txn">
 
 <label>ขอบเขต<select id="s_scope" data-set><option value="room">ห้องที่เลือกอยู่</option><option value="all">ทุกห้อง</option></select></label>
 </div><p class="hint">A4 แผ่นละ 2 คน ตัดครึ่งตามเส้นประ</p></details>
@@ -350,7 +350,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.29 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.30 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -981,15 +981,10 @@ function slipHTML(p,room,v,school,date){
 <table><tr><th rowspan="2">คำนำหน้า</th><th rowspan="2">ชื่อ</th><th rowspan="2">นามสกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="5">Tx. plan</th></tr>
 <tr><th>ฟันทั้งหมด</th><th>ฟันผุ</th><th>อุด</th><th>ถอน/หลุด</th><th>ฟันทั้งหมด</th><th>ฟันผุ</th><th>อุด</th><th>ถอน/หลุด</th><th>อักเสบ</th><th>หินปูน</th><th>อุด<br>น้ำนม</th><th>ถอน<br>น้ำนม</th><th>อุด<br>แท้</th><th>ถอน<br>แท้</th><th>Sealant</th></tr>
 <tr class="val"><td>${esc(p.pre)}</td><td>${esc(p.fn)}</td><td>${esc(p.ln)}</td>${cells.map(c=>`<td>${c}</td>`).join('')}</tr></table>
-<div class="sumr"><div class="sml"><b>สรุปผลการตรวจ</b><div class="two"><div>${cb(good)} ฟันดี ไม่มีฟันผุ</div><div>${cb(fill)} ต้องอุดฟัน ${fill||'……'} ซี่${sp(fd,fp)}</div><div>${cb(ext)} ต้องถอนฟัน ${ext||'……'} ซี่${sp(xd,xp)}</div><div>${cb(seal)} เคลือบหลุมร่องฟัน ${seal||'……'} ซี่</div><div>${cb(tar)} มีหินปูน ต้องได้รับการขูด</div><div>${cb(gum)} เหงือกอักเสบ ควรแปรงฟันให้สะอาด</div></div>
+<div class="sumr"><div class="sml"><b>สรุปผลการตรวจ</b><div class="two">${[[good,'ฟันดี ไม่มีฟันผุ'],[fill,`ต้องอุดฟัน ${fill} ซี่${sp(fd,fp)}`],[ext,`ต้องถอนฟัน ${ext} ซี่${sp(xd,xp)}`],[seal,`เคลือบหลุมร่องฟัน ${seal} ซี่`],[tar,'มีหินปูน ต้องได้รับการขูด'],[gum,'เหงือกอักเสบ ควรแปรงฟันให้สะอาด']].filter(x=>x[0]).map(x=>`<div>☑ ${x[1]}</div>`).join('')||'<div>☑ ฟันดี ไม่มีฟันผุ</div>'}</div>
 ${noteOf(v).trim()?`<div class="nte"><b>หมายเหตุจากผู้ตรวจ:</b> ${esc(noteOf(v))}</div>`:''}</div>
 <div class="sgn">ผู้ตรวจ<br>${SIG?`<img src="${SIG}" alt="">`:'<span class="dl">'+'…'.repeat(14)+'</span>'}<br>(${ex?esc(ex):'…'.repeat(14)})${pos?'<br>'+esc(pos):''}</div></div>
-<p>ท่านสามารถพาบุตรหลานไปรับบริการได้ที่ รพ.สต. ${dots(hos,12)} วันที่ ${dots($('s_day').value.trim(),8)} เวลา ${dots($('s_time').value.trim(),6)} และนำใบแจ้งผลการรักษาด้านล่างส่งคืนครูประจำชั้นเมื่อรักษาเสร็จ</p>
-<div class="box"><b>แบบแจ้งผลการรักษาทางทันตกรรม</b> <span class="sm">(ทันตบุคลากรที่รักษากรอก แล้วให้เด็กนำกลับมาคืนครูประจำชั้น)</span><br>
-เรียน ครูประจำชั้น&nbsp; ${nm} ชั้น ${esc(room)} มารับบริการที่ ${'…'.repeat(10)} วันที่ ${'…'.repeat(8)}<br>
-ได้รับการรักษา ☐ ถอนฟัน (น้ำนม/แท้) …… ซี่ ☐ อุดฟัน (น้ำนม/แท้) …… ซี่ ☐ เคลือบหลุมร่องฟัน …… ซี่ ☐ ขูดหินปูน ☐ อื่น ๆ ………………<br>
-ลงชื่อ ……………………………… ผู้ให้การรักษา${txn?' ('+esc(txn)+')':''}</div>
-<p class="sm">สิทธิการรักษา: ใช้สิทธิตามสถานพยาบาลที่ลงทะเบียนไว้ หากรับบริการนอกเขตสิทธิ์ต้องชำระค่ารักษาเอง · เครือข่ายบริการสุขภาพ CUP บวกหมื้อ งานทันตสาธารณสุข รพ.สต. ${dots(hos,10)} โทร. ${dots(tel,8)}</p></div>`;
+<p>ท่านสามารถพาบุตรหลานไปรับบริการได้ที่ ${dots(hos,12)} วันที่ ${dots($('s_day').value.trim(),8)} เวลา ${dots($('s_time').value.trim(),6)} <b>นำใบนี้ไปยื่นให้ทันตแพทย์หรือทันตบุคลากรได้เลย</b>${tel?' · โทร. '+esc(tel):''}</p></div>`;
 }
 function printSlips(){
   const rooms=$('s_scope').value==='all'?RM:[RM[cur]],only=$('s_who').value==='tx',list=[];
