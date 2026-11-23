@@ -281,7 +281,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <section id="cfg" hidden>
 <div class="row">
 <label>ชื่อโรงเรียน<input type="text" id="school" placeholder="เช่น อนุบาลเพชรบูรณ์"></label>
-<label>วันที่ตรวจ (เว้นว่างไว้เขียนมือได้)<input type="text" id="date" placeholder="เช่น 5 พ.ย. 2569"></label>
+<label>วันที่ตรวจ (เว้นว่าง = ใช้วันนี้)<input type="text" id="date" placeholder="เช่น 5 พ.ย. 2569"></label>
 </div>
 <details class="rv"><summary>ตั้งค่าไฟล์ Excel (ไม่ต้องแก้ก็ได้)</summary><div class="row">
 <label>กระดาษ A4 (ห้องที่คนเยอะจะต่อหน้าถัดไปเอง)<select id="ori"><option value="landscape">แนวนอน: ช่องกว้าง เขียนสบาย ราว 18 คน/หน้า</option><option value="portrait">แนวตั้ง: ราว 38 คน/หน้า ตัวเล็กลง</option></select></label>
@@ -316,7 +316,8 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <details class="rv" id="slipset"><summary>ตั้งค่าใบแจ้งผล</summary><div class="row">
 <label>สถานที่รับบริการ (เช่น รพ.สต.บวกหมื้อ, รพ.แม่แตง)<input type="text" id="s_hos" data-set></label>
 <label>โทร.<input type="text" id="s_tel" data-set></label>
-<label>วันที่นัด<input type="text" id="s_day" data-set></label>
+<label>วันที่ตรวจ (เว้นว่าง = วันนี้)<input type="text" id="s_date"></label>
+<label>วันที่นัดไปรับบริการ<input type="text" id="s_day" data-set></label>
 <label>เวลา<input type="text" id="s_time" data-set></label>
 <label>พิมพ์ให้<select id="s_who" data-set><option value="tx">เฉพาะเด็กที่ต้องรักษา</option><option value="all">ทุกคนที่ตรวจแล้ว</option></select></label>
 <label>ผู้ตรวจ (ชื่อและลายเซ็นในใบแจ้งผล)<select id="s_ex"><option value="">— ไม่ระบุ เว้นให้เขียนเอง —</option></select></label>
@@ -357,7 +358,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.35 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.36 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -818,7 +819,7 @@ $('list').addEventListener('change',e=>{
 });
 
 async function build(){
-  const school=$('school').value.trim(),date=$('date').value.trim(),ori=$('ori').value,by=$('by').value,rh=Math.min(40,Math.max(15,parseFloat($('rh').value)||23.4));
+  const school=$('school').value.trim(),date=examDate(),ori=$('ori').value,by=$('by').value,rh=Math.min(40,Math.max(15,parseFloat($('rh').value)||23.4));
   const wb=new ExcelJS.Workbook(),names=new Set();
   const bd={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}};
   const widths=[5.2,14.8,9.3,12,13.4,8.7,4.7,4,8,8.7,4.4,3.9,7.4,5.4,6.2,5.6,5.6,5.6,5.6,7.1,22],LC=widths.length-1,NC=LC+1,EO=[0,1,2,3,4,5,6,7,8,9,10,11,13,14,12];
@@ -1006,11 +1007,13 @@ $('lgFile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)retur
     c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);setLogo(c.toDataURL('image/png'))};
   im.onerror=()=>alert('เปิดไฟล์รูปนี้ไม่ได้');im.src=u};
 $('lgDef').onclick=()=>setLogo(null);$('lgOff').onclick=()=>setLogo('none');drawLogo();
+function examDate(){const d=$('s_date').value.trim()||$('date').value.trim();if(d)return d;try{return new Date().toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'})}catch(e){return ''}}
+$('s_date').placeholder=examDate();$('s_date').addEventListener('change',()=>{$('date').value=$('s_date').value.trim()});
 function printSlips(){
   const rooms=$('s_scope').value==='all'?RM:[RM[cur]],only=$('s_who').value==='tx',list=[];
   rooms.forEach(([room,rows])=>rows.forEach(p=>{const v=E[p.id];if(!isDone(v))return;if(only&&!needTx(v)&&!needNote(v))return;list.push([p,room,v])}));
   if(!list.length){alert(only?'ยังไม่มีเด็กที่ต้องรักษาในขอบเขตนี้ (หรือยังไม่ได้กรอกผล)':'ยังไม่มีเด็กที่กรอกผลแล้วในขอบเขตนี้');return}
-  const school=$('school').value.trim(),date=$('date').value.trim();let h='';
+  const school=$('school').value.trim(),date=examDate();let h='';
   const mode=$('s_lay').value,H=list.map(([p,r,v])=>slipHTML(p,r,v,school,date));
   const sheet=(a,three)=>'<div class="sheet'+(three?' s3':'')+'">'+a.join('')+'</div>';
   if(mode==='2'||mode==='3'){const per=+mode;for(let i=0;i<H.length;i+=per)h+=sheet(H.slice(i,i+per),per===3)}
@@ -1041,7 +1044,7 @@ function repData(){
 const TX_H=['ห้อง','ชื่อ-สกุล','ฟันผุ น้ำนม/แท้','อุดน้ำนม (ซี่)','ถอนน้ำนม (ซี่)','อุดแท้ (ซี่)','ถอนแท้ (ซี่)','Sealant (ซี่)','ขูดหินปูน','หมายเหตุ'];
 const tbl=(h,rows)=>`<table class="rt rep"><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(String(c))}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 function repHTML(){
-  const {rows,tx}=repData(),school=$('school').value.trim()||'(ไม่ระบุโรงเรียน)',date=$('date').value.trim();
+  const {rows,tx}=repData(),school=$('school').value.trim()||'(ไม่ระบุโรงเรียน)',date=examDate();
   return `<h2 class="h2">รายงานสรุปผลตรวจสุขภาพช่องปาก โรงเรียน${esc(school)}${date?' วันที่ตรวจ '+esc(date):''}</h2>
 <div class="rvw">${tbl(REP_H,rows)}</div><p class="hint">"ไม่มีฟันผุ" = ฟันผุทั้งน้ำนมและแท้เป็น 0 · dmft/DMFT = ผุ + อุด + ถอน/หลุด เฉลี่ยต่อคนที่ตรวจแล้ว</p>
 <h3>รายชื่อเด็กที่ต้องรักษา ${tx.length} คน</h3><div class="rvw">${tbl(TX_H,tx)}</div>`;
@@ -1245,7 +1248,7 @@ drawSaved();
 
 /* ===== พิมพ์ผลตรวจห้องนี้ ===== */
 function printRoom(){
-  const [room,rows]=RM[cur],school=$('school').value.trim(),date=$('date').value.trim();
+  const [room,rows]=RM[cur],school=$('school').value.trim(),date=examDate();
   const H=['ฟันทั้งหมด','ฟันผุ','อุด','ถอน/หลุด','ฟันทั้งหมด','ฟันผุ','อุด','ถอน/หลุด','อักเสบ','หินปูน','อุด<br>น้ำนม','ถอน<br>น้ำนม','อุด<br>แท้','ถอน<br>แท้','Sealant'];
   const body=rows.map((p,i)=>{const v=E[p.id]||[];
     if(isAbs(v))return `<tr><td>${i+1}</td><td>${esc(p.pre)}</td><td class="l">${esc(p.fn)}</td><td class="l">${esc(p.ln)}</td><td colspan="${ORD.length}">ไม่มาตรวจ</td><td></td></tr>`;
