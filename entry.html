@@ -358,7 +358,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.36 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.37 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -929,7 +929,10 @@ function setVals(id,v){
   save();prog();
   if(typeof syncMark==='function')syncMark(id,v);
 }
-function store(tr){setVals(tr.dataset.id,rowVals(tr));refresh(tr)}
+/* เวลาที่กรอกผลแต่ละคน (ใช้พิมพ์วันที่-เวลาตรวจในใบแจ้งผล) */
+let TT=(()=>{try{return JSON.parse(localStorage.getItem('dentalTime')||'{}')}catch(e){return {}}})();
+function stamp(id,v){if(isDone(v)){TT[id]=Date.now();try{localStorage.setItem('dentalTime',JSON.stringify(TT))}catch(e){}}}
+function store(tr){const v=rowVals(tr);setVals(tr.dataset.id,v);stamp(tr.dataset.id,v);refresh(tr)}
 function zero(tr){const a=tr.querySelector('.ab');if(a)a.checked=false;tr.querySelectorAll('input[data-c]').forEach(i=>{if(gv(i)==='')sv(i,'0')});store(tr)}
 function focusCell(tr,c){const i=tr&&tr.querySelector('input[data-c="'+c+'"]');if(i){i.focus({preventScroll:true});i.scrollIntoView({block:'nearest',inline:'nearest'})}}
 $('tb').addEventListener('change',e=>{
@@ -971,7 +974,7 @@ $('view').onclick=()=>{VIEW=VIEW==='card'?'table':'card';try{localStorage.setIte
 $('next').onclick=()=>{if(cur<RM.length-1){cur++;$('room').value=cur;drawRoom()}};
 $('todo').onchange=()=>{if(VIEW==='card')drawCard();else drawRoom()};
 $('back').onclick=()=>{$('entry').hidden=true;$('cfg').hidden=false;document.querySelector('main').style.maxWidth='';if(typeof drawSync==='function')drawSync()};
-$('clr').onclick=()=>{if(confirm('ล้างผลตรวจที่กรอกไว้ทั้งหมดในเครื่องนี้?')){E={};save();drawRoom()}};
+$('clr').onclick=()=>{if(confirm('ล้างผลตรวจที่กรอกไว้ทั้งหมดในเครื่องนี้?')){E={};save();TT={};try{localStorage.removeItem('dentalTime')}catch(e){}drawRoom()}};
 
 const nn=x=>+x||0;
 const needNote=v=>!!noteOf(v).trim();
@@ -988,7 +991,7 @@ function slipHTML(p,room,v,school,date){
   const nm=esc((p.pre+' '+p.fn+' '+p.ln).trim());
   const LG=logoSrc();
   return `<div class="slip"><div class="hd"${LG?' style="--lw:15mm"':''}>${LG?`<img src="${LG}" alt="">`:''}<div><h3>แบบบันทึกตรวจคัดกรองสุขภาพช่องปากในโรงเรียนและศูนย์เด็กเล็ก</h3>
-<p class="ln">โรงเรียน ${dots(school,14)}&nbsp;&nbsp; ชั้น ${esc(room)}&nbsp;&nbsp; วันที่ตรวจ ${dots(date,12)}</p></div></div>
+<p class="ln">โรงเรียน ${dots(school,14)}&nbsp;&nbsp; ชั้น ${esc(room)}&nbsp;&nbsp; วันที่ตรวจ ${dots(whenOf(p.id,date),12)}</p></div></div>
 <table><tr><th rowspan="2">คำนำหน้า</th><th rowspan="2">ชื่อ</th><th rowspan="2">นามสกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="5">Tx. plan</th></tr>
 <tr><th>ฟันทั้งหมด</th><th>ฟันผุ</th><th>อุด</th><th>ถอน/หลุด</th><th>ฟันทั้งหมด</th><th>ฟันผุ</th><th>อุด</th><th>ถอน/หลุด</th><th>อักเสบ</th><th>หินปูน</th><th>อุด<br>น้ำนม</th><th>ถอน<br>น้ำนม</th><th>อุด<br>แท้</th><th>ถอน<br>แท้</th><th>Sealant</th></tr>
 <tr class="val"><td>${esc(p.pre)}</td><td>${esc(p.fn)}</td><td>${esc(p.ln)}</td>${cells.map(c=>`<td>${c}</td>`).join('')}</tr></table>
@@ -1007,6 +1010,9 @@ $('lgFile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)retur
     c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);setLogo(c.toDataURL('image/png'))};
   im.onerror=()=>alert('เปิดไฟล์รูปนี้ไม่ได้');im.src=u};
 $('lgDef').onclick=()=>setLogo(null);$('lgOff').onclick=()=>setLogo('none');drawLogo();
+function whenOf(id,date){const t=TT[id]||(typeof ET!=='undefined'&&ET[id]);if(!t)return date;const d=new Date(t),manual=$('s_date').value.trim()||$('date').value.trim();
+  let ds=manual;if(!ds)try{ds=d.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'})}catch(e){ds=date}
+  return ds+' เวลา '+String(d.getHours()).padStart(2,'0')+'.'+String(d.getMinutes()).padStart(2,'0')+' น.'}
 function examDate(){const d=$('s_date').value.trim()||$('date').value.trim();if(d)return d;try{return new Date().toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'})}catch(e){return ''}}
 $('s_date').placeholder=examDate();$('s_date').addEventListener('change',()=>{$('date').value=$('s_date').value.trim()});
 function printSlips(){
@@ -1140,7 +1146,7 @@ ${grp(F[2])}${grp(F[3])}
 }
 function cardVals(){const v=Array(17).fill('');const nt=$('cNote');v[NT]=nt?nt.value.replace(/\s+/g,' ').trim():'';const ab=$('cAbs');v[AB]=ab&&ab.classList.contains('on')?'1':'';$('card').querySelectorAll('input[data-c]').forEach(i=>{v[+i.dataset.c]=i.value});$('card').querySelectorAll('.chip').forEach(c=>{v[+c.dataset.t]=c.classList.contains('on')?'1':''});return v}
 function chk(){const v=cardVals(),n=x=>+x||0;[[0,20],[4,32]].forEach(([a,mx])=>{const i=$('card').querySelector(`input[data-c="${a}"]`);if(i)i.classList.toggle('bad',v[a]!==''&&(n(v[a])>mx||n(v[a+1])+n(v[a+2])+n(v[a+3])>n(v[a])))})}
-function cardStore(){const p=RM[cur][1][ci];setVals(p.id,cardVals());chk();const a=isAbs(cardVals());$('card').querySelectorAll('input[data-c],.chip[data-t]').forEach(i=>{i.disabled=a})}
+function cardStore(){const p=RM[cur][1][ci];setVals(p.id,cardVals());stamp(p.id,cardVals());chk();const a=isAbs(cardVals());$('card').querySelectorAll('input[data-c],.chip[data-t]').forEach(i=>{i.disabled=a})}
 function cardGo(d){
   const rows=RM[cur][1];{const v=cardVals();if(fillZero(v))setVals(rows[ci].id,v)}
   let j=ci+d;
