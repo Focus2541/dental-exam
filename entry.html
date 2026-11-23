@@ -66,7 +66,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}
 .bar select{width:auto;min-width:160px}
 .chk{display:flex;gap:6px;align-items:center;font-size:15px}
-.hidbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 8px;padding:8px 12px;border:1px solid var(--warn);border-radius:8px;color:var(--warn);font-size:15px}.hidbar button{padding:6px 14px;margin:0}
+.hidbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 8px;padding:8px 12px;border:1px solid var(--warn);border-radius:8px;color:var(--warn);font-size:15px}.hidbar button{padding:6px 14px;margin:0}.hidbar[hidden]{display:none}
 #prog{margin-left:auto;font-weight:600;color:var(--acc)}
 .hint{font-size:14px;color:var(--mut);margin:0 0 10px}
 .ewrap{overflow:auto;max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px);border:1px solid var(--line);border-radius:8px;background:var(--card)}
@@ -77,7 +77,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .entry thead th{background:var(--bg);font-weight:600;box-shadow:inset 0 -1px 0 var(--line)}
 .entry thead th.sticky{left:0;z-index:4}
 .entry .sticky{position:sticky;left:0;background:var(--card);text-align:left;white-space:nowrap;padding:2px 8px;z-index:1}
-.entry input{width:40px;font:inherit;text-align:center;border:1px solid transparent;background:transparent;color:var(--ink);padding:7px 0;border-radius:4px}
+.entry input{width:36px;font:inherit;text-align:center;border:1px solid transparent;background:transparent;color:var(--ink);padding:7px 0;border-radius:4px}
 .entry input:focus{border-color:var(--acc);background:var(--card)}
 .entry input.bad{background:var(--warnbg);color:var(--warn);font-weight:700}
 .entry tr.done td{background:var(--ok)}
@@ -85,7 +85,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .entry tr.absent td.sticky{text-decoration:line-through}
 .entry tr.absent input[data-c]{opacity:.35}
 .entry td.abc{text-align:center}.entry .ab{width:20px;height:20px;accent-color:var(--warn);cursor:pointer}
-.entry .sm{font-size:13px;color:var(--mut);white-space:nowrap;padding:0 6px}
+.entry .sm{font-size:12px;line-height:1.25;color:var(--mut);white-space:pre;padding:0 4px}
 .entry .ok{padding:4px 10px;background:var(--acc)}
 .rv{margin-top:12px}
 .rv summary{cursor:pointer;font-weight:600;color:var(--acc)}
@@ -232,7 +232,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 .sti .nm{flex:1;min-width:0}.sti .nm small{display:block;color:var(--mut)}
 .sti button{padding:6px 10px;font-size:14px}
 .thm.gd{right:auto;left:12px;text-decoration:none;border-radius:8px}
-.entry td.ntc{padding:2px}.entry .nt{background:transparent!important;color:var(--mut)!important;border:1px dashed var(--line);padding:4px 8px;font-size:13px;font-weight:400;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+.entry td.ntc{padding:2px}.entry .nt{background:transparent!important;color:var(--mut)!important;border:1px dashed var(--line);padding:4px 8px;font-size:13px;font-weight:400;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis}
 .entry .nt.has{border-style:solid;border-color:var(--warn);color:var(--warn)!important;font-weight:600}
 .ntq{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.ntq button{padding:6px 12px;font-size:14px;border-radius:999px}
 #ntT{width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);resize:vertical}
@@ -293,7 +293,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div class="bar"><button id="back" class="alt" type="button">← กลับ</button><select id="room" aria-label="เลือกห้อง"></select><button id="next" class="alt" type="button">ห้องถัดไป ▶</button><button id="view" class="alt" type="button"></button><span id="prog"></span></div>
 <p class="hint" id="ehint"></p>
 <div id="hidBar" class="hidbar" hidden><span id="hidTx"></span><button type="button" id="hidAll">แสดงทุกคน</button></div>
-<div class="ewrap"><table class="entry"><thead><tr><th rowspan="2">ที่</th><th rowspan="2" class="sticky">ชื่อ-สกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="5">Tx. plan</th><th rowspan="2">สรุป</th><th rowspan="2">หมายเหตุ</th><th rowspan="2">ไม่มา</th><th rowspan="2">ฟันดี</th></tr>
+<div class="ewrap"><table class="entry"><thead><tr><th rowspan="2">ที่</th><th rowspan="2" class="sticky">ชื่อ-สกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="5">Tx. plan</th><th rowspan="2">สรุป</th><th rowspan="2">หมายเหตุ</th><th rowspan="2">ไม่มา</th></tr>
 <tr><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>ทั้งหมด</th><th>ผุ</th><th>อุด</th><th>ถอน</th><th>อักเสบ</th><th>หินปูน</th><th>อุด<br>น้ำนม</th><th>ถอน<br>น้ำนม</th><th>อุด<br>แท้</th><th>ถอน<br>แท้</th><th>Sealant</th></tr></thead><tbody id="tb"></tbody></table></div>
 <div id="card" hidden></div>
 <div id="shbg" class="shbg" hidden></div>
@@ -349,7 +349,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.25 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.26 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -882,7 +882,7 @@ function refresh(tr){
   const v=rowVals(tr),inp=tr.querySelectorAll('input[data-c]'),n=x=>+x||0;
   [[0,20],[4,32]].forEach(([a,mx])=>{inp[a].classList.toggle('bad',v[a]!==''&&(n(v[a])>mx||n(v[a+1])+n(v[a+2])+n(v[a+3])>n(v[a])))});
   const has=(a,b)=>v.slice(a,b).some(x=>x!=='');
-  tr.querySelector('.sm').textContent=[has(0,4)?'dmft '+(n(v[1])+n(v[2])+n(v[3])):'',has(4,8)?'DMFT '+(n(v[5])+n(v[6])+n(v[7])):''].filter(Boolean).join(' · ');
+  tr.querySelector('.sm').textContent=[has(0,4)?'dmft '+(n(v[1])+n(v[2])+n(v[3])):'',has(4,8)?'DMFT '+(n(v[5])+n(v[6])+n(v[7])):''].filter(Boolean).join('\n');
   tr.classList.toggle('done',isDone(v));tr.classList.toggle('absent',isAbs(v));
   inp.forEach(i=>{i.disabled=isAbs(v)});
 }
@@ -895,7 +895,7 @@ function drawRoom(){
   const card=VIEW==='card';
   document.querySelector('.ewrap').hidden=card;$('card').hidden=!card;
   $('view').textContent=card?'แบบตาราง':'แบบทีละคน';
-  $('ehint').innerHTML=card?'กรอกตัวเลข กด <b>Enter</b> ไปช่องถัดไป · เด็กฟันดีกดปุ่ม <b>✓ ฟันดี</b> · บันทึกอัตโนมัติ':'<b>Enter</b> ช่องถัดไป · <b>← → ↑ ↓</b> เลื่อนช่อง · <b>/</b> หรือ ✓ = ฟันดี · เหงือก/หินปูน พิมพ์ 1 · บันทึกอัตโนมัติ';
+  $('ehint').innerHTML=card?'กรอกตัวเลข กด <b>Enter</b> ไปช่องถัดไป · เด็กฟันดีกดปุ่ม <b>✓ ฟันดี</b> · บันทึกอัตโนมัติ':'<b>Enter</b> ช่องถัดไป · <b>← → ↑ ↓</b> เลื่อนช่อง · ช่องที่เว้นไว้เติม 0 ให้เอง · เหงือก/หินปูน พิมพ์ 1 · บันทึกอัตโนมัติ';
   normalizeRooms([RM[cur]]);
   if(card){const rows=RM[cur][1];ci=Math.max(0,rows.findIndex(p=>!handled(E[p.id])));drawCard();prog();$('hidBar').hidden=true;return}
   const rows=RM[cur][1],only=$('todo').checked;
@@ -903,7 +903,7 @@ function drawRoom(){
     const v=E[p.id]||[];if(only&&handled(v))return '';
     return `<tr data-id="${esc(p.id)}" data-note="${esc(noteOf(v))}"><td>${i+1}</td><td class="sticky">${esc((p.pre+p.fn+' '+p.ln).trim())}</td>`+
       ORD.map(c=>`<td><input inputmode="numeric" maxlength="2" data-c="${c}" value="${v[c]||''}" aria-label="ช่อง ${c+1}"></td>`).join('')+
-      `<td class="sm"></td><td class="ntc"><button type="button" class="nt${noteOf(v)?' has':''}" tabindex="-1" title="${esc(noteOf(v)||'เพิ่มหมายเหตุถึงผู้ปกครอง')}">${noteOf(v)?esc(noteOf(v).slice(0,14))+(noteOf(v).length>14?'…':''):'＋'}</button></td><td class="abc"><input type="checkbox" class="ab" tabindex="-1" aria-label="ไม่มาตรวจ" ${isAbs(v)?'checked':''}></td><td><button class="ok" type="button" tabindex="-1" title="ฟันดี">✓</button></td></tr>`;
+      `<td class="sm"></td><td class="ntc"><button type="button" class="nt${noteOf(v)?' has':''}" tabindex="-1" title="${esc(noteOf(v)||'เพิ่มหมายเหตุถึงผู้ปกครอง')}">${noteOf(v)?esc(noteOf(v).slice(0,14))+(noteOf(v).length>14?'…':''):'＋'}</button></td><td class="abc"><input type="checkbox" class="ab" tabindex="-1" aria-label="ไม่มาตรวจ" ${isAbs(v)?'checked':''}></td></tr>`;
   }).join('');
   [...$('tb').rows].forEach(refresh);prog();hidCount();
 }
