@@ -312,6 +312,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <details class="menu"><summary>🖨 พิมพ์</summary><div class="mbody">
 <button id="prRoom" type="button">ผลตรวจห้องนี้ (ตาราง)</button>
 <button id="slips" type="button">ใบแจ้งผลผู้ปกครอง</button>
+<button id="slipPdf" type="button" class="alt">📄 ใบแจ้งผลเป็นไฟล์ PDF (ส่งให้ครูพิมพ์เอง)</button>
 <button id="rep" type="button">รายงานสรุป</button>
 <details class="rv" id="slipset"><summary>ตั้งค่าใบแจ้งผล</summary><div class="row">
 <label>สถานที่รับบริการ (เช่น รพ.สต.บวกหมื้อ, รพ.แม่แตง)<input type="text" id="s_hos" data-set></label>
@@ -358,7 +359,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.38 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.39 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -1015,10 +1016,10 @@ function whenOf(id,date){const t=TT[id]||(typeof ET!=='undefined'&&ET[id]);if(!t
   return ds+' เวลา '+String(d.getHours()).padStart(2,'0')+'.'+String(d.getMinutes()).padStart(2,'0')+' น.'}
 function examDate(){const d=$('s_date').value.trim()||$('date').value.trim();if(d)return d;try{return new Date().toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'})}catch(e){return ''}}
 $('s_date').placeholder=examDate();$('s_date').addEventListener('change',()=>{$('date').value=$('s_date').value.trim()});
-function printSlips(){
+function slipSheets(){
   const rooms=$('s_scope').value==='all'?RM:[RM[cur]],only=$('s_who').value==='tx',list=[];
   rooms.forEach(([room,rows])=>rows.forEach(p=>{const v=E[p.id];if(!isDone(v))return;if(only&&!needTx(v)&&!needNote(v))return;list.push([p,room,v])}));
-  if(!list.length){alert(only?'ยังไม่มีเด็กที่ต้องรักษาในขอบเขตนี้ (หรือยังไม่ได้กรอกผล)':'ยังไม่มีเด็กที่กรอกผลแล้วในขอบเขตนี้');return}
+  if(!list.length){alert(only?'ยังไม่มีเด็กที่ต้องรักษาในขอบเขตนี้ (หรือยังไม่ได้กรอกผล)':'ยังไม่มีเด็กที่กรอกผลแล้วในขอบเขตนี้');return ''}
   const school=$('school').value.trim(),date=examDate();let h='';
   const mode=$('s_lay').value,H=list.map(([p,r,v])=>slipHTML(p,r,v,school,date));
   const sheet=(a,three)=>'<div class="sheet'+(three?' s3':'')+'">'+a.join('')+'</div>';
@@ -1028,8 +1029,31 @@ function printSlips(){
     const fit=[...m.querySelectorAll('.slip')].map(x=>{const t=x.getBoundingClientRect().top,b=x.lastElementChild.getBoundingClientRect().bottom;return (b-t)*25.4/96<=87});m.remove();
     for(let i=0;i<H.length;){if(i+3<=H.length&&fit[i]&&fit[i+1]&&fit[i+2]||(i+3>H.length&&fit.slice(i).every(Boolean)))
       {h+=sheet(H.slice(i,i+3),true);i+=3}else{h+=sheet(H.slice(i,i+2),false);i+=2}}}
-  $('pa').innerHTML=h;setTimeout(()=>window.print(),300);
+  return h;
 }
+function printSlips(){const h=slipSheets();if(!h)return;$('pa').innerHTML=h;setTimeout(()=>window.print(),300)}
+/* ใบแจ้งผลเป็นไฟล์ PDF: วาดทีละแผ่นเป็นรูปแล้วรวมเป็น A4 ส่งต่อทาง LINE ได้ */
+async function slipPdf(){
+  const h=slipSheets();if(!h)return;const b=$('slipPdf'),old=b.textContent;b.disabled=true;
+  const box=document.createElement('div');box.style.cssText='position:absolute;left:-10000px;top:0;width:210mm;background:#fff;color:#000';box.innerHTML=h;document.body.appendChild(box);
+  try{
+    b.textContent='กำลังเตรียม…';const C='https://cdnjs.cloudflare.com/ajax/libs/';
+    try{if(!window.html2canvas)await loadScript(C+'html2canvas/1.4.1/html2canvas.min.js');if(!window.jspdf)await loadScript(C+'jspdf/2.5.1/jspdf.umd.min.js')}
+    catch(e){throw new Error('ต้องต่ออินเทอร์เน็ตครั้งแรกเพื่อโหลดตัวสร้าง PDF')}
+    await document.fonts.ready;await Promise.all([...box.querySelectorAll('img')].map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r})));
+    const pdf=new jspdf.jsPDF({unit:'mm',format:'a4',compress:true}),sh=[...box.querySelectorAll('.sheet')];
+    for(let i=0;i<sh.length;i++){b.textContent=`กำลังสร้าง PDF ${i+1}/${sh.length}…`;
+      const c=await html2canvas(sh[i],{scale:2,backgroundColor:'#fff',logging:false,useCORS:true});
+      if(i)pdf.addPage();pdf.addImage(c.toDataURL('image/jpeg',.85),'JPEG',0,0,210,Math.min(297,210*c.height/c.width));}
+    const school=$('school').value.trim()||'โรงเรียน',scope=$('s_scope').value==='all'?'ทุกห้อง':RM[cur][0],
+      name=('ใบแจ้งผลตรวจฟัน '+school+' '+scope).replace(/[\\/:*?"<>|]+/g,'-')+'.pdf',blob=pdf.output('blob'),file=new File([blob],name,{type:'application/pdf'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})&&/Android|iPhone|iPad/i.test(navigator.userAgent)){try{await navigator.share({files:[file],title:name});return}catch(e){if(e.name==='AbortError')return}}
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+    alert('บันทึกไฟล์ "'+name+'" ไว้ในโฟลเดอร์ดาวน์โหลดแล้ว ('+sh.length+' แผ่น)\nส่งไฟล์นี้ให้ครูทาง LINE แล้วพิมพ์ A4 ได้เลย');
+  }catch(e){alert('สร้าง PDF ไม่สำเร็จ: '+e.message)}
+  finally{box.remove();b.disabled=false;b.textContent=old}
+}
+$('slipPdf').onclick=slipPdf;
 function stats(rows){
   const t={all:rows.length,ab:0,ex:0,dk:0,Dk:0,cf:0,sd:0,sD:0,gum:0,tar:0,f:[0,0],x:[0,0],s:[0,0]};
   rows.forEach(p=>{const v=E[p.id];if(isAbs(v))t.ab++;if(!isDone(v))return;t.ex++;const d=nn(v[1]),D=nn(v[5]);
