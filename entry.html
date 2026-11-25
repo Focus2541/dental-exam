@@ -279,7 +279,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <p id="st" class="hint" role="status"></p>
 <section id="saved" hidden><h2 class="h2">รายชื่อที่บันทึกไว้ในเครื่องนี้</h2><div id="savedList"></div><p class="hint">เก็บชื่อและเลขบัตรไว้ในเบราว์เซอร์ของเครื่องนี้เท่านั้น ลบได้ทุกเมื่อ ไม่ควรบันทึกในเครื่องที่ใช้ร่วมกับคนอื่น</p></section>
 <section id="resume" class="card" hidden></section>
-<section id="live" class="card" hidden><div class="top"><b>โรงเรียนที่กำลังตรวจอยู่</b><button type="button" class="link" id="lvR">รีเฟรช</button></div>
+<section id="live" class="card" hidden><div class="top"><b>โรงเรียนที่กำลังตรวจอยู่</b><span><small id="lvAt" class="hint"></small> <button type="button" class="link" id="lvR">รีเฟรช</button></span></div>
 <p class="hint">กดชื่อโรงเรียนเพื่อช่วยกรอกผล ไม่ต้องใส่รหัส</p><div id="lvList"></div></section>
 <details id="apiset" class="rv"><summary>ตั้งค่าการเชื่อมต่อ (ผู้ดูแล)</summary><label>ลิงก์ Apps Script (Web app URL)<input type="text" id="api" placeholder="https://script.google.com/macros/s/.../exec"></label><p class="hint">ตั้งไว้ในแอปแล้ว เว้นว่างได้</p></details>
 <section id="cfg" hidden>
@@ -368,7 +368,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.43 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.44 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -1438,12 +1438,15 @@ async function removeSession(code,pin,nm,done){
     loadLive();return true;
   }catch(e){alert('ลบไม่สำเร็จ: '+e.message);return false}
 }
+let liveAt=0;
 async function loadLive(){
-  if(!apiUrl())return;
+  if(!apiUrl())return;liveAt=Date.now();
   try{const r=await call({action:'list'}),L=r.sessions||[];
+    $('lvAt').textContent='ข้อมูล ณ '+new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.';
     $('live').hidden=!L.length;
     const now=r.now||Date.now();
     $('lvList').innerHTML=L.map((x,i)=>{
+      if(SES&&SES.code===x.code&&!Object.keys(Q).length){const ks=RM.flatMap(y=>y[1]);if(ks.length){x.done=ks.filter(p=>handled(E[p.id])).length;x.total=ks.length}}
       const act=x.last||0,mine=SES&&SES.code===x.code,full=x.total&&x.done>=x.total;
       const [cls,lab]=full?['done','ตรวจครบแล้ว']:act&&now-act<15*60e3?['on','กำลังใช้งาน']:x.done?['idle','พักอยู่']:['new','ยังไม่เริ่มกรอก'];
       return `<div class="lvr"><button type="button" class="lv" data-i="${i}"><b>${esc(x.school||'ไม่ระบุโรงเรียน')}${mine?' <em>(คุณอยู่ในรอบนี้)</em>':''}</b>
@@ -1457,6 +1460,8 @@ async function loadLive(){
   }catch(e){$('live').hidden=true}
 }
 $('lvR').onclick=loadLive;
+/* อัปเดตรายการโรงเรียนเองทุก 1 นาที ตอนเปิดหน้าแอปอยู่ */
+setInterval(()=>{if(!document.hidden&&!$('live').hidden&&Date.now()-liveAt>55e3)loadLive()},15e3);
 $('delSes').onclick=async()=>{
   if(!SES)return;const b=$('delSes');b.disabled=true;
   const done=(SES.keys||[]).filter(k=>isDone(E[k])).length;
