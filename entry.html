@@ -359,7 +359,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.39 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.40 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -830,7 +830,7 @@ async function build(){
   const groups=new Map();
   for(const s of used())s.rows.forEach(r=>{const k0=(r.rm||s.label||'').trim(),k=by==='grade'?k0.split('/')[0]:k0;if(!groups.has(k))groups.set(k,[]);if(!groups.get(k).some(q=>q.id===r.id))groups.get(k).push(r)});
   {
-    for(const [label,rows] of [...groups].sort((a,b)=>a[0].localeCompare(b[0],'th',{numeric:true}))){
+    for(const [label,rows] of [...groups].sort((a,b)=>roomCmp(a[0],b[0]))){
       let nm=label.replace(/[:\\\/?*\[\]]/g,'.').slice(0,28)||'ชีต',x=nm,i=2;
       while(names.has(x))x=nm+'_'+i++;
       names.add(x);
@@ -874,10 +874,15 @@ async function build(){
 
 let E={};try{E=JSON.parse(localStorage.getItem('dentalEntry')||'{}')}catch(e){}
 const save=()=>{try{localStorage.setItem('dentalEntry',JSON.stringify(E))}catch(e){}};
+/* เรียงชั้น: อนุบาล/ศพด. ก่อน แล้ว ป. แล้ว ม. ตามเลขชั้น แล้วเลขห้อง */
+function roomKey(s){s=String(s||'').trim();const t=s.replace(/\s+/g,'');let r=3,sub=0;
+  if(/^(เตรียมอนุบาล|ศพด|ศูนย์|เด็กเล็ก|ก่อนอนุบาล)/.test(t)){r=0;sub=-1}else if(/^(อ|อนุบาล|K)/i.test(t))r=0;else if(/^(ป|ประถม|P)/i.test(t))r=1;else if(/^(ม|มัธยม|M)/i.test(t))r=2;
+  const n=(t.match(/\d+/g)||[]).map(Number);return [r,sub,n[0]??99,n[1]??0,s]}
+function roomCmp(a,b){const x=roomKey(a),y=roomKey(b);for(let i=0;i<4;i++)if(x[i]!==y[i])return x[i]-y[i];return x[4].localeCompare(y[4],'th',{numeric:true})}
 function roomsMap(){
   const by=$('by').value,m=new Map();
   used().forEach(s=>s.rows.forEach(r=>{const k0=r.rm||s.label,k=by==='grade'?k0.split('/')[0]:k0;if(!m.has(k))m.set(k,[]);m.get(k).push(r)}));
-  return [...m].sort((a,b)=>a[0].localeCompare(b[0],'th',{numeric:true}));
+  return [...m].sort((a,b)=>roomCmp(a[0],b[0]));
 }
 let RM=[],cur=0;
 /* ช่องข้อมูล: 0-3 ฟันน้ำนม, 4-7 ฟันแท้, 8 เหงือก, 9 หินปูน, 10 อุดน้ำนม, 11 ถอนน้ำนม, 12 Sealant, 13 อุดแท้, 14 ถอนแท้ */
@@ -1242,7 +1247,7 @@ function drawSaved(){
   const R=getR(),ks=Object.keys(R).sort((a,b)=>R[b].at-R[a].at);
   $('saved').hidden=!ks.length;
   $('savedList').innerHTML=ks.map(id=>{const r=R[id],n=r.sheets.reduce((a,x)=>a+x.rows.length,0);
-    return `<div class="sv"><div><b>${esc(r.school)}</b> · ${n} คน<br><small>${esc(r.sheets.map(x=>x.label).join(', '))} · บันทึกเมื่อ ${new Date(r.at).toLocaleString('th-TH')}</small></div>
+    return `<div class="sv"><div><b>${esc(r.school)}</b> · ${n} คน<br><small>${esc([...new Set(r.sheets.map(x=>x.label))].sort(roomCmp).join(', '))} · บันทึกเมื่อ ${new Date(r.at).toLocaleString('th-TH')}</small></div>
 <div class="svb"><button type="button" data-open="${id}">เปิด</button><button type="button" class="alt" data-xl="${id}">Excel</button><button type="button" class="alt" data-rm="${id}">ลบ</button></div></div>`}).join('');
 }
 async function rosterXlsx(r){
