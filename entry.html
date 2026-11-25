@@ -368,7 +368,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.44 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.45 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -1439,10 +1439,11 @@ async function removeSession(code,pin,nm,done){
   }catch(e){alert('ลบไม่สำเร็จ: '+e.message);return false}
 }
 let liveAt=0;
+const dtTh=t=>{const d=new Date(t);return d.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'})+' '+String(d.getHours()).padStart(2,'0')+'.'+String(d.getMinutes()).padStart(2,'0')+' น.'};
 async function loadLive(){
   if(!apiUrl())return;liveAt=Date.now();
   try{const r=await call({action:'list'}),L=r.sessions||[];
-    $('lvAt').textContent='ข้อมูล ณ '+new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.';
+    $('lvAt').textContent='ข้อมูล ณ '+dtTh(Date.now());
     $('live').hidden=!L.length;
     const now=r.now||Date.now();
     $('lvList').innerHTML=L.map((x,i)=>{
@@ -1450,7 +1451,7 @@ async function loadLive(){
       const act=x.last||0,mine=SES&&SES.code===x.code,full=x.total&&x.done>=x.total;
       const [cls,lab]=full?['done','ตรวจครบแล้ว']:act&&now-act<15*60e3?['on','กำลังใช้งาน']:x.done?['idle','พักอยู่']:['new','ยังไม่เริ่มกรอก'];
       return `<div class="lvr"><button type="button" class="lv" data-i="${i}"><b>${esc(x.school||'ไม่ระบุโรงเรียน')}${mine?' <em>(คุณอยู่ในรอบนี้)</em>':''}</b>
-<span><i class="bd ${cls}">${lab}</i> กรอกแล้ว ${x.done}/${x.total} คน${act?' · แก้ล่าสุด '+ago(now-act):''}</span>
+<span><i class="bd ${cls}">${lab}</i> กรอกแล้ว ${x.done}/${x.total} คน${act?' · แก้ล่าสุด '+dtTh(act)+' ('+ago(now-act)+')':''}</span>
 <span>เปิดรอบ ${new Date(x.created).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'})}${x.date?' · วันตรวจ '+esc(x.date):''}</span></button>
 <button type="button" class="lvDel" data-d="${i}" title="ลบรอบนี้" aria-label="ลบรอบ ${esc(x.school||'')}">🗑</button></div>`}).join('');
     $('lvList').onclick=async e=>{
