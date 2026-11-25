@@ -30,7 +30,7 @@ function doGet() {
 function doPost(e) {
   try {
     var q = JSON.parse(e.postData.contents);
-    var fn = { create: create_, join: join_, push: push_, pull: pull_, list: list_, remove: remove_, staff: staff_, staffSave: staffSave_, staffDel: staffDel_ }[q.action];
+    var fn = { create: create_, join: join_, push: push_, pull: pull_, list: list_, remove: remove_, staff: staff_, staffSave: staffSave_, staffDel: staffDel_, history: history_ }[q.action];
     if (!fn) return out_({ ok: false, error: 'ไม่รู้จักคำสั่ง' });
     return out_(fn(q));
   } catch (err) {
@@ -164,6 +164,34 @@ function list_(q) {
     return { code: c, pin: String(r[1]), unit: r[2], school: r[3], date: txtDate_(r[4]), created: t, last: last[c] || 0, done: done[c] || 0, total: total[c] || 0 };
   }).filter(function (x) { return x.created >= cut; }).sort(function (a, b) { return b.created - a.created; });
   return { ok: true, sessions: out, now: Date.now() };
+}
+
+/** ประวัติการตรวจครั้งก่อน ๆ ของเด็ก (จากรอบอื่นในชีต)
+ *  kids:[{k: key, n: ชื่อ-สกุล}] จับคู่ด้วยเลขบัตร/G-code ก่อน ถ้าไม่มีเลขบัตรใช้ชื่อ-สกุลในโรงเรียนเดียวกัน */
+function normN_(x) {
+  return String(x || '').replace(/\s+/g, '').replace(/^(ด\.?ช\.?|ด\.?ญ\.?|เด็กชาย|เด็กหญิง|นางสาว|นาย|นาง|น\.ส\.)/, '');
+}
+function history_(q) {
+  var cur = String(q.code || '').toUpperCase(), school = String(q.school || '').replace(/\s+/g, ''), byK = {}, byN = {};
+  (q.kids || []).forEach(function (w) { byK[String(w.k)] = String(w.k); var n = normN_(w.n); if (n) byN[n] = String(w.k); });
+  var ses = {};
+  rows_(sheet_('S')).forEach(function (r) {
+    ses[String(r[0]).toUpperCase()] = { school: String(r[3] || ''), date: txtDate_(r[4]), created: r[5] instanceof Date ? r[5].getTime() : Number(new Date(r[5])) || 0 };
+  });
+  var out = {}, n = 0;
+  rows_(sheet_('X')).forEach(function (r) {
+    var c = String(r[0]).toUpperCase(); if (!c || c === cur) return;
+    var k = String(r[1]), s = ses[c] || { school: '', date: '', created: 0 }, hit = null;
+    if (/^(\d{13}|[Gg][0-9A-Za-z]{5,})$/.test(k) && byK[k]) hit = byK[k];
+    else if (school && s.school.replace(/\s+/g, '') === school && byN[normN_(r[3])]) hit = byN[normN_(r[3])];
+    if (!hit) return;
+    var v = r.slice(4, 4 + NV).concat(r.slice(XC, XC + NX)).map(function (x) { return x === '' || x == null ? '' : String(x); });
+    if (!v.some(function (x) { return x !== ''; })) return;
+    (out[hit] = out[hit] || []).push({ school: s.school, date: s.date, created: s.created, room: String(r[2] || ''), v: v, t: Number(r[4 + NV]) || s.created });
+    n++;
+  });
+  Object.keys(out).forEach(function (k) { out[k].sort(function (a, b) { return b.t - a.t; }); });
+  return { ok: true, hist: out, n: n };
 }
 
 /** ลบรอบตรวจ (รายชื่อ + ผลตรวจ + ข้อมูลรอบ) ต้องมีรหัสรอบและ PIN */

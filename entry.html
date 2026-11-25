@@ -84,6 +84,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .entry tr.done td{background:var(--ok)}
 .entry tr.absent td{background:var(--bg);color:var(--mut)}
 .entry tr.absent td.sticky{text-decoration:line-through}
+.entry .hs{margin:0 0 0 6px;padding:0 5px;font-size:13px;line-height:1.4;border-radius:6px;background:transparent;border:1px solid var(--line);color:inherit;cursor:pointer}.entry .hs[hidden]{display:none}
+.chist{margin:2px 0 4px;font-size:14px;color:var(--mut)}.chist button{margin:0 0 0 6px;padding:2px 10px;font-size:13px}
+#hsd .sigw{max-width:760px}.hst{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0}.hst th,.hst td{border:1px solid var(--line);padding:4px 6px;text-align:center;vertical-align:top}.hst td.l{text-align:left}
 .entry tr.absent input[data-c]{opacity:.35}
 .entry td.abc{text-align:center}.entry .ab{width:20px;height:20px;accent-color:var(--warn);cursor:pointer}
 .entry .sm{font-size:12px;line-height:1.25;color:var(--mut);white-space:pre;padding:0 4px}
@@ -359,10 +362,13 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <p class="hint" id="ntTip">กด × บนปุ่มเพื่อเอาออก · ปุ่มที่ใช้บ่อยจะขึ้นก่อนเอง <a href="#" id="ntReset" hidden>↺ คืนปุ่มเริ่มต้น</a></p>
 <div class="shb"><button type="button" id="ntOk">บันทึก</button><button type="button" id="ntClr" class="alt">ลบหมายเหตุ</button><button type="button" id="ntX" class="alt">ยกเลิก</button></div>
 <p class="hint">พิมพ์ในใบแจ้งผลผู้ปกครอง ตารางผลตรวจ และ Excel</p></div></div>
+<div id="hsd" class="sigd" hidden role="dialog" aria-label="ประวัติการตรวจ"><div class="sigw">
+<b>ประวัติการตรวจครั้งก่อน</b><div id="hsName" class="hint"></div><div id="hsBody" style="overflow:auto"></div>
+<div class="shb"><button type="button" id="hsX">ปิด</button></div></div></div>
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.42 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.43 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -924,11 +930,11 @@ function drawRoom(){
   const rows=RM[cur][1],only=$('todo').checked;
   $('tb').innerHTML=rows.map((p,i)=>{
     const v=E[p.id]||[];if(only&&handled(v))return '';
-    return `<tr data-id="${esc(p.id)}" data-note="${esc(noteOf(v))}"><td>${i+1}</td><td class="sticky">${esc((p.pre+p.fn+' '+p.ln).trim())}</td>`+
+    return `<tr data-id="${esc(p.id)}" data-note="${esc(noteOf(v))}"><td>${i+1}</td><td class="sticky"><span class="pn">${esc((p.pre+p.fn+' '+p.ln).trim())}</span><button type="button" class="hs" tabindex="-1" title="ดูประวัติการตรวจครั้งก่อน"${HIST.h[p.id]?'':' hidden'}>🕘</button></td>`+
       ORD.map(c=>c===8||c===9?`<td><input type="checkbox" class="tk" data-c="${c}"${nn(v[c])?' checked':''}${v[c]==='0'?' data-z="1"':''} aria-label="${c===8?'เหงือกอักเสบ':'มีหินปูน'}"></td>`:`<td><input inputmode="numeric" maxlength="2" data-c="${c}" value="${v[c]||''}" aria-label="ช่อง ${c+1}"></td>`).join('')+
       `<td class="sm"></td><td class="ntc"><button type="button" class="nt${noteOf(v)?' has':''}" tabindex="-1" title="${esc(noteOf(v)||'เพิ่มหมายเหตุถึงผู้ปกครอง')}">${noteOf(v)?esc(noteOf(v).slice(0,14))+(noteOf(v).length>14?'…':''):'＋'}</button></td><td class="abc"><input type="checkbox" class="ab" tabindex="-1" aria-label="ไม่มาตรวจ" ${isAbs(v)?'checked':''}></td></tr>`;
   }).join('');
-  [...$('tb').rows].forEach(refresh);prog();hidCount();
+  [...$('tb').rows].forEach(refresh);prog();hidCount();if(SES)loadHist();
 }
 function hidCount(){const rows=RM[cur]?RM[cur][1]:[],n=$('todo').checked&&VIEW!=='card'?rows.length-$('tb').rows.length:0;$('hidBar').hidden=!n;if(n)$('hidTx').textContent=`ซ่อนอยู่ ${n} คนที่กรอกแล้วหรือไม่มา (ติ๊ก "แสดงเฉพาะคนที่ยังไม่กรอก" อยู่)`}
 $('hidAll').onclick=()=>{$('todo').checked=false;drawRoom()};
@@ -942,6 +948,8 @@ function setVals(id,v){
   save();prog();
   if(typeof syncMark==='function')syncMark(id,v);
 }
+let HIST=(()=>{try{return JSON.parse(localStorage.getItem('dentalHist'))||{code:'',h:{}}}catch(e){return {code:'',h:{}}}})();if(!HIST.h)HIST.h={};
+const hsum=v=>{const n=x=>+x||0;return {d:n(v[1])+n(v[2])+n(v[3]),D:n(v[5])+n(v[6])+n(v[7]),dk:n(v[1]),Dk:n(v[5])}};
 /* เวลาที่กรอกผลแต่ละคนครั้งแรก (ใช้พิมพ์วันที่-เวลาตรวจในใบแจ้งผล แก้ผลทีหลังเวลาไม่เปลี่ยน) */
 let TT=(()=>{try{return JSON.parse(localStorage.getItem('dentalTime')||'{}')}catch(e){return {}}})();
 function stamp(id,v){if(isDone(v)&&!TT[id]){TT[id]=Date.now();try{localStorage.setItem('dentalTime',JSON.stringify(TT))}catch(e){}}}
@@ -979,7 +987,8 @@ $('tb').addEventListener('keydown',e=>{
   else if(t.classList.contains('tk')&&/^[0-9]$/.test(e.key)){e.preventDefault();t.checked=e.key!=='0';t.dataset.z=t.checked?'':'1';store(tr);focusCell(tr,ORD[ORD.indexOf(c)+1])}
 });
 $('tb').addEventListener('click',e=>{
-  const nb=e.target.closest('.nt');if(nb){const tr=nb.closest('tr');openNote(tr.querySelector('.sticky').textContent,tr.dataset.note||'',t=>{tr.dataset.note=t;nb.classList.toggle('has',!!t);nb.textContent=t?t.slice(0,14)+(t.length>14?'…':''):'＋';nb.title=t||'เพิ่มหมายเหตุถึงผู้ปกครอง';store(tr)});return}
+  const hb=e.target.closest('.hs');if(hb){const tr=hb.closest('tr');showHist(tr.dataset.id,tr.querySelector('.pn').textContent);return}
+  const nb=e.target.closest('.nt');if(nb){const tr=nb.closest('tr');openNote(tr.querySelector('.pn').textContent,tr.dataset.note||'',t=>{tr.dataset.note=t;nb.classList.toggle('has',!!t);nb.textContent=t?t.slice(0,14)+(t.length>14?'…':''):'＋';nb.title=t||'เพิ่มหมายเหตุถึงผู้ปกครอง';store(tr)});return}
   if(e.target.classList.contains('ok')){const tr=e.target.closest('tr');zero(tr);focusCell(tr.nextElementSibling,0)}
 });
 $('room').onchange=e=>{cur=+e.target.value;drawRoom()};
@@ -1171,7 +1180,7 @@ function drawCard(){
   const n=x=>+x||0,ix=(o,j)=>Array.isArray(o)?o[j]:o+j;
   const grp=([t,labs,o])=>`<fieldset class="cgrp"><legend>${t}</legend><div class="cf ${labs.length===3?'t3':''}">${labs.map((l,j)=>`<label>${l}<input data-c="${ix(o,j)}" inputmode="numeric" maxlength="2" value="${esc(v[ix(o,j)])}"></label>`).join('')}</div></fieldset>`;
   $('card').innerHTML=`<div class="cnav"><button type="button" class="alt" id="cPrev" aria-label="คนก่อนหน้า">◀</button><select id="cSel">${rows.map((q,i)=>`<option value="${i}" ${i===ci?'selected':''}>${isAbs(E[q.id])?'✗ ':isDone(E[q.id])?'✓ ':''}${i+1}. ${esc((q.pre+q.fn+' '+q.ln).trim())}</option>`).join('')}</select><button type="button" class="alt" id="cNext" aria-label="คนถัดไป">▶</button></div>
-<div class="cname">${esc((p.pre+' '+p.fn+' '+p.ln).trim())}</div><div class="cpos">คนที่ ${ci+1} จาก ${rows.length} ${isAbs(v)?'<span class="cdone">· ไม่มาตรวจ</span>':isDone(v)?'<span class="cdone">· กรอกแล้ว ✓</span>':''}</div>
+<div class="cname">${esc((p.pre+' '+p.fn+' '+p.ln).trim())}</div>${histLine(p)}<div class="cpos">คนที่ ${ci+1} จาก ${rows.length} ${isAbs(v)?'<span class="cdone">· ไม่มาตรวจ</span>':isDone(v)?'<span class="cdone">· กรอกแล้ว ✓</span>':''}</div>
 <div class="cgr"><button type="button" class="good" id="cGood">✓ ฟันดี ไม่มีฟันผุ (ไปคนถัดไป)</button><button type="button" class="chip abs ${isAbs(v)?'on':''}" id="cAbs">ไม่มาตรวจ</button></div>
 ${grp(F[0])}${grp(F[1])}
 <div class="chips"><button type="button" class="chip ${n(v[8])?'on':''}" data-t="8">เหงือกอักเสบ</button><button type="button" class="chip ${n(v[9])?'on':''}" data-t="9">มีหินปูน</button></div>
@@ -1385,6 +1394,25 @@ async function syncNow(){
   }catch(e){lastErr=e.message}
   finally{busy=false;syncSave();drawSync()}
 }
+/* ===== ประวัติการตรวจครั้งก่อน (จากรอบอื่นใน Google Sheet จับคู่ด้วยเลขบัตร หรือชื่อในโรงเรียนเดียวกัน) ===== */
+function histLine(p){const a=HIST.h[p.id];if(!a||!a.length)return '';const x=a[0],s=hsum(x.v);
+  return `<div class="chist">🕘 ครั้งก่อน ${esc(x.date||new Date(x.t).toLocaleDateString('th-TH'))}: ${isAbs(x.v)?'ไม่มาตรวจ':`dmft ${s.d} · DMFT ${s.D}`}<button type="button" class="alt" data-hist="${esc(p.id)}">ดูประวัติ</button></div>`}
+function markHist(){[...$('tb').rows].forEach(tr=>{const b=tr.querySelector('.hs');if(b)b.hidden=!(HIST.h[tr.dataset.id]||[]).length})}
+async function loadHist(force){
+  if(!SES||(!force&&HIST.code===SES.code&&Date.now()-(HIST.at||0)<6*3600e3))return;
+  const kids=RM.flatMap(x=>x[1]).map(p=>({k:p.id,n:(p.pre||'')+(p.fn||'')+(p.ln||'')}));if(!kids.length)return;
+  try{const r=await call({action:'history',code:SES.code,school:SES.school||$('school').value.trim(),kids});
+    HIST={code:SES.code,at:Date.now(),h:r.hist||{}};try{localStorage.setItem('dentalHist',JSON.stringify(HIST))}catch(e){}
+    if(!$('entry').hidden){if(VIEW==='card')drawCard();else markHist()}
+  }catch(e){/* Apps Script รุ่นเก่ายังไม่มีคำสั่ง history: ข้ามไป */}
+}
+function showHist(id,name){const a=HIST.h[id]||[];$('hsName').textContent=name;
+  $('hsBody').innerHTML=a.length?`<table class="hst"><tr><th>วันที่ตรวจ</th><th>โรงเรียน · ห้อง</th><th>ฟันน้ำนม<br>ผุ/อุด/ถอน</th><th>ฟันแท้<br>ผุ/อุด/ถอน</th><th>dmft</th><th>DMFT</th><th>เหงือก<br>หินปูน</th><th>หมายเหตุ</th></tr>${a.map(x=>{const v=x.v,s=hsum(v),f=(i)=>[v[i],v[i+1],v[i+2]].map(y=>y===''?'-':y).join('/');
+    return isAbs(v)?`<tr><td>${esc(x.date||new Date(x.t).toLocaleDateString('th-TH'))}</td><td class="l">${esc(x.school)} · ${esc(x.room)}</td><td colspan="6">ไม่มาตรวจ</td></tr>`
+    :`<tr><td>${esc(x.date||new Date(x.t).toLocaleDateString('th-TH'))}</td><td class="l">${esc(x.school)} · ${esc(x.room)}</td><td>${f(1)}</td><td>${f(5)}</td><td><b>${s.d}</b></td><td><b>${s.D}</b></td><td>${+v[8]?'เหงือกอักเสบ':''}${+v[8]&&+v[9]?'<br>':''}${+v[9]?'หินปูน':''}${!+v[8]&&!+v[9]?'-':''}</td><td class="l">${esc(noteOf(v))||'-'}</td></tr>`}).join('')}</table>`:'<p class="hint">ไม่พบผลตรวจครั้งก่อน</p>';
+  $('hsd').hidden=false}
+$('hsX').onclick=()=>{$('hsd').hidden=true};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-hist]');if(b){const p=RM.flatMap(x=>x[1]).find(q=>q.id===b.dataset.hist);showHist(b.dataset.hist,p?(p.pre+p.fn+' '+p.ln).trim():'')}});
 function startSession(ses,roster,results){
   SES=ses;
   const rooms=new Map();roster.forEach(p=>{if(!rooms.has(p.room))rooms.set(p.room,[]);rooms.get(p.room).push({id:p.key,noid:p.noid,pre:p.pre,fn:p.fn,ln:p.ln,rm:p.room})});
@@ -1392,7 +1420,7 @@ function startSession(ses,roster,results){
   S=[...rooms].map(([room,rows])=>({name:room,label:room,g:[],m:{id:-1,pre:-1,fn:-1,ln:-1,rm:-1,sq:-1,gr:-1,cd:-1,ids:[]},nc:0,sample:[],auto:false,saved:true,on:true,fixed:new Set(),rows}));
   $('school').value=ses.school||'';$('date').value=ses.date||'';$('by').value='room';
   if(results)applyRemote(results);
-  syncSave();render();openEntry();drawSync();
+  syncSave();render();openEntry();drawSync();setTimeout(()=>loadHist(true),800);
 }
 async function joinWith(code,pin){
   $('st').textContent='กำลังเข้าร่วมการกรอกร่วมกัน…';
@@ -1403,7 +1431,7 @@ async function joinWith(code,pin){
 }
 function ago(ms){const m=Math.round(ms/60e3);if(m<1)return 'เมื่อสักครู่';if(m<60)return m+' นาทีที่แล้ว';const h=Math.round(m/60);if(h<24)return h+' ชั่วโมงที่แล้ว';return Math.round(h/24)+' วันที่แล้ว'}
 async function removeSession(code,pin,nm,done){
-  if(!confirm(`ลบรอบตรวจ "${nm}" ออกจาก Google Sheet?${done?`\n\nมีผลที่กรอกแล้ว ${done} คน จะถูกลบด้วย`:''}\nทุกเครื่องจะไม่เห็นรอบนี้อีก กู้คืนไม่ได้`))return false;
+  if(!confirm(`ลบรอบตรวจ "${nm}" ออกจาก Google Sheet?${done?`\n\nมีผลที่กรอกแล้ว ${done} คน จะถูกลบด้วย และจะไม่ขึ้นเป็นประวัติตอนตรวจปีหน้า`:''}\nทุกเครื่องจะไม่เห็นรอบนี้อีก กู้คืนไม่ได้`))return false;
   if(done&&!confirm(`ยืนยันอีกครั้ง: ลบ "${nm}" พร้อมผล ${done} คน ถาวร`))return false;
   try{await call({action:'remove',code,pin});
     if(SES&&SES.code===code){(SES.keys||[]).forEach(k=>{delete E[k];delete ET[k]});save();SES=null;Q={};syncSave();$('entry').hidden=true;$('cfg').hidden=true;document.querySelector('main').style.maxWidth='';S=[];drawSync()}
