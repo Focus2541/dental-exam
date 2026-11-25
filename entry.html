@@ -239,7 +239,8 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 .thm.gd{right:auto;left:12px;text-decoration:none;border-radius:8px}
 .entry td.ntc{padding:2px}.entry .nt{background:transparent!important;color:var(--mut)!important;border:1px dashed var(--line);padding:4px 8px;font-size:13px;font-weight:400;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis}
 .entry .nt.has{border-style:solid;border-color:var(--warn);color:var(--warn)!important;font-weight:600}
-.ntq{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.ntq button{padding:6px 12px;font-size:14px;border-radius:999px}
+.ntq{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.ntq button{padding:6px 12px;font-size:14px;border-radius:999px}.ntq button.my{border-style:dashed}.ntq .x{margin-left:6px;padding:0 4px;border-radius:50%;opacity:.55;font-weight:700}.ntq .x:hover{opacity:1;background:var(--line)}
+.ntadd{display:flex;gap:6px;margin-top:8px}.ntadd input{flex:1;min-width:0}.ntadd button{margin:0;white-space:nowrap}
 #ntT{width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);resize:vertical}
 #card .cnote{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);margin:4px 0 0}
 #card .ntq{margin:6px 0}
@@ -354,12 +355,14 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <b>หมายเหตุถึงผู้ปกครอง</b><div id="ntName" class="hint"></div>
 <div class="ntq" id="ntQ"></div>
 <textarea id="ntT" rows="3" maxlength="200" placeholder="เช่น มีฟันเกิน ควรพบทันตแพทย์"></textarea>
+<div class="ntadd"><input type="text" id="ntNew" maxlength="80" placeholder="พิมพ์ข้อความที่ใช้บ่อย เช่น ฟันกรามซี่ 6 ผุลึก"><button type="button" id="ntSave" class="alt">⭐ เพิ่มปุ่มข้อความนี้</button></div>
+<p class="hint" id="ntTip">กด × บนปุ่มเพื่อเอาออก · ปุ่มที่ใช้บ่อยจะขึ้นก่อนเอง <a href="#" id="ntReset" hidden>↺ คืนปุ่มเริ่มต้น</a></p>
 <div class="shb"><button type="button" id="ntOk">บันทึก</button><button type="button" id="ntClr" class="alt">ลบหมายเหตุ</button><button type="button" id="ntX" class="alt">ยกเลิก</button></div>
 <p class="hint">พิมพ์ในใบแจ้งผลผู้ปกครอง ตารางผลตรวจ และ Excel</p></div></div>
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.40 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.41 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -1169,7 +1172,7 @@ function drawCard(){
 ${grp(F[0])}${grp(F[1])}
 <div class="chips"><button type="button" class="chip ${n(v[8])?'on':''}" data-t="8">เหงือกอักเสบ</button><button type="button" class="chip ${n(v[9])?'on':''}" data-t="9">มีหินปูน</button></div>
 ${grp(F[2])}${grp(F[3])}
-<fieldset class="cgrp"><legend>หมายเหตุถึงผู้ปกครอง</legend><div class="ntq">${NOTE_Q.slice(0,6).map(q=>`<button type="button" class="alt" data-cq="${esc(q)}">+ ${esc(q)}</button>`).join('')}</div><textarea id="cNote" class="cnote" rows="2" maxlength="200" placeholder="เช่น มีฟันเกิน">${esc(noteOf(v))}</textarea></fieldset>
+<fieldset class="cgrp"><legend>หมายเหตุถึงผู้ปกครอง</legend><div class="ntq">${allQ().slice(0,8).map(q=>`<button type="button" class="alt" data-cq="${esc(q)}">+ ${esc(q)}</button>`).join('')}</div><textarea id="cNote" class="cnote" rows="2" maxlength="200" placeholder="เช่น มีฟันเกิน">${esc(noteOf(v))}</textarea></fieldset>
 <button type="button" class="nextp" id="cGo">บันทึกแล้ว ไปคนถัดไป ▶</button>`;
   chk();
 }
@@ -1193,7 +1196,7 @@ $('card').addEventListener('keydown',e=>{
 $('card').addEventListener('change',e=>{if(e.target.id==='cSel'){ci=+e.target.value;drawCard()}});
 $('card').addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t)return;
-  if(t.dataset.cq){const n=$('cNote');n.value=addQ(n.value,t.dataset.cq);cardStore()}
+  if(t.dataset.cq){const n=$('cNote');n.value=addQ(n.value,t.dataset.cq);useQ(t.dataset.cq);cardStore()}
   else if(t.dataset.t){t.classList.toggle('on');cardStore()}
   else if(t.id==='cPrev')cardGo(-1);
   else if(t.id==='cNext'||t.id==='cGo')cardGo(1);
@@ -1205,16 +1208,28 @@ $('card').addEventListener('click',e=>{
 
 /* ===== หมายเหตุถึงผู้ปกครอง ===== */
 const NOTE_Q=['มีฟันเกิน','ฟันซ้อนเก','ฟันน้ำนมค้าง ฟันแท้ขึ้นแล้ว','สบฟันผิดปกติ','ฟันแตก/บิ่น','ฟันตกกระ','มีแผลในช่องปาก','แปรงฟันไม่สะอาด มีคราบจุลินทรีย์','ควรพบทันตแพทย์'];
+/* ปุ่มข้อความหมายเหตุ: เพิ่มเองได้ ซ่อนปุ่มเริ่มต้นได้ เรียงตามที่ใช้บ่อย (เก็บในเครื่องนี้) */
+const lsj=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}},lsw=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+let NQ_MY=lsj('dentalNoteMy',[]),NQ_HIDE=lsj('dentalNoteHide',[]),NQ_USE=lsj('dentalNoteUse',{});
+function allQ(){const a=[...NQ_MY,...NOTE_Q.filter(q=>!NQ_HIDE.includes(q)&&!NQ_MY.includes(q))];return a.map((q,i)=>[q,i]).sort((x,y)=>(NQ_USE[y[0]]||0)-(NQ_USE[x[0]]||0)||x[1]-y[1]).map(x=>x[0])}
+function useQ(t){let ch=false;allQ().forEach(q=>{if(t.includes(q)){NQ_USE[q]=(NQ_USE[q]||0)+1;ch=true}});if(ch)lsw('dentalNoteUse',NQ_USE)}
+function drawQ(){$('ntQ').innerHTML=allQ().map(q=>`<button type="button" class="alt${NQ_MY.includes(q)?' my':''}" data-q="${esc(q)}">+ ${esc(q)}<span class="x" data-del="${esc(q)}" title="เอาปุ่มนี้ออก">×</span></button>`).join('');$('ntReset').hidden=!NQ_HIDE.length}
 const addQ=(t,q)=>t.includes(q)?t:(t.trim()?t.trim().replace(/[\s,]+$/,'')+', ':'')+q;
 let ntCb=null;
 function openNote(name,txt,cb){
-  ntCb=cb;$('ntName').textContent=name;$('ntT').value=txt||'';
-  $('ntQ').innerHTML=NOTE_Q.map(q=>`<button type="button" class="alt" data-q="${esc(q)}">+ ${esc(q)}</button>`).join('');
+  ntCb=cb;$('ntName').textContent=name;$('ntT').value=txt||'';$('ntNew').value='';drawQ();
   $('ntd').hidden=false;setTimeout(()=>$('ntT').focus(),50);
 }
-$('ntQ').onclick=e=>{const b=e.target.closest('[data-q]');if(b){$('ntT').value=addQ($('ntT').value,b.dataset.q);$('ntT').focus()}};
+$('ntSave').onclick=()=>{const q=$('ntNew').value.replace(/\s+/g,' ').trim().replace(/,$/,'');if(!q){$('ntNew').focus();return}
+  if(!NQ_MY.includes(q)){NQ_MY.unshift(q);lsw('dentalNoteMy',NQ_MY)}NQ_HIDE=NQ_HIDE.filter(x=>x!==q);lsw('dentalNoteHide',NQ_HIDE);
+  $('ntNew').value='';$('ntT').value=addQ($('ntT').value,q);drawQ()};
+$('ntNew').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('ntSave').click()}});
+$('ntReset').onclick=e=>{e.preventDefault();NQ_HIDE=[];lsw('dentalNoteHide',NQ_HIDE);drawQ()};
+$('ntQ').onclick=e=>{const d=e.target.closest('[data-del]');if(d){e.stopPropagation();const q=d.dataset.del;if(!confirm(`เอาปุ่ม "${q}" ออก?`))return;
+  if(NQ_MY.includes(q)){NQ_MY=NQ_MY.filter(x=>x!==q);lsw('dentalNoteMy',NQ_MY)}else{NQ_HIDE.push(q);lsw('dentalNoteHide',NQ_HIDE)}drawQ();return}
+  const b=e.target.closest('[data-q]');if(b){$('ntT').value=addQ($('ntT').value,b.dataset.q);$('ntT').focus()}};
 const ntClose=()=>{$('ntd').hidden=true;ntCb=null};
-$('ntOk').onclick=()=>{const t=$('ntT').value.replace(/\s+/g,' ').trim();if(ntCb)ntCb(t);ntClose()};
+$('ntOk').onclick=()=>{const t=$('ntT').value.replace(/\s+/g,' ').trim();useQ(t);if(ntCb)ntCb(t);ntClose()};
 $('ntClr').onclick=()=>{if(ntCb)ntCb('');ntClose()};
 $('ntX').onclick=ntClose;
 $('ntT').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('ntOk').click()}else if(e.key==='Escape')ntClose()});
