@@ -67,7 +67,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .bar select{width:auto;min-width:160px}
 .chk{display:flex;gap:6px;align-items:center;font-size:15px}
 .hidbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 8px;padding:8px 12px;border:1px solid var(--warn);border-radius:8px;color:var(--warn);font-size:15px}.hidbar button{padding:6px 14px;margin:0}.hidbar[hidden]{display:none}
-#prog{margin-left:auto;font-weight:600;color:var(--acc)}
+#prog{margin-left:auto;font-weight:600;color:var(--acc);text-align:right}#prog .left{font-size:.92em;color:var(--warn)}
 .hint{font-size:14px;color:var(--mut);margin:0 0 10px}
 .ewrap{overflow:auto;max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px);border:1px solid var(--line);border-radius:8px;background:var(--card)}
 .entry{border-collapse:collapse;font-size:15px;min-width:100%}
@@ -362,7 +362,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.41 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.42 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -907,8 +907,12 @@ function refresh(tr){
 }
 function prog(){
   const all=RM.flatMap(x=>x[1]),r=RM[cur][1],c=a=>a.filter(p=>handled(E[p.id])).length,ab=a=>a.filter(p=>isAbs(E[p.id])).length;
-  $('prog').textContent=`ห้องนี้ ${c(r)}/${r.length} คน${ab(r)?` (ไม่มา ${ab(r)})`:''} · ทั้งหมด ${c(all)}/${all.length} คน`;
+  const left=r.filter(p=>!handled(E[p.id])),m=left.filter(p=>sexOf(p)==='m').length,f=left.filter(p=>sexOf(p)==='f').length,o=left.length-m-f;
+  $('prog').innerHTML=`ห้องนี้ ${c(r)}/${r.length} คน${ab(r)?` (ไม่มา ${ab(r)})`:''} · ทั้งหมด ${c(all)}/${all.length} คน<br><span class="left">${left.length?`ยังเหลือ ${left.length} คน · 👦 ชาย ${m} · 👧 หญิง ${f}${o?` · ไม่ระบุ ${o}`:''}`:'✓ ห้องนี้ครบแล้ว'}</span>`;
 }
+/* เพศจากคำนำหน้า */
+function sexOf(p){const t=((p.pre||'')+' '+(p.fn||'')).replace(/\s+/g,'');
+  if(/^(ด\.?ช|เด็กชาย|นาย|ช\.|Mr|Boy)/i.test(t))return 'm';if(/^(ด\.?ญ|เด็กหญิง|นางสาว|น\.?ส|นาง|ญ\.|Miss|Ms|Mrs|Girl)/i.test(t))return 'f';return ''}
 let VIEW=(()=>{try{return localStorage.getItem('dentalView')}catch(e){return null}})()||(window.innerWidth<760?'card':'table'),ci=0;
 function drawRoom(){
   const card=VIEW==='card';
