@@ -65,6 +65,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,#drop:focus-within
 .alt:hover{background:var(--bg)}
 .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}
 .bar select{width:auto;min-width:160px}
+.rdl{display:flex;align-items:center;gap:6px;font-size:15px;white-space:nowrap}.rdl input{width:auto;padding:6px 8px}
 .chk{display:flex;gap:6px;align-items:center;font-size:15px}
 .hidbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 8px;padding:8px 12px;border:1px solid var(--warn);border-radius:8px;color:var(--warn);font-size:15px}.hidbar button{padding:6px 14px;margin:0}.hidbar[hidden]{display:none}
 #prog{margin-left:auto;font-weight:600;color:var(--acc);text-align:right}#prog .left{font-size:.92em;color:var(--warn)}
@@ -299,7 +300,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 </section>
 <section id="entry" hidden>
 <div id="sync" class="syncbar" hidden></div>
-<div class="bar"><button id="back" class="alt" type="button">← กลับ</button><select id="room" aria-label="เลือกห้อง"></select><button id="next" class="alt" type="button">ห้องถัดไป ▶</button><button id="view" class="alt" type="button"></button><span id="prog"></span></div>
+<div class="bar"><button id="back" class="alt" type="button">← กลับ</button><select id="room" aria-label="เลือกห้อง"></select><button id="next" class="alt" type="button">ห้องถัดไป ▶</button><label class="rdl" title="วันที่ไปตรวจจริงของห้องนี้ ใช้พิมพ์ในใบแจ้งผลแทนวันที่กรอก">📅 วันที่ตรวจห้องนี้<input type="date" id="rdate"></label><button type="button" id="rdAll" class="link" title="ใช้วันที่นี้กับทุกห้องที่ยังไม่ได้ใส่">ใช้กับห้องที่ยังไม่ใส่</button><button id="view" class="alt" type="button"></button><span id="prog"></span></div>
 <p class="hint" id="ehint"></p>
 <div id="hidBar" class="hidbar" hidden><span id="hidTx"></span><button type="button" id="hidAll">แสดงทุกคน</button></div>
 <div class="ewrap"><table class="entry"><thead><tr><th rowspan="2">ที่</th><th rowspan="2" class="sticky">ชื่อ-สกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="5">Tx. plan</th><th rowspan="2">สรุป</th><th rowspan="2">หมายเหตุ</th><th rowspan="2">ไม่มา</th></tr>
@@ -368,7 +369,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.45 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.46 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -847,7 +848,7 @@ async function build(){
       widths.forEach((w,j)=>ws.getColumn(j+1).width=w);
       ws.mergeCells('A1:U1');ws.mergeCells('A2:U2');ws.mergeCells('U3:U4');ws.getCell('U3').value='หมายเหตุ';
       ws.getCell('A1').value='แบบบันทึกตรวจคัดกรองสุขภาพช่องปากในโรงเรียนและศูนย์เด็กเล็ก';
-      ws.getCell('A2').value=`โรงเรียน……${school}……     ชั้น ……${label}……     วันที่ตรวจ ${date||'………………………………'}`;
+      ws.getCell('A2').value=`โรงเรียน……${school}……     ชั้น ……${label}……     วันที่ตรวจ ${roomDate(label)||date||'………………………………'}`;
       ['A1','A2'].forEach(a=>{ws.getCell(a).font=font(16);ws.getCell(a).alignment=ctr});
       ws.getRow(1).height=23.4;ws.getRow(2).height=24;
       ['A','B','C','D','E'].forEach((c,j)=>{ws.mergeCells(`${c}3:${c}4`);ws.getCell(c+'3').value=['ลำดับ','ID 13หลัก','คำนำหน้าชื่อ','ชื่อ','นามสกุล'][j]});
@@ -894,6 +895,15 @@ function roomsMap(){
   return [...m].sort((a,b)=>roomCmp(a[0],b[0]));
 }
 let RM=[],cur=0;
+/* วันที่ไปตรวจจริงรายห้อง (กรอกผลย้อนหลังได้ วันที่ในใบแจ้งผลยังถูก) */
+let RD=(()=>{try{return JSON.parse(localStorage.getItem('dentalRoomDate'))||{}}catch(e){return {}}})();
+const rdKey=r=>(typeof SES!=='undefined'&&SES?SES.code:'local')+'|'+r;
+function roomDate(r){const v=RD[rdKey(r)];if(!v)return '';const d=new Date(v+'T00:00');return isNaN(d)?'':d.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'})}
+function saveRD(){try{localStorage.setItem('dentalRoomDate',JSON.stringify(RD))}catch(e){}}
+$('rdate').addEventListener('change',()=>{const k=rdKey(RM[cur][0]);if($('rdate').value)RD[k]=$('rdate').value;else delete RD[k];saveRD()});
+$('rdAll').onclick=()=>{const v=$('rdate').value;if(!v){alert('เลือกวันที่ตรวจของห้องนี้ก่อน');$('rdate').focus();return}
+  const n=RM.filter(([r])=>!RD[rdKey(r)]).length;RM.forEach(([r])=>{if(!RD[rdKey(r)])RD[rdKey(r)]=v});saveRD();alert(n?`ใส่วันที่ ${roomDate(RM[cur][0])} ให้อีก ${n} ห้องที่ยังไม่ได้ใส่แล้ว`:'ทุกห้องมีวันที่แล้ว')};
+function roomOfId(id){for(const [r,rows] of RM)if(rows.some(p=>p.id===id))return r;return ''}
 /* ช่องข้อมูล: 0-3 ฟันน้ำนม, 4-7 ฟันแท้, 8 เหงือก, 9 หินปูน, 10 อุดน้ำนม, 11 ถอนน้ำนม, 12 Sealant, 13 อุดแท้, 14 ถอนแท้ */
 const NV=15,ORD=[0,1,2,3,4,5,6,7,8,9,10,11,13,14,12];
 const gv=i=>i.type==='checkbox'?(i.checked?'1':(i.dataset.z?'0':'')):i.value,sv=(i,x)=>{if(i.type==='checkbox'){i.checked=nn(x)>0;i.dataset.z=x==='0'?'1':''}else i.value=x};
@@ -921,7 +931,7 @@ function sexOf(p){const t=((p.pre||'')+' '+(p.fn||'')).replace(/\s+/g,'');
   if(/^(ด\.?ช|เด็กชาย|นาย|ช\.|Mr|Boy)/i.test(t))return 'm';if(/^(ด\.?ญ|เด็กหญิง|นางสาว|น\.?ส|นาง|ญ\.|Miss|Ms|Mrs|Girl)/i.test(t))return 'f';return ''}
 let VIEW=(()=>{try{return localStorage.getItem('dentalView')}catch(e){return null}})()||(window.innerWidth<760?'card':'table'),ci=0;
 function drawRoom(){
-  const card=VIEW==='card';
+  const card=VIEW==='card';if(RM[cur])$('rdate').value=RD[rdKey(RM[cur][0])]||'';
   document.querySelector('.ewrap').hidden=card;$('card').hidden=!card;
   $('view').textContent=card?'แบบตาราง':'แบบทีละคน';
   $('ehint').innerHTML=card?'กรอกตัวเลข กด <b>Enter</b> ไปช่องถัดไป · เด็กฟันดีกดปุ่ม <b>✓ ฟันดี</b> · บันทึกอัตโนมัติ':'<b>Enter</b> ช่องถัดไป · <b>← → ↑ ↓</b> เลื่อนช่อง · ช่องที่เว้นไว้เติม 0 ให้เอง · เหงือก/หินปูน กดติ๊ก ✓ (หรือ Space) · บันทึกอัตโนมัติ';
@@ -1032,7 +1042,7 @@ $('lgFile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)retur
     c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);setLogo(c.toDataURL('image/png'))};
   im.onerror=()=>alert('เปิดไฟล์รูปนี้ไม่ได้');im.src=u};
 $('lgDef').onclick=()=>setLogo(null);$('lgOff').onclick=()=>setLogo('none');drawLogo();
-function whenOf(id,date){const t=TT[id]||(typeof ET!=='undefined'&&ET[id]);if(!t)return date;const d=new Date(t),manual=$('s_date').value.trim()||$('date').value.trim();
+function whenOf(id,date){const rd=roomDate(roomOfId(id));if(rd)return rd;const t=TT[id]||(typeof ET!=='undefined'&&ET[id]);if(!t)return date;const d=new Date(t),manual=$('s_date').value.trim()||$('date').value.trim();
   let ds=manual;if(!ds)try{ds=d.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'})}catch(e){ds=date}
   return ds+' เวลา '+String(d.getHours()).padStart(2,'0')+'.'+String(d.getMinutes()).padStart(2,'0')+' น.'}
 function examDate(){const d=$('s_date').value.trim()||$('date').value.trim();if(d)return d;try{return new Date().toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'})}catch(e){return ''}}
@@ -1096,7 +1106,7 @@ const TX_H=['ห้อง','ชื่อ-สกุล','ฟันผุ น้�
 const tbl=(h,rows)=>`<table class="rt rep"><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(String(c))}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 function repHTML(){
   const {rows,tx}=repData(),school=$('school').value.trim()||'(ไม่ระบุโรงเรียน)',date=examDate();
-  return `<h2 class="h2">รายงานสรุปผลตรวจสุขภาพช่องปาก โรงเรียน${esc(school)}${date?' วันที่ตรวจ '+esc(date):''}</h2>
+  return `<h2 class="h2">รายงานสรุปผลตรวจสุขภาพช่องปาก โรงเรียน${esc(school)}${(()=>{const ds=[...new Set(RM.map(x=>roomDate(x[0])).filter(Boolean))];return ds.length?' วันที่ตรวจ '+esc(ds.join(', ')):date?' วันที่ตรวจ '+esc(date):''})()}</h2>
 <div class="rvw">${tbl(REP_H,rows)}</div><p class="hint">"ไม่มีฟันผุ" = ฟันผุทั้งน้ำนมและแท้เป็น 0 · dmft/DMFT = ผุ + อุด + ถอน/หลุด เฉลี่ยต่อคนที่ตรวจแล้ว</p>
 <h3>รายชื่อเด็กที่ต้องรักษา ${tx.length} คน</h3><div class="rvw">${tbl(TX_H,tx)}</div>`;
 }
@@ -1318,7 +1328,7 @@ function printRoom(){
     return `<tr><td>${i+1}</td><td>${esc(p.pre)}</td><td class="l">${esc(p.fn)}</td><td class="l">${esc(p.ln)}</td>${ORD.map(c=>`<td>${c===8||c===9?(nn(v[c])?'✓':''):esc(v[c]||'')}</td>`).join('')}<td class="l" style="font-size:8.5pt">${esc(noteOf(v))}</td></tr>`}).join('');
   const done=rows.filter(p=>isDone(E[p.id])).length;
   $('pa').innerHTML=`<div class="rsheet"><h3>แบบบันทึกตรวจคัดกรองสุขภาพช่องปากในโรงเรียนและศูนย์เด็กเล็ก</h3>
-<p>โรงเรียน ${school?esc(school):'…'.repeat(14)}&nbsp;&nbsp; ชั้น ${esc(room)}&nbsp;&nbsp; วันที่ตรวจ ${date?esc(date):'…'.repeat(12)}</p>
+<p>โรงเรียน ${school?esc(school):'…'.repeat(14)}&nbsp;&nbsp; ชั้น ${esc(room)}&nbsp;&nbsp; วันที่ตรวจ ${roomDate(room)?esc(roomDate(room)):date?esc(date):'…'.repeat(12)}</p>
 <table><thead><tr><th rowspan="2">ลำดับ</th><th rowspan="2">คำนำหน้า</th><th rowspan="2">ชื่อ</th><th rowspan="2">นามสกุล</th><th colspan="4">ฟันน้ำนม</th><th colspan="4">ฟันแท้</th><th>เหงือก</th><th>มี</th><th colspan="5">Tx. plan</th><th rowspan="2">หมายเหตุ</th></tr>
 <tr>${H.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>
 <div class="ft">ตรวจแล้ว ${done} จาก ${rows.length} คน &nbsp;&nbsp; ผู้ตรวจ ${curEx().sig?`<img src="${curEx().sig}" alt="" style="height:12mm;vertical-align:middle">`:'……………………………………'} ${curEx().name?'('+esc(curEx().name)+')':''}</div></div>`;
