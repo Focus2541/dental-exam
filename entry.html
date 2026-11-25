@@ -338,6 +338,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 </div></details>
 <details class="menu"><summary>⋯ เพิ่มเติม</summary><div class="mbody">
 <button id="dl2" type="button">ดาวน์โหลดผลเป็น Excel</button>
+<button id="jh" type="button" class="alt">ไฟล์สำหรับลง JHCIS (.csv)</button>
 <button id="clr" class="alt" type="button">ล้างผลที่กรอกในเครื่องนี้</button>
 <button id="delSes" class="alt danger" type="button" hidden>ลบรอบตรวจนี้ออกจาก Google Sheet</button>
 </div></details>
@@ -369,7 +370,7 @@ button.link{background:none;border:0;padding:0;color:var(--acc);text-decoration:
 <div id="sigd" class="sigd" hidden role="dialog" aria-label="วาดลายเซ็น"><div class="sigw"><b>วาดลายเซ็นในกรอบ</b><canvas id="sigC" width="600" height="220"></canvas>
 <div class="shb"><button type="button" id="sigOk">บันทึกลายเซ็น</button><button type="button" id="sigClr" class="alt">ล้าง</button><button type="button" id="sigCancel" class="alt">ยกเลิก</button></div></div></div>
 <p id="off" class="hint"></p>
-<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.46 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
+<p class="hint" id="ver">แอปกรอกผลตรวจฟัน รุ่น 1.47 (23 พ.ย. 2569) · Tx. plan แยกอุด/ถอน ฟันน้ำนมกับฟันแท้</p>
 </main>
 <script>
 const PRE=['เด็กหญิง','เด็กชาย','นางสาว','ด.ช.','ด.ญ.','น.ส.','ดช.','ดญ.','นส.','ด.ช','ด.ญ','นาย','นาง'];
@@ -1471,6 +1472,19 @@ async function loadLive(){
   }catch(e){$('live').hidden=true}
 }
 $('lvR').onclick=loadLive;
+/* ไฟล์สำหรับสคริปต์ลง JHCIS: 1 แถวต่อเด็ก 1 คน ใช้เลขบัตรจับคู่ visit ช่องตรงกับแฟ้ม DENTAL ใน 43 แฟ้ม */
+function jhcisCsv(){
+  const H=['CID','PRENAME','NAME','LNAME','ROOM','EXAM_DATE','ABSENT','DTEETH','DCARIES','DFILLING','DEXTRACT','PTEETH','PCARIES','PFILLING','PEXTRACT','GUM','TARTAR','NEED_DFILLING','NEED_DEXTRACT','NEED_PFILLING','NEED_PEXTRACT','NEED_SEALANT','NOTE'];
+  const q=x=>{x=String(x==null?'':x);return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x},z=x=>x===''||x==null?'0':String(+x||0);
+  let n=0,skip=0;const out=[H.join(',')];
+  RM.forEach(([room,rows])=>rows.forEach(p=>{const v=E[p.id];if(!handled(v))return;if(p.noid){skip++;return}n++;
+    const ab=isAbs(v);out.push([p.id,p.pre,p.fn,p.ln,room,RD[rdKey(room)]||'',ab?1:0,...(ab?Array(15).fill(''):[v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8],v[9],v[10],v[11],v[13],v[14],v[12]].map(z)),noteOf(v)].map(q).join(','))}));
+  if(!n){alert('ยังไม่มีเด็กที่กรอกผลแล้ว (ที่มีเลขบัตร)');return}
+  const school=$('school').value.trim()||'โรงเรียน',blob=new Blob(['﻿'+out.join('\r\n')],{type:'text/csv'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=`ลงJHCIS_${school}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+  alert(`ได้ไฟล์ ${n} คน${skip?`\nข้าม ${skip} คนที่ไม่มีเลขบัตร (ต้องลง JHCIS เอง)`:''}`);
+}
+$('jh').onclick=jhcisCsv;
 /* อัปเดตรายการโรงเรียนเองทุก 1 นาที ตอนเปิดหน้าแอปอยู่ */
 setInterval(()=>{if(!document.hidden&&!$('live').hidden&&Date.now()-liveAt>55e3)loadLive()},15e3);
 $('delSes').onclick=async()=>{
