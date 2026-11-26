@@ -382,6 +382,12 @@ def run(path, room, do_save, auto, visible, delay, redo=False):
     input("เปิดหน้า ตรวจทันตกรรม ของห้องนี้ แป้นพิมพ์ EN แล้วกด Enter (มีเวลา 3 วินาทีสลับไป JHCIS)")
     time.sleep(3)
     console(False)                                # ย่อหน้าต่างดำลง ไม่ให้บังแถบเลื่อน/ปุ่ม Dental
+    if not jf.table_origin():                     # ยังไม่ได้กดตรวจทันตกรรม: กดให้ถ้าจดตำแหน่งไว้แล้ว
+        if "sch_dent" in P and school_origin() and open_table(P):
+            print("เปิดหน้า ตรวจทันตกรรม ให้แล้ว")
+        else:
+            console(True)
+            sys.exit("ยังไม่ได้เปิดหน้า ตรวจทันตกรรม: ในหน้าอนามัยโรงเรียน กดปุ่ม 'ตรวจทันตกรรม' ก่อน แล้วรันใหม่")
     S = St(do_save, auto, redo, visible)
     if S.already and not redo:
         print(f"บันทึกไปแล้วในรอบก่อน {len(S.already)} คน จะข้ามคนเหล่านี้")
