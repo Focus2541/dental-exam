@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-jhcis_dental_room.py  v1.0  ลงผลตรวจฟันทั้งห้องในหน้า "บันทึกผลงานอนามัยโรงเรียน ตรวจทันตกรรม" ของ JHCIS
+jhcis_dental_room.py  v1.1  ลงผลตรวจฟันทั้งห้องในหน้า "บันทึกผลงานอนามัยโรงเรียน ตรวจทันตกรรม" ของ JHCIS
 อ่านผลจากไฟล์ "ลงJHCIS_โรงเรียน.csv" (แอปกรอกผลตรวจฟัน > ⋯ เพิ่มเติม > ไฟล์สำหรับลง JHCIS)
 
 ต่างจาก jhcis_dental_fill.py เดิม:
@@ -26,7 +26,11 @@ import time
 
 import jhcis_dental_fill as jf
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+try:                                              # ในโปรแกรมสำเร็จรูป เก็บบันทึกไว้ใน "ข้อมูลเครื่อง_..." ข้าง .exe
+    import jhcis_roster_compare as _rc
+    HERE = _rc.home()
+except Exception:
+    HERE = os.path.dirname(os.path.abspath(__file__))
 PRE = re.compile(r"^(ด\.?\s*ช\.?|ด\.?\s*ญ\.?|เด็กชาย|เด็กหญิง|นางสาว|น\.?\s*ส\.?|นาย|นาง)")
 NUMS = [("d_have", "DTEETH"), ("d_decay", "DCARIES"), ("d_filled", "DFILLING"), ("d_lost", "DEXTRACT"),
         ("d_needfill", "NEED_DFILLING"), ("p_have", "PTEETH"), ("p_decay", "PCARIES"), ("p_filled", "PFILLING"),
@@ -289,36 +293,40 @@ def room_name(r):
 
 def newest_csv():
     import glob
-    fs = [f for f in glob.glob(os.path.join(HERE, "ลงJHCIS_*.csv"))]
+    fs = glob.glob(os.path.join(HERE, "ลงJHCIS_*.csv")) + glob.glob(os.path.join(os.getcwd(), "ลงJHCIS_*.csv"))
     if not fs:
         sys.exit("ไม่พบไฟล์ ลงJHCIS_*.csv ในโฟลเดอร์นี้ ดาวน์โหลดจากแอปกรอกผลแล้ววางไว้ที่นี่")
     return max(fs, key=os.path.getmtime)
 
 
-if __name__ == "__main__":
+def cli(pause=False):
     ap = argparse.ArgumentParser()
-    ap.add_argument("room", help="ห้อง เช่น อ2 ป1 หรือพิมพ์ a2 p1")
+    ap.add_argument("room", help="ห้อง เช่น อ2 ป1 หรือพิมพ์ a2 p1 (หรือ calib = จดตำแหน่งแถบเลื่อน)")
     ap.add_argument("--csv", help="ไฟล์ ลงJHCIS_*.csv (ไม่ใส่ = ใช้ไฟล์ล่าสุดในโฟลเดอร์นี้)")
     ap.add_argument("--save", action="store_true")
     ap.add_argument("--auto", action="store_true")
     ap.add_argument("--visible", type=int, default=17, help="จำนวนแถวที่เห็นในตารางโดยไม่เลื่อน")
     ap.add_argument("--delay", type=float, default=0.25)
-    if len(sys.argv) > 1 and sys.argv[1] == "calib":
-        try:
-            calib_scroll()
-        except BaseException as e:
-            print("หยุด:", e)
-        input("\nกด Enter เพื่อปิด"); sys.exit()
-    a = ap.parse_args()
     try:
-        path = a.csv or newest_csv()
-        print("ไฟล์:", os.path.basename(path))
-        run(path, room_name(a.room), a.save, a.auto, a.visible, a.delay)
+        if len(sys.argv) > 1 and sys.argv[1] == "calib":
+            calib_scroll()
+        else:
+            a = ap.parse_args()
+            path = a.csv or newest_csv()
+            print("ไฟล์:", os.path.basename(path))
+            run(path, room_name(a.room), a.save, a.auto, a.visible, a.delay)
     except BaseException as e:            # รวม sys.exit ด้วย จะได้เห็นข้อความก่อนหน้าต่างปิด
         import traceback
         console(True)
-        msg = traceback.format_exc()
         print("\nหยุด:", e)
-        with open(os.path.join(HERE, "run_room_error.txt"), "w", encoding="utf-8") as f:
-            f.write(time.strftime("%Y-%m-%d %H:%M:%S") + "\n" + msg)
-    input("\nกด Enter เพื่อปิด")
+        try:
+            with open(os.path.join(HERE, "run_room_error.txt"), "w", encoding="utf-8") as f:
+                f.write(time.strftime("%Y-%m-%d %H:%M:%S") + "\n" + traceback.format_exc())
+        except Exception:
+            pass
+    if pause:
+        input("\nกด Enter เพื่อปิด")
+
+
+if __name__ == "__main__":
+    cli(pause=True)
