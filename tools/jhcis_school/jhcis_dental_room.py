@@ -411,6 +411,12 @@ def cli(pause=False):
     ap.add_argument("--visible", type=int, default=17, help="จำนวนแถวที่เห็นในตารางโดยไม่เลื่อน")
     ap.add_argument("--delay", type=float, default=0.25)
     ap.add_argument("--redo", action="store_true", help="บันทึกซ้ำคนที่ลงไปแล้ว (เช่น แก้ผู้ให้บริการ)")
+    # พิมพ์รวมในช่องห้องได้ เช่น "a2 + redo" หรือ "a2 save"
+    args = [x for x in sys.argv[1:] if x not in ("+", ",")]
+    for w, f in (("save", ["--save", "--auto"]), ("redo", ["--save", "--auto", "--redo"])):
+        if w in [x.lower() for x in args[1:]]:
+            args = [x for x in args if x.lower() != w] + f
+    sys.argv = sys.argv[:1] + list(dict.fromkeys(args))
     try:
         if len(sys.argv) > 1 and sys.argv[1] == "calib":
             calib_scroll()
