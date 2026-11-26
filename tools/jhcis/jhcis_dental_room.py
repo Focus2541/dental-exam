@@ -103,6 +103,17 @@ def match(kids, who, room):
 SB_DEFAULT = {"sb_up": [1246, 125], "sb_down": [1246, 646]}   # ปุ่มลูกศรแถบเลื่อน วัดจากมุมหน้าต่างตาราง
 
 
+def console(show):
+    """ย่อ/คืนหน้าต่างดำของโปรแกรมนี้ (Windows)"""
+    try:
+        import ctypes
+        h = ctypes.windll.kernel32.GetConsoleWindow()
+        if h:
+            ctypes.windll.user32.ShowWindow(h, 9 if show else 6)   # 9 = คืน, 6 = ย่อ
+    except Exception:
+        pass
+
+
 def table_front():
     import pygetwindow
     ws = [w for w in pygetwindow.getAllWindows() if jf.TABLE_KEY in (w.title or "")]
@@ -122,7 +133,9 @@ def scroll_rows(P, n):
         return
     table_front()
     key = "sb_down" if n > 0 else "sb_up"
-    x, y = P.get(key, SB_DEFAULT[key])
+    up, dn = P.get("sb_up"), P.get("sb_down")
+    ok = up and dn and dn[1] - up[1] > 200 and abs(dn[0] - up[0]) < 30   # จดผิด (จุดเดียวกัน) ให้ใช้ค่าตั้งต้น
+    x, y = (P[key] if ok else SB_DEFAULT[key])
     old = pyautogui.PAUSE
     pyautogui.PAUSE = 0.05
     for _ in range(abs(n)):
@@ -141,6 +154,10 @@ def calib_scroll():
         input(f"ชี้เมาส์ที่ {desc} (ไม่ต้องคลิก) แล้วกลับมากด Enter ")
         x, y = pyautogui.position(); ox, oy = jf.table_origin()
         P[key] = [x - ox, y - oy]; print("   =", P[key])
+    if P["sb_down"][1] - P["sb_up"][1] < 200:
+        P.pop("sb_up"); P.pop("sb_down")
+        json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
+        sys.exit("สองจุดอยู่ใกล้กันเกินไป (เมาส์ไม่ได้ย้ายไปชี้ที่ลูกศร) จะใช้ตำแหน่งตั้งต้นแทน ลองจดใหม่ได้")
     json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
     print("บันทึกแล้ว")
 
@@ -165,6 +182,7 @@ def run(path, room, do_save, auto, visible, delay):
     print("โหมด:", "บันทึกจริง" if do_save else "ซ้อม (ไม่กดบันทึก)", "| ถามทุกคน" if not auto else "| ถาม 3 คนแรก")
     input("เปิดหน้า ตรวจทันตกรรม ของห้องนี้ เลื่อนตารางไว้บนสุด แป้นพิมพ์ EN แล้วกด Enter (มีเวลา 3 วินาทีสลับไป JHCIS)")
     time.sleep(3)
+    console(False)                                # ย่อหน้าต่างดำลง ไม่ให้บังแถบเลื่อน/ปุ่ม Dental
     seen, log, extra, asked = set(), [], [], 0
     import glob
     already = set()                               # คนที่บันทึกไปแล้วในรอบก่อน ๆ ของห้องนี้ ไม่บันทึกซ้ำ
@@ -244,6 +262,7 @@ def run(path, room, do_save, auto, visible, delay):
         # ทับแถวเก่า 2 แถว คนที่เปิดดูแล้วจะข้ามเอง
         scroll_rows(P, visible - 2)
         page += 1
+    console(True)
     missing = [k["name"] for k in kids if k["room"] == room and not k["done"] and not k["absent"]]
     out = os.path.join(HERE, f"ลงJHCIS_ผล_{room}_{time.strftime('%Y%m%d_%H%M')}.txt")
     with open(out, "w", encoding="utf-8") as f:
@@ -297,6 +316,7 @@ if __name__ == "__main__":
         run(path, room_name(a.room), a.save, a.auto, a.visible, a.delay)
     except BaseException as e:            # รวม sys.exit ด้วย จะได้เห็นข้อความก่อนหน้าต่างปิด
         import traceback
+        console(True)
         msg = traceback.format_exc()
         print("\nหยุด:", e)
         with open(os.path.join(HERE, "run_room_error.txt"), "w", encoding="utf-8") as f:
