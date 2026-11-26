@@ -121,6 +121,15 @@ def run(path, room, do_save, auto, visible, delay):
     input("เปิดหน้า ตรวจทันตกรรม ของห้องนี้ เลื่อนตารางไว้บนสุด แป้นพิมพ์ EN แล้วกด Enter (มีเวลา 3 วินาทีสลับไป JHCIS)")
     time.sleep(3)
     seen, log, extra, asked = set(), [], [], 0
+    import glob
+    already = set()                               # คนที่บันทึกไปแล้วในรอบก่อน ๆ ของห้องนี้ ไม่บันทึกซ้ำ
+    for f in glob.glob(os.path.join(HERE, f"ลงJHCIS_ผล_{room}_*.txt")):
+        for line in open(f, encoding="utf-8"):
+            nm, _, st = line.rstrip("\n").partition("\t")
+            if st.startswith("บันทึกแล้ว"):
+                already.add(norm(nm))
+    if already:
+        print(f"บันทึกไปแล้วในรอบก่อน {len(already)} คน จะข้ามคนเหล่านี้")
     stop, page = False, 0
     while not stop:
         new_here = 0
@@ -140,6 +149,12 @@ def run(path, room, do_save, auto, visible, delay):
                 if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); stop = True; break
                 continue
             seen.add(key); new_here += 1
+            if key in already:
+                log.append((who, "บันทึกแล้ว (รอบก่อน)")); print(f"= {who}: บันทึกไว้แล้วรอบก่อน ข้าม")
+                for k0 in kids:
+                    if match(kids, who, room)[0] is k0: k0["done"] = True
+                if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); stop = True; break
+                continue
             k, how = match(kids, who, room)
             if how:
                 print(f"  * {who}: จับคู่แบบ {how}")
@@ -192,7 +207,7 @@ def run(path, room, do_save, auto, visible, delay):
         for who, st in log:
             f.write(f"{who}\t{st}\n")
         f.write(f"\nมีในไฟล์ แต่ไม่เจอในตาราง JHCIS ({len(missing)}):\n" + "\n".join(missing) + "\n")
-    saved = sum(1 for _, st in log if st.startswith("บันทึกแล้ว"))
+    saved = sum(1 for _, st in log if st.startswith("บันทึกแล้ว") and "รอบก่อน" not in st)
     print("\n" + "=" * 60)
     print(f" ห้อง {room}: บันทึก {saved} คน | ไม่มีในไฟล์ {len(extra)} | ไม่เจอในตาราง {len(missing)}")
     if missing:
