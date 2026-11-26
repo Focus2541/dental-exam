@@ -210,6 +210,10 @@ if __name__ == "__main__":
         path = a.csv or newest_csv()
         print("ไฟล์:", os.path.basename(path))
         run(path, room_name(a.room), a.save, a.auto, a.visible, a.delay)
-    except Exception as e:
-        print("เกิดข้อผิดพลาด:", e)
+    except BaseException as e:            # รวม sys.exit ด้วย จะได้เห็นข้อความก่อนหน้าต่างปิด
+        import traceback
+        msg = traceback.format_exc()
+        print("\nหยุด:", e)
+        with open(os.path.join(HERE, "run_room_error.txt"), "w", encoding="utf-8") as f:
+            f.write(time.strftime("%Y-%m-%d %H:%M:%S") + "\n" + msg)
     input("\nกด Enter เพื่อปิด")

@@ -6,4 +6,8 @@ set /p ROOM=Room:
 set /p MODE=Type save to really save, or just Enter to practice: 
 set ARGS=
 if /i "%MODE%"=="save" set ARGS=--save --auto
+set PYTHONUTF8=1
 python jhcis_dental_room.py %ROOM% %ARGS%
+echo.
+echo exit code %ERRORLEVEL%
+pause
