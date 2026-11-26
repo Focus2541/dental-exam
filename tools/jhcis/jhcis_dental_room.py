@@ -239,6 +239,109 @@ def calib_provider():
     sys.exit("เลื่อนเกิน 120 ครั้งแล้ว ยังไม่ได้บันทึก")
 
 
+# ---------- คอลัมน์ 'ผู้ให้บริการ' ในตาราง ตรวจทันตกรรม (คนละค่ากับช่องในฟอร์ม Dental) ----------
+TREF_OK = os.path.join(HERE, "dental_tprov_ok.png")     # ภาพช่องในตารางที่เป็นชื่อที่ต้องการ
+TREF_DEF = os.path.join(HERE, "dental_tprov_def.png")   # ภาพช่องในตารางที่เป็นชื่อตั้งต้น (ชื่อคนล็อกอิน)
+
+
+def tcell(P, slot):
+    """ภาพตัวหนังสือในช่องผู้ให้บริการของแถวที่ slot (ขาวดำ ไม่ขึ้นกับสีแถวที่ถูกเลือก)"""
+    import pyautogui
+    to = jf.table_origin()
+    row_h = P["row2_dental"][1] - P["row1_dental"][1]
+    x = to[0] + P["tprov"][0]
+    y = to[1] + P["row1_dental"][1] + row_h * slot
+    img = pyautogui.screenshot(region=(int(x - 6), int(y - 7), 62, 14)).convert("L")   # ไม่เอาปุ่มลูกศรด้านขวาของช่อง
+    return img.point(lambda v: 255 if v < 110 else 0)
+
+
+def tsame(a, b):
+    from PIL import ImageChops
+    if a.size != b.size:
+        return False
+    diff = ImageChops.difference(a, b).histogram()[255]
+    ink = max(ImageChops.lighter(a, b).histogram()[255], 1)
+    return diff / ink < 0.15
+
+
+def tclick_steps(P, slot, n):
+    """คลิกช่องผู้ให้บริการในตาราง (รายการเปิดขึ้น) กดลูกศรลง n ครั้ง แล้ว Enter"""
+    import pyautogui
+    to = jf.table_origin()
+    row_h = P["row2_dental"][1] - P["row1_dental"][1]
+    pyautogui.click(to[0] + P["tprov"][0], to[1] + P["row1_dental"][1] + row_h * slot); time.sleep(0.5)
+    old = pyautogui.PAUSE; pyautogui.PAUSE = 0.03
+    for _ in range(abs(n)):
+        pyautogui.press("down" if n > 0 else "up")
+    pyautogui.PAUSE = old
+    pyautogui.press("enter"); time.sleep(0.5)
+
+
+def set_table_provider(P, slot):
+    """คืน "skip" = ไม่ได้ตั้งค่าไว้, "already" = เป็นชื่อที่ต้องการอยู่แล้ว, "other" = เป็นชื่ออื่น ไม่แตะ,
+    True = เปลี่ยนแล้วตรงภาพ, False = เปลี่ยนแล้วไม่ตรง"""
+    from PIL import Image
+    if "tprov" not in P or "tprov_steps" not in P or not (os.path.exists(TREF_OK) and os.path.exists(TREF_DEF)):
+        return "skip"
+    table_front()
+    ok, df = Image.open(TREF_OK).convert("L"), Image.open(TREF_DEF).convert("L")
+    now = tcell(P, slot)
+    if tsame(now, ok):
+        return "already"
+    if not tsame(now, df):
+        return "other"
+    tclick_steps(P, slot, P["tprov_steps"])
+    return tsame(tcell(P, slot), ok)
+
+
+def calib_tprov():
+    """จดคอลัมน์ผู้ให้บริการในตาราง: ชี้แถวที่ยังเป็นชื่อตั้งต้น แล้วโปรแกรมเลื่อนทีละชื่อ คนตอบ"""
+    import pyautogui
+    if not jf.table_origin():
+        sys.exit("เปิดหน้า ตรวจทันตกรรม ค้างไว้ก่อน")
+    P = json.load(open(jf.CAL, encoding="utf-8"))
+    for k_ in ("tprov", "tprov_steps"):
+        P.pop(k_, None)
+    print("ย้ายหน้าต่างดำนี้ไปไว้ด้านซ้ายล่าง ไม่ให้บังคอลัมน์ 'ผู้ให้บริการ' ในตาราง")
+    input("1) ชี้เมาส์ที่ 'ตัวแรกของชื่อ' ในช่องผู้ให้บริการ ของแถวที่ยังเป็นชื่อตั้งต้น (ตัว น ของ นายไพโรจน์) ไม่ต้องคลิก แล้วกลับมากด Enter ")
+    x, y = pyautogui.position(); ox, oy = jf.table_origin()
+    row_h = P["row2_dental"][1] - P["row1_dental"][1]
+    slot = round((y - oy - P["row1_dental"][1]) / row_h)
+    if not (0 <= slot < 40):
+        sys.exit("เมาส์ไม่ได้อยู่ในแถวของตาราง ลองใหม่")
+    P["tprov"] = [x - ox, 0]
+    tcell(P, slot).save(TREF_DEF)
+    print(f"   แถวที่ {slot + 1} ของที่เห็นในตาราง")
+    print("\n2) โปรแกรมจะเปลี่ยนชื่อในช่องนี้ทีละ 1 ชื่อ ดูชื่อในช่องของตาราง แล้วตอบที่หน้าต่างนี้")
+    print("   (คลิกหน้าต่างดำนี้ก่อนพิมพ์ทุกครั้ง)")
+    print("   Enter = ยังไม่ใช่ เลื่อนลงต่อ | u = เลื่อนขึ้นแทน | y = ใช่แล้ว | q = เลิก")
+    k, d = 0, 1
+    for _ in range(120):
+        table_front()
+        tclick_steps(P, slot, d); k += d
+        ans = input(f"   [{k:+d}] เป็นชื่อที่ต้องการหรือยัง? ").strip().lower()
+        if ans == "y":
+            P["tprov_steps"] = k
+            table_front(); time.sleep(0.3)
+            img = tcell(P, slot)
+            if tsame(img, Image_open(TREF_DEF)):
+                sys.exit("ภาพช่องยังเหมือนชื่อตั้งต้น (หน้าต่างดำบังอยู่หรือเปล่า) ยังไม่ได้บันทึก ลองใหม่")
+            img.save(TREF_OK)
+            json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
+            print(f"\nบันทึกแล้ว: จากชื่อตั้งต้น เลื่อน {k:+d} ชื่อ  แถวนี้เปลี่ยนเป็นชื่อที่ต้องการแล้ว")
+            return
+        if ans == "q":
+            sys.exit("เลิกแล้ว ยังไม่ได้บันทึก (แถวนี้อาจเปลี่ยนชื่อไปแล้ว ให้เลือกกลับเองในตาราง)")
+        if ans == "u":
+            d = -1
+    sys.exit("เลื่อนเกิน 120 ครั้งแล้ว ยังไม่ได้บันทึก")
+
+
+def Image_open(path):
+    from PIL import Image
+    return Image.open(path).convert("L")
+
+
 def calib_scroll():
     """จดตำแหน่งปุ่มลูกศร ขึ้น/ลง ของแถบเลื่อนตาราง (ครั้งเดียว)"""
     import json, pyautogui
@@ -278,6 +381,20 @@ class St:
                     self.already.add(norm(nm))
 
 
+def table_prov(P, slot, who, S):
+    """เปลี่ยนคอลัมน์ผู้ให้บริการในตารางของแถวนี้  คืน False = ให้หยุด"""
+    r = set_table_provider(P, slot)
+    if r is False:
+        ans = jf.ask(f"{who}\n\nคอลัมน์ 'ผู้ให้บริการ' ในตารางของแถวนี้ ไม่ใช่ชื่อที่จดไว้\nแก้เองในตารางแล้วทำต่อ หรือหยุด",
+                     ["แก้เองแล้ว ทำต่อ", "หยุด"])
+        if ans != "แก้เองแล้ว ทำต่อ":
+            S.log.append((who, "หยุด-ผู้ให้บริการในตารางไม่ตรง")); S.stop = True
+            return False
+    elif r == "other":
+        S.log.append((who, "ตาราง: ผู้ให้บริการเป็นชื่ออื่น ไม่ได้เปลี่ยน")); print(f"  {who}: คอลัมน์ผู้ให้บริการในตารางเป็นชื่ออื่น ไม่แตะ")
+    return True
+
+
 def process_table(P, kids, room, S):
     """ทำทุกแถวในหน้าต่าง ตรวจทันตกรรม ที่เปิดอยู่ คืนจำนวนแถวที่เปิดได้ (0 = ห้องว่าง)"""
     import pyautogui
@@ -307,6 +424,8 @@ def process_table(P, kids, room, S):
                 S.log.append((who, "บันทึกแล้ว (รอบก่อน)")); print(f"= {who}: บันทึกไว้แล้วรอบก่อน ข้าม")
                 if isinstance(k, dict): k["done"] = True
                 if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); S.stop = True; break
+                if S.do_save and not table_prov(P, slot, who, S):
+                    break
                 continue
             if how:
                 print(f"  * {who}: จับคู่แบบ {how}")
@@ -354,13 +473,16 @@ def process_table(P, kids, room, S):
                 print(f"{who}: ดึงฟอร์มขึ้นหน้าสุดไม่ได้ -> หยุด ไม่กดบันทึก"); S.log.append((who, "หยุด")); S.stop = True; break
             if ans in (None, "หยุด"):
                 close_form(P); S.log.append((who, "หยุดโดยผู้ใช้")); S.stop = True; break
-            if S.do_save and ans == ok:
+            saved = S.do_save and ans == ok
+            if saved:
                 pyautogui.click(*jf.fp(P, "save")); time.sleep(1.5)
                 S.log.append((who, "บันทึกแล้ว" + (f" ({how})" if how else ""))); print(f"✓ {who}")
             else:
                 S.log.append((who, f"ไม่บันทึก ({ans})")); print(f"  {who}: ไม่บันทึก")
             if jf.FORM_KEY in jf.active_title() and not close_form(P):
                 print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); S.stop = True; break
+            if saved and not table_prov(P, slot, who, S):
+                break
             time.sleep(0.3)
         if S.stop or new_here == 0:
             break
@@ -716,6 +838,8 @@ def cli(pause=False):
             calib_provider()
         elif len(sys.argv) > 1 and sys.argv[1] in ("school", "calib-school"):
             calib_school()
+        elif len(sys.argv) > 1 and sys.argv[1] in ("tprov", "table-provider"):
+            calib_tprov()
         else:
             a = ap.parse_args()
             path = a.csv or newest_csv()

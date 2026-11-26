@@ -188,6 +188,8 @@ def gui():
                command=lambda: run_chain([("jhcis_dental_room", ["calib"])], refresh0, "จดตำแหน่งแถบเลื่อน")).pack(fill="x", padx=8, pady=3)
     ttk.Button(t0, text="จดผู้ให้บริการ (เปิดฟอร์ม Dental ค้างไว้ แล้วชี้ช่องผู้ให้บริการ กับชื่อในรายการ)",
                command=lambda: run_chain([("jhcis_dental_room", ["provider"])], refresh0, "จดผู้ให้บริการ")).pack(fill="x", padx=8, pady=3)
+    ttk.Button(t0, text="จดผู้ให้บริการในตาราง (เปิดหน้า ตรวจทันตกรรม ค้างไว้ แล้วชี้ชื่อในคอลัมน์ผู้ให้บริการ)",
+               command=lambda: run_chain([("jhcis_dental_room", ["tprov"])], refresh0, "จดผู้ให้บริการในตาราง")).pack(fill="x", padx=8, pady=3)
     ttk.Button(t0, text="จดตำแหน่งหน้าอนามัยโรงเรียน: ช่องชั้นเรียน + ปุ่มตรวจทันตกรรม (ใช้กับ 'ทุกห้อง')",
                command=lambda: run_chain([("jhcis_dental_room", ["school"])], refresh0, "จดตำแหน่งหน้าอนามัยโรงเรียน")).pack(fill="x", padx=8, pady=3)
     ttk.Button(t0, text="เช็กตำแหน่งฟอร์มผลตรวจฟัน (เมาส์ชี้ทีละช่อง ไม่คลิก)",
