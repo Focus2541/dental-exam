@@ -181,7 +181,8 @@ def run(path, room, do_save, auto, visible, delay):
             break
         # เลื่อนตารางลง: ชี้เมาส์ในตาราง แล้วหมุนล้อ (ทับแถวเก่าบ้างไม่เป็นไร ข้ามคนที่ทำแล้วเอง)
         to = jf.table_origin()
-        pyautogui.moveTo(to[0] + P["row1_dental"][0] - 600, to[1] + P["row1_dental"][1] + row_h * (visible // 2))
+        # ชี้ที่คอลัมน์ Dental (ด้านขวาสุด) กันชี้โดนหน้าต่างดำที่อาจทับตารางด้านซ้าย
+        pyautogui.moveTo(to[0] + P["row1_dental"][0], to[1] + P["row1_dental"][1] + row_h * (visible // 2))
         pyautogui.scroll(-max(1, (visible - 2) // 3))
         time.sleep(0.6); page += 1
     missing = [k["name"] for k in kids if k["room"] == room and not k["done"] and not k["absent"]]
