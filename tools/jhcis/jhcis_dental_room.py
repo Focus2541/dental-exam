@@ -137,7 +137,7 @@ DBG = {"n": 0}
 
 
 def dbg(label):
-    """จดขั้นตอน + ชื่อหน้าต่างที่เปิดอยู่ + ภาพหน้าจอย่อ (ไม่เกิน 30 ภาพ) ไว้ให้ตรวจย้อนหลัง"""
+    """จดขั้นตอน + ชื่อหน้าต่างที่เปิดอยู่ + ภาพหน้าจอย่อ (ไม่เกิน 12 ภาพ) ไว้ให้ตรวจย้อนหลัง"""
     try:
         import pyautogui, pygetwindow
         DBG["n"] += 1
@@ -146,7 +146,7 @@ def dbg(label):
         jw = [t for t in wins if "JHCIS" not in t and ("เตือน" in t or "ผิดพลาด" in t or "Message" in t or "Option" in t)]
         with open(os.path.join(HERE, "debug_provider.txt"), "a", encoding="utf-8") as f:
             f.write(f"{time.strftime('%H:%M:%S')} #{n} {label} | active={jf.active_title()[:60]} | popups={jw}\n")
-        if n <= 30:
+        if n <= 12:
             im = pyautogui.screenshot()
             im.resize((im.width // 2, im.height // 2)).save(os.path.join(HERE, f"debug_{n:02d}.png"))
         return jw
@@ -632,7 +632,7 @@ def process_table(P, kids, room, S):
             title = wait_open_form()
             if not title:                         # คลิกแถวว่าง = สุดรายชื่อแล้ว
                 return opened
-            ensure_en()
+            ensure_en(); time.sleep(0.4)
             opened += 1
             who = title.split("ของ :", 1)[-1].strip(" :")
             key = norm(who)
@@ -670,9 +670,11 @@ def process_table(P, kids, room, S):
             for f, v in k["combos"]:
                 pyautogui.click(*jf.fp(P, f)); pyautogui.write(v); pyautogui.press("enter")
             dbg("after combos")
-            for f, v in k["nums"]:
-                pyautogui.click(*jf.fp(P, f)); pyautogui.hotkey("ctrl", "a"); pyautogui.write(v)
-            dbg("after numbers")
+            for f, v in k["nums"]:                # ลบค่าเดิมให้หมดก่อนพิมพ์ (ctrl+a บางครั้งไม่เลือก ทำให้ 20 กลายเป็น 2020)
+                pyautogui.click(*jf.fp(P, f)); pyautogui.hotkey("ctrl", "a"); pyautogui.press("end")
+                pyautogui.press("backspace", presses=5, interval=0.02); pyautogui.write(v)
+            if dbg("after numbers"):
+                S.log.append((who, "หยุด-มีหน้าต่างเตือนของ JHCIS")); S.stop = True; break
             pyautogui.click(*jf.fp(P, "cpi_all_normal"))
             if dbg("after cpi"):
                 S.log.append((who, "หยุด-มีหน้าต่างเตือนของ JHCIS")); S.stop = True; break
