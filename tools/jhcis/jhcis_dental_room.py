@@ -100,6 +100,51 @@ def match(kids, who, room):
     return (None if not hit else "many"), ""
 
 
+SB_DEFAULT = {"sb_up": [1246, 125], "sb_down": [1246, 646]}   # ปุ่มลูกศรแถบเลื่อน วัดจากมุมหน้าต่างตาราง
+
+
+def table_front():
+    import pygetwindow
+    ws = [w for w in pygetwindow.getAllWindows() if jf.TABLE_KEY in (w.title or "")]
+    if ws:
+        try:
+            ws[0].activate()
+        except Exception:
+            pass
+        time.sleep(0.3)
+
+
+def scroll_rows(P, n):
+    """n > 0 เลื่อนลง n แถว, n < 0 เลื่อนขึ้น"""
+    import pyautogui
+    to = jf.table_origin()
+    if not to:
+        return
+    table_front()
+    key = "sb_down" if n > 0 else "sb_up"
+    x, y = P.get(key, SB_DEFAULT[key])
+    old = pyautogui.PAUSE
+    pyautogui.PAUSE = 0.05
+    for _ in range(abs(n)):
+        pyautogui.click(to[0] + x, to[1] + y)
+    pyautogui.PAUSE = old
+    time.sleep(0.5)
+
+
+def calib_scroll():
+    """จดตำแหน่งปุ่มลูกศร ขึ้น/ลง ของแถบเลื่อนตาราง (ครั้งเดียว)"""
+    import json, pyautogui
+    if not jf.table_origin():
+        sys.exit("เปิดหน้า ตรวจทันตกรรม ค้างไว้ก่อน")
+    P = json.load(open(jf.CAL, encoding="utf-8"))
+    for key, desc in (("sb_up", "ปุ่มลูกศรขึ้น ▲ บนสุดของแถบเลื่อนตาราง"), ("sb_down", "ปุ่มลูกศรลง ▼ ล่างสุดของแถบเลื่อนตาราง")):
+        input(f"ชี้เมาส์ที่ {desc} (ไม่ต้องคลิก) แล้วกลับมากด Enter ")
+        x, y = pyautogui.position(); ox, oy = jf.table_origin()
+        P[key] = [x - ox, y - oy]; print("   =", P[key])
+    json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
+    print("บันทึกแล้ว")
+
+
 def close_form(P):
     import pyautogui
     if jf.FORM_KEY in jf.active_title() or jf.focus_form():
@@ -131,10 +176,7 @@ def run(path, room, do_save, auto, visible, delay):
     if already:
         print(f"บันทึกไปแล้วในรอบก่อน {len(already)} คน จะข้ามคนเหล่านี้")
     stop, page = False, 0
-    to = jf.table_origin()                        # เลื่อนตารางขึ้นบนสุดก่อนเริ่ม
-    if to:
-        pyautogui.moveTo(to[0] + P["row1_dental"][0], to[1] + P["row1_dental"][1] + row_h * (visible // 2))
-        pyautogui.scroll(40); time.sleep(0.6)
+    scroll_rows(P, -60)                           # เลื่อนตารางขึ้นบนสุดก่อนเริ่ม
     while not stop:
         new_here = 0
         for slot in range(visible):
@@ -198,12 +240,10 @@ def run(path, room, do_save, auto, visible, delay):
             time.sleep(0.3)
         if stop or new_here == 0:
             break
-        # เลื่อนตารางลง: ชี้เมาส์ในตาราง แล้วหมุนล้อ (ทับแถวเก่าบ้างไม่เป็นไร ข้ามคนที่ทำแล้วเอง)
-        to = jf.table_origin()
-        # ชี้ที่คอลัมน์ Dental (ด้านขวาสุด) กันชี้โดนหน้าต่างดำที่อาจทับตารางด้านซ้าย
-        pyautogui.moveTo(to[0] + P["row1_dental"][0], to[1] + P["row1_dental"][1] + row_h * (visible // 2))
-        pyautogui.scroll(-max(1, (visible - 2) // 3))
-        time.sleep(0.6); page += 1
+        # เลื่อนตารางลงทีละแถวด้วยปุ่มลูกศรของแถบเลื่อน (ล้อเมาส์ใช้กับ JHCIS ไม่ได้)
+        # ทับแถวเก่า 2 แถว คนที่เปิดดูแล้วจะข้ามเอง
+        scroll_rows(P, visible - 2)
+        page += 1
     missing = [k["name"] for k in kids if k["room"] == room and not k["done"] and not k["absent"]]
     out = os.path.join(HERE, f"ลงJHCIS_ผล_{room}_{time.strftime('%Y%m%d_%H%M')}.txt")
     with open(out, "w", encoding="utf-8") as f:
@@ -244,6 +284,12 @@ if __name__ == "__main__":
     ap.add_argument("--auto", action="store_true")
     ap.add_argument("--visible", type=int, default=17, help="จำนวนแถวที่เห็นในตารางโดยไม่เลื่อน")
     ap.add_argument("--delay", type=float, default=0.25)
+    if len(sys.argv) > 1 and sys.argv[1] == "calib":
+        try:
+            calib_scroll()
+        except BaseException as e:
+            print("หยุด:", e)
+        input("\nกด Enter เพื่อปิด"); sys.exit()
     a = ap.parse_args()
     try:
         path = a.csv or newest_csv()
