@@ -157,26 +157,69 @@ def prov_box(P):
     return (int(x - 200), int(y - 11), 400, 22)       # แถบชื่อผู้ให้บริการ กว้างพอเห็นชื่อทั้งชื่อ
 
 
-def set_provider(P):
-    """เลือกผู้ให้บริการตามที่จดไว้ แล้วเทียบภาพช่องกับภาพตัวอย่าง คืน True ถ้าตรง"""
+def prov_img(P):
     import pyautogui
-    if "provider" not in P:
+    return pyautogui.screenshot(region=prov_box(P)).convert("RGB")
+
+
+def same(a, b):
+    from PIL import ImageChops, ImageStat
+    return a.size == b.size and sum(ImageStat.Stat(ImageChops.difference(a, b)).mean) / 3 < 12
+
+
+def prov_match(P):
+    from PIL import Image
+    return same(prov_img(P), Image.open(REF).convert("RGB"))
+
+
+def prov_steps(P, n):
+    """เปิดรายการผู้ให้บริการ เลื่อนลง/ขึ้น n รายการด้วยลูกศร แล้ว Enter (ไม่ขึ้นกับตำแหน่งรายการบนจอ)"""
+    import pyautogui
+    pyautogui.click(*jf.fp(P, "provider")); time.sleep(0.4)
+    old = pyautogui.PAUSE; pyautogui.PAUSE = 0.03
+    for _ in range(abs(n)):
+        pyautogui.press("down" if n > 0 else "up")
+    pyautogui.PAUSE = old
+    pyautogui.press("enter"); time.sleep(0.35)
+
+
+def set_provider(P):
+    """เลือกผู้ให้บริการด้วยแป้นลูกศร แล้วเทียบภาพช่องกับภาพที่จดไว้ คืน True ถ้าตรง
+    ครั้งแรกจะหาเองว่าต้องเลื่อนกี่รายการจากชื่อตั้งต้น แล้วจำไว้"""
+    import json
+    if "provider" not in P or not os.path.exists(REF):
         return True
-    pyautogui.click(*jf.fp(P, "provider")); time.sleep(0.5)
-    pyautogui.click(*jf.fp(P, "provider_item")); time.sleep(0.4)
-    if not os.path.exists(REF):
+    prov_steps(P, 0)                              # คลิกช่อง + Enter = ยังไม่เปลี่ยนชื่อ แต่ได้โฟกัสเหมือนตอนจด
+    if prov_match(P):                             # ฟอร์มเปิดมาเป็นชื่อนี้อยู่แล้ว
         return True
-    from PIL import Image, ImageChops, ImageStat
-    now = pyautogui.screenshot(region=prov_box(P)).convert("RGB")
-    ref = Image.open(REF).convert("RGB")
-    if now.size != ref.size:
-        return False
-    diff = ImageStat.Stat(ImageChops.difference(now, ref)).mean
-    return sum(diff) / 3 < 12
+    n = P.get("provider_steps")
+    if n is not None:
+        prov_steps(P, n)
+        if prov_match(P):
+            return True
+        prov_steps(P, -n)                         # กลับไปชื่อตั้งต้นก่อนหาใหม่
+    print("   กำลังหาผู้ให้บริการในรายการ (ครั้งแรกครั้งเดียว)...")
+    for d in (1, -1):
+        prov_steps(P, 0)                          # ให้ช่องได้โฟกัสก่อน ภาพจะได้เทียบกันตรง
+        k, last = 0, prov_img(P)
+        for _ in range(80):
+            prov_steps(P, d)
+            now = prov_img(P)
+            if same(now, last):                   # สุดรายการแล้ว
+                break
+            k += d; last = now
+            if prov_match(P):
+                P["provider_steps"] = k
+                json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
+                print(f"   เจอแล้ว: เลื่อน {k:+d} รายการจากชื่อตั้งต้น")
+                return True
+        if k:
+            prov_steps(P, -k)                     # กลับที่เดิมแล้วลองอีกทิศ
+    return False
 
 
 def calib_provider():
-    """จดตำแหน่ง ช่องผู้ให้บริการ และชื่อที่ต้องการในรายการ (ครั้งเดียว)"""
+    """จดตำแหน่งช่องผู้ให้บริการ และภาพชื่อที่ต้องการ (ครั้งเดียว)"""
     import json, pyautogui
     if not jf.form_origin():
         sys.exit("เปิดฟอร์ม Dental ของเด็ก 1 คนค้างไว้ก่อน (ฟอร์ม การตรวจสุขภาพช่องปาก)")
@@ -184,25 +227,23 @@ def calib_provider():
     ox, oy = jf.form_origin()
     input("1) ชี้เมาส์ที่ช่อง 'ผู้ให้บริการ' ในฟอร์ม (กลางช่อง ไม่ต้องคลิก) แล้วกลับมากด Enter ")
     x, y = pyautogui.position(); P["provider"] = [x - ox, y - oy]
+    P.pop("provider_steps", None); P.pop("provider_item", None)
     print("\n2) อ่านก่อนทำ: อีก 3 วินาทีโปรแกรมจะคลิกเปิดรายการชื่อให้")
     print("   พอรายการเปิด ให้เลื่อนเมาส์ไปชี้ชื่อที่ต้องการ แล้ว *ค้างไว้เฉย ๆ* ห้ามคลิก ห้ามกดปุ่ม")
-    print("   โปรแกรมจะจำตำแหน่งเมาส์เองเมื่อนับถึง 0")
+    print("   เมื่อนับถึง 0 โปรแกรมจะคลิกชื่อนั้นให้เอง")
     time.sleep(3)
     pyautogui.click(ox + P["provider"][0], oy + P["provider"][1]); time.sleep(0.5)
     for i in range(8, 0, -1):
         print(f"   ชี้ชื่อค้างไว้... {i}", flush=True); time.sleep(1)
-    x, y = pyautogui.position(); P["provider_item"] = [x - ox, y - oy]
-    print("   จำตำแหน่งแล้ว", P["provider_item"])
-    pyautogui.press("esc")                        # ปิดรายการโดยไม่เลือก
-    if abs(P["provider_item"][1] - P["provider"][1]) < 8:
-        sys.exit("ตำแหน่งชื่อในรายการซ้ำกับช่อง (เมาส์ไม่ได้ย้าย) ลองใหม่")
-    json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
-    time.sleep(0.5)
-    jf.focus_form()                               # รายการปิดไปตอนสลับหน้าต่าง: เปิดใหม่แล้วเลือก
-    pyautogui.click(*jf.fp(P, "provider")); time.sleep(0.6)
-    pyautogui.click(*jf.fp(P, "provider_item")); time.sleep(0.6)
+    x, y = pyautogui.position()
+    if abs((y - oy) - P["provider"][1]) < 8:
+        pyautogui.press("esc")
+        sys.exit("เมาส์ไม่ได้ย้ายไปที่รายการ ลองใหม่")
+    pyautogui.click(x, y); time.sleep(0.6)        # คลิกตอนรายการยังเปิดอยู่ ตำแหน่งเดียวกับที่ชี้
     pyautogui.screenshot(region=prov_box(P)).save(REF)
-    print("บันทึกแล้ว ดูในฟอร์มว่าช่องผู้ให้บริการเป็นชื่อที่ต้องการ แล้วปิดฟอร์มโดยไม่บันทึก")
+    json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
+    print("\nบันทึกแล้ว ** ดูในฟอร์ม ช่องผู้ให้บริการต้องเป็นชื่อที่ต้องการ **")
+    print("ถ้าไม่ใช่ จดใหม่อีกครั้ง  ถ้าใช่ ปิดฟอร์มโดยไม่บันทึก")
 
 
 def calib_scroll():
