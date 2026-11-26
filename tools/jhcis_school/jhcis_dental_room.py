@@ -862,13 +862,33 @@ def cls_img(P):
     return pyautogui.screenshot(region=(int(x - 70), int(y - 10), 140, 20)).convert("RGB")
 
 
+def table_ready(P, sec=25):
+    """รอจนตารางโหลดรายชื่อเสร็จ (เห็นปุ่ม Dental สีแดงของแถวแรก) คืน True/False"""
+    import pyautogui
+    t0 = time.time()
+    while time.time() - t0 < sec:
+        to = jf.table_origin()
+        if to:
+            x, y = to[0] + P["row1_dental"][0], to[1] + P["row1_dental"][1]
+            img = pyautogui.screenshot(region=(int(x - 30), int(y - 8), 60, 16)).convert("RGB")
+            px = img.tobytes()
+            red = sum(1 for i in range(0, len(px), 3) if px[i] > 170 and px[i + 1] < 100 and px[i + 2] < 100)
+            if red >= 8:
+                time.sleep(0.5)
+                return True
+        time.sleep(0.5)
+    return False
+
+
 def close_table():
     """ปิดหน้าต่าง ตรวจทันตกรรม ด้วย Alt+F4 (ไม่คลิกใกล้ปุ่ม 'ลบข้อมูลการตรวจทั้งหมด')"""
     import pyautogui
     table_front()
     if jf.TABLE_KEY not in jf.active_title():
         dbg("close table: table not in front")
-        return False
+        time.sleep(2); table_front()
+        if jf.TABLE_KEY not in jf.active_title():
+            return False
     pyautogui.hotkey("alt", "f4")
     t0 = time.time()
     while time.time() - t0 < 4:
@@ -1105,6 +1125,10 @@ def run_all(path, classes, do_save, auto, visible, delay, redo=False, night=Fals
             print("กดตรวจทันตกรรมแล้วไม่มีหน้าต่างขึ้น -> หยุด"); break
         print(f"\n----- ชั้นที่ {c + 1}/{classes} -----")
         dbg(f"class {c + 1} start")
+        if not table_ready(P):
+            print("  ตารางไม่มีรายชื่อ (หรือโหลดไม่เสร็จใน 25 วินาที) -> ข้ามชั้นนี้")
+            dbg(f"class {c + 1} not ready")
+            continue
         hint = rooms[c] if c < len(rooms) else None   # ชั้นใน JHCIS น่าจะตรงกับห้องลำดับเดียวกันในไฟล์ ใช้ช่วยแยกชื่อซ้ำ
         n = process_table(P, kids, hint, S)
         if n == 0:
