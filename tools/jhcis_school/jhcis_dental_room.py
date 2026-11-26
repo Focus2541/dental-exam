@@ -184,11 +184,17 @@ def calib_provider():
     ox, oy = jf.form_origin()
     input("1) ชี้เมาส์ที่ช่อง 'ผู้ให้บริการ' ในฟอร์ม (กลางช่อง ไม่ต้องคลิก) แล้วกลับมากด Enter ")
     x, y = pyautogui.position(); P["provider"] = [x - ox, y - oy]
-    print("   โปรแกรมจะคลิกเปิดรายการให้ใน 2 วินาที"); time.sleep(2)
-    pyautogui.click(ox + P["provider"][0], oy + P["provider"][1]); time.sleep(0.6)
-    input("2) ชี้เมาส์ที่ชื่อผู้ให้บริการที่ต้องการในรายการที่เปิดอยู่ (ไม่ต้องคลิก) แล้วกด Enter ")
+    print("\n2) อ่านก่อนทำ: อีก 3 วินาทีโปรแกรมจะคลิกเปิดรายการชื่อให้")
+    print("   พอรายการเปิด ให้เลื่อนเมาส์ไปชี้ชื่อที่ต้องการ แล้ว *ค้างไว้เฉย ๆ* ห้ามคลิก ห้ามกดปุ่ม")
+    print("   โปรแกรมจะจำตำแหน่งเมาส์เองเมื่อนับถึง 0")
+    time.sleep(3)
+    pyautogui.click(ox + P["provider"][0], oy + P["provider"][1]); time.sleep(0.5)
+    for i in range(8, 0, -1):
+        print(f"   ชี้ชื่อค้างไว้... {i}", flush=True); time.sleep(1)
     x, y = pyautogui.position(); P["provider_item"] = [x - ox, y - oy]
-    if abs(P["provider_item"][1] - P["provider"][1]) < 5:
+    print("   จำตำแหน่งแล้ว", P["provider_item"])
+    pyautogui.press("esc")                        # ปิดรายการโดยไม่เลือก
+    if abs(P["provider_item"][1] - P["provider"][1]) < 8:
         sys.exit("ตำแหน่งชื่อในรายการซ้ำกับช่อง (เมาส์ไม่ได้ย้าย) ลองใหม่")
     json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
     time.sleep(0.5)
