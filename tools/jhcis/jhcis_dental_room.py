@@ -133,6 +133,27 @@ def ensure_en():
         pass
 
 
+DBG = {"n": 0}
+
+
+def dbg(label):
+    """จดขั้นตอน + ชื่อหน้าต่างที่เปิดอยู่ + ภาพหน้าจอย่อ (ไม่เกิน 30 ภาพ) ไว้ให้ตรวจย้อนหลัง"""
+    try:
+        import pyautogui, pygetwindow
+        DBG["n"] += 1
+        n = DBG["n"]
+        wins = [w.title for w in pygetwindow.getAllWindows() if w.title and w.width > 50]
+        jw = [t for t in wins if "JHCIS" not in t and ("เตือน" in t or "ผิดพลาด" in t or "Message" in t or "Option" in t)]
+        with open(os.path.join(HERE, "debug_provider.txt"), "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%H:%M:%S')} #{n} {label} | active={jf.active_title()[:60]} | popups={jw}\n")
+        if n <= 30:
+            im = pyautogui.screenshot()
+            im.resize((im.width // 2, im.height // 2)).save(os.path.join(HERE, f"debug_{n:02d}.png"))
+        return jw
+    except Exception as e:
+        return []
+
+
 def table_front():
     import pygetwindow
     ws = [w for w in pygetwindow.getAllWindows() if jf.TABLE_KEY in (w.title or "")]
@@ -309,8 +330,12 @@ def set_provider(P):
     if tsame(prov_text(P, g), ok):                      # เปิดมาเป็นชื่อนี้อยู่แล้ว
         return True
     x, y = jf.fp(P, "provider")
+    dbg(f"provider box geom={g} point={(x, y)}")
     if pick(x, g[1], g[0] - x, ok):                     # เปิดรายการ หาแถวที่ต้นชื่อตรงกับภาพ แล้วคลิก
+        if dbg("after pick click"):
+            return "manual"
         pyautogui.press("tab"); time.sleep(0.4)
+        dbg("after tab")
         if tsame(prov_text(P), ok):
             return True
     return "manual"
@@ -401,8 +426,10 @@ def pick(ax, ay, dx, tmpl):
     """คลิกช่องให้รายการเปิด แล้วคลิกชื่อที่ตรงภาพ (เลื่อนรายการด้วยลูกศรถ้ายังไม่เห็น) คืน True ถ้าเจอ"""
     import pyautogui
     pyautogui.click(ax, ay); time.sleep(0.6)
+    dbg(f"list opened? clicked {(ax, ay)}")
     for i in range(14):
         y = find_item(ax, ay, dx, tmpl)
+        dbg(f"find try {i}: y={y}")
         if y is not None:
             pyautogui.click(ax + dx + min(tmpl.size[0], 60) // 2, y); time.sleep(0.5)
             return True
@@ -639,12 +666,19 @@ def process_table(P, kids, room, S):
                 S.log.append((who, st)); print(f"- {who}: {st}")
                 if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); S.stop = True; break
                 continue
+            dbg(f"form open {who}")
             for f, v in k["combos"]:
                 pyautogui.click(*jf.fp(P, f)); pyautogui.write(v); pyautogui.press("enter")
+            dbg("after combos")
             for f, v in k["nums"]:
                 pyautogui.click(*jf.fp(P, f)); pyautogui.hotkey("ctrl", "a"); pyautogui.write(v)
+            dbg("after numbers")
             pyautogui.click(*jf.fp(P, "cpi_all_normal"))
+            if dbg("after cpi"):
+                S.log.append((who, "หยุด-มีหน้าต่างเตือนของ JHCIS")); S.stop = True; break
             sp = set_provider(P)
+            if dbg(f"after provider ({sp})"):
+                S.log.append((who, "หยุด-มีหน้าต่างเตือนของ JHCIS")); S.stop = True; break
             if sp == "manual":                    # ให้คนเลือกเองในฟอร์ม (คนแรก: จำภาพชื่อนี้ไว้เทียบคนต่อไป)
                 if not manual_provider(P, who):
                     close_form(P); S.log.append((who, "หยุด-ผู้ให้บริการ")); S.stop = True; break
