@@ -423,21 +423,28 @@ def find_item(ax, ay, dx, tmpl):
 
 
 def pick(ax, ay, dx, tmpl):
-    """คลิกช่องให้รายการเปิด แล้วคลิกชื่อที่ตรงภาพ (เลื่อนรายการด้วยลูกศรถ้ายังไม่เห็น) คืน True ถ้าเจอ"""
+    """คลิกช่องให้รายการเปิด แล้วคลิกชื่อที่ตรงภาพ (เลื่อนรายการด้วยลูกศรถ้ายังไม่เห็น) คืน True ถ้าเจอ
+    ก่อนคลิกต้องเห็นชื่อที่ตำแหน่งเดิม 2 ครั้ง (JHCIS เลื่อนรายการช้า ภาพแรกอาจยังเลื่อนไม่เสร็จ)"""
     import pyautogui
-    pyautogui.click(ax, ay); time.sleep(0.6)
+    pyautogui.click(ax, ay); time.sleep(0.8)
     dbg(f"list opened? clicked {(ax, ay)}")
-    for i in range(14):
+    for i in range(12):
         y = find_item(ax, ay, dx, tmpl)
         dbg(f"find try {i}: y={y}")
         if y is not None:
-            pyautogui.click(ax + dx + min(tmpl.size[0], 60) // 2, y); time.sleep(0.5)
+            time.sleep(0.5)
+            if find_item(ax, ay, dx, tmpl) != y:       # รายการยังเลื่อนอยู่ ดูใหม่
+                continue
+            pyautogui.moveTo(ax + dx + min(tmpl.size[0], 60) // 2, y); time.sleep(0.4)
+            if find_item(ax, ay, dx, tmpl) != y:
+                continue
+            pyautogui.click(); time.sleep(0.5)
             return True
-        old = pyautogui.PAUSE; pyautogui.PAUSE = 0.03
-        for _ in range(4):                               # เลื่อนรายการทีละ 4 ชื่อ แล้วหาใหม่
-            pyautogui.press("down" if i < 9 else "up")
+        old = pyautogui.PAUSE; pyautogui.PAUSE = 0.05
+        for _ in range(6):                               # เลื่อนรายการทีละ 6 ชื่อ (เห็นทีละ 8) แล้วหาใหม่
+            pyautogui.press("down" if i < 8 else "up")
         pyautogui.PAUSE = old
-        time.sleep(0.3)
+        time.sleep(1.0)
     pyautogui.press("escape"); time.sleep(0.3)
     return False
 
