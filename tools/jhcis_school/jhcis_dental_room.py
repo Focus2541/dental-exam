@@ -1041,7 +1041,8 @@ def cli(pause=False):
     ap.add_argument("--classes", type=int, default=0, help="โหมด all: จำนวนชั้นที่จะทำ (ไม่ใส่ = เท่าจำนวนห้องในไฟล์)")
     # พิมพ์รวมในช่องห้องได้ เช่น "a2 + redo" หรือ "a2 save"
     args = [x for x in sys.argv[1:] if x not in ("+", ",")]
-    for w, f in (("save", ["--save", "--auto"]), ("redo", ["--save", "--auto", "--redo"])):
+    for w, f in (("save", ["--save", "--auto"]), ("redo", ["--save", "--auto", "--redo"]),
+                 ("test", ["--redo"])):                        # test = ซ้อมรวมคนที่บันทึกแล้ว (ไม่กดบันทึก)
         if w in [x.lower() for x in args[1:]]:
             args = [x for x in args if x.lower() != w] + f
     sys.argv = sys.argv[:1] + list(dict.fromkeys(args))
