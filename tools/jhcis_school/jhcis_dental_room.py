@@ -251,14 +251,40 @@ def msg(text):
 
 
 # ---------- ช่องผู้ให้บริการในฟอร์ม Dental ----------
-def prov_box(P):
+PW = 150                                                # ความกว้างภาพต้นชื่อในช่องฟอร์ม
+
+
+def box_vcenter(x, y):
+    """กลางแนวตั้งของช่อง (ระหว่างเส้นขอบบน-ล่าง) ที่จุด x,y  ไม่เจอ = y เดิม"""
+    img = grab_raw(x - 40, y - 25, 80, 51)
+    line = []
+    for r in range(51):
+        vals = [img.getpixel((c, r)) for c in range(80)]
+        line.append(max(vals) - min(vals) <= 12 and max(vals) < 225)
+    up = next((r for r in range(25, -1, -1) if line[r]), None)
+    dn = next((r for r in range(25, 51) if line[r]), None)
+    if up is None or dn is None or not (12 <= dn - up <= 45):
+        return y
+    return y - 25 + (up + dn) // 2
+
+
+def prov_geom(P):
+    """(x0, cy) = จุดเริ่มต้นชื่อ และกลางแนวตั้ง ของช่องผู้ให้บริการในฟอร์ม"""
     x, y = jf.fp(P, "provider")
-    return (int(x - 150), int(y - 9), 260, 18)        # ในช่องชื่อผู้ให้บริการ (ไม่เอาป้ายหน้าช่อง)
+    cy = box_vcenter(x, y)
+    b = left_border(x, cy, 6)
+    return (b + 3 if b is not None else x - 150), cy
 
 
-def prov_img(P):
+def prov_text(P, g=None):
+    x0, cy = g or prov_geom(P)
+    return grab(x0, cy - 9, PW, 18)
+
+
+def prov_img(P):                                   # เก็บไว้ให้โค้ดส่วนอื่นที่ยังเรียกใช้
     import pyautogui
-    return pyautogui.screenshot(region=prov_box(P)).convert("RGB")
+    x, y = jf.fp(P, "provider")
+    return pyautogui.screenshot(region=(int(x - 150), int(y - 9), 260, 18)).convert("RGB")
 
 
 def same(a, b):
@@ -266,20 +292,28 @@ def same(a, b):
     return a.size == b.size and sum(ImageStat.Stat(ImageChops.difference(a, b)).mean) / 3 < 12
 
 
-def prov_settled(P):
-    """ภาพช่องผู้ให้บริการหลังย้ายโฟกัสออก"""
-    import pyautogui
-    pyautogui.press("tab"); time.sleep(0.4)
-    return ink(prov_img(P))
+def ref_ok():
+    from PIL import Image
+    return os.path.exists(REF) and not is_old(REF) and Image.open(REF).size == (PW, 18)
 
 
 def set_provider(P):
-    """True = ช่องเป็นชื่อที่คนยืนยันไว้แล้ว (JHCIS จำชื่อที่เลือกล่าสุดให้ฟอร์มถัดไป), "manual" = ให้คนเลือกเอง"""
+    """True = ช่องเป็นชื่อที่คนยืนยันไว้ (หรือเลือกจากรายการให้แล้วตรง), "manual" = ให้คนเลือกเอง"""
+    import pyautogui
     if "provider" not in P:
         return True
-    if not os.path.exists(REF):
+    if not ref_ok():
         return "manual"
-    return True if tsame(ink(prov_img(P)), load_img(REF)) else "manual"
+    ok = load_img(REF)
+    g = prov_geom(P)
+    if tsame(prov_text(P, g), ok):                      # เปิดมาเป็นชื่อนี้อยู่แล้ว
+        return True
+    x, y = jf.fp(P, "provider")
+    if pick(x, g[1], g[0] - x, ok):                     # เปิดรายการ หาแถวที่ต้นชื่อตรงกับภาพ แล้วคลิก
+        pyautogui.press("tab"); time.sleep(0.4)
+        if tsame(prov_text(P), ok):
+            return True
+    return "manual"
 
 
 def calib_provider():
@@ -298,13 +332,14 @@ def calib_provider():
 
 
 # ---------- คอลัมน์ 'ผู้ให้บริการ' ในตาราง ตรวจทันตกรรม (คนละค่ากับช่องในฟอร์ม Dental) ----------
-def left_border(x, y):
-    """เส้นตารางด้านซ้ายของช่องที่ x,y (เส้นตั้งสีเทาเรียบ ๆ สูงเกินตัวหนังสือ) คืน x หรือ None"""
-    img = grab_raw(x - 140, y - 12, 141, 25)
-    for c in range(140, -1, -1):
-        col = [img.getpixel((c, r)) for r in range(25)]
+def left_border(x, y, half=12):
+    """เส้นขอบด้านซ้ายของช่องที่ x,y (เส้นตั้งสีเทาเรียบ ๆ สูงเกินตัวหนังสือ) คืน x หรือ None"""
+    n = 2 * half + 1
+    img = grab_raw(x - 240, y - half, 241, n)
+    for c in range(240, -1, -1):
+        col = [img.getpixel((c, r)) for r in range(n)]
         if max(col) <= 205 and min(col) >= 110 and max(col) - min(col) <= 30:
-            return x - 140 + c
+            return x - 240 + c
     return None
 
 
@@ -318,9 +353,9 @@ def tcell_at(x, dx, y):
     return grab(x + dx, y - TH // 2, TW, TH)
 
 
-def tcell_wide(P, slot):
+def tcell_wide(P, slot, w=TW):
     x, y = tpos(P, slot)
-    return grab_raw(x + P["tprov_text_dx"] - 6, y - TH // 2 - 5, TW + 12, TH + 10)
+    return grab_raw(x + P["tprov_text_dx"] - 6, y - TH // 2 - 5, w + 12, TH + 10)
 
 
 def band_center(x0, y, w):
@@ -349,15 +384,16 @@ def band_center(x0, y, w):
 def find_item(ax, ay, dx, tmpl):
     """หาแถวในรายการที่เปิดอยู่ (ใต้หรือเหนือจุด ax,ay) ที่ต้นชื่อตรงกับภาพ tmpl คืน y บนจอ หรือ None"""
     w, h = tmpl.size
-    x0, top = ax + dx, ay - 330
-    strip = grab_raw(x0, top, w, 660)
+    x0, top = ax + dx - 3, ay - 330
+    strip = grab_raw(x0, top, w + 6, 660)
     best, by = 0.25, None
     for y in range(0, 660 - h):
         if abs(top + y + h // 2 - ay) < 14:               # ข้ามตัวช่องเอง (แสดงชื่อปัจจุบัน)
             continue
-        sc = score(ink(strip.crop((0, y, w, y + h))), tmpl)
-        if sc < best:
-            best, by = sc, top + y + h // 2
+        for ox in range(0, 7):                            # ตัวหนังสือในรายการอาจเยื้องจากในช่อง 1-3 จุด
+            sc = score(ink(strip.crop((ox, y, ox + w, y + h))), tmpl)
+            if sc < best:
+                best, by = sc, top + y + h // 2
     return by
 
 
@@ -368,7 +404,7 @@ def pick(ax, ay, dx, tmpl):
     for i in range(14):
         y = find_item(ax, ay, dx, tmpl)
         if y is not None:
-            pyautogui.click(ax + dx + TW // 2, y); time.sleep(0.5)
+            pyautogui.click(ax + dx + min(tmpl.size[0], 60) // 2, y); time.sleep(0.5)
             return True
         old = pyautogui.PAUSE; pyautogui.PAUSE = 0.03
         for _ in range(4):                               # เลื่อนรายการทีละ 4 ชื่อ แล้วหาใหม่
@@ -380,26 +416,26 @@ def pick(ax, ay, dx, tmpl):
 
 
 def tprov_ready(P):
-    return "tprov_text_dx" in P and all(os.path.exists(f) and not is_old(f) for f in (TREF_OK, TREF_DEF, TITEM))
+    return "tprov_text_dx" in P and all(os.path.exists(f) and not is_old(f) for f in (TREF_DEF, TITEM))
 
 
 def set_table_provider(P, slot):
-    """คืน "skip" = ไม่ได้ตั้งค่าไว้, "already" = เป็นชื่อที่ต้องการอยู่แล้ว, "other" = เป็นชื่ออื่น ไม่แตะ,
-    True = เปลี่ยนแล้วตรงภาพ, False = เปลี่ยนแล้วไม่ตรง/หาไม่เจอ"""
+    """คืน "skip" = ไม่ได้ตั้งค่าไว้, "already" = เป็นชื่อที่ต้องการอยู่แล้ว,
+    True = เปลี่ยนแล้ว, False = หาชื่อในรายการไม่เจอ/เปลี่ยนไม่ได้
+    เทียบกับภาพต้นชื่อทันตแพทย์ในรายการ (ตัวหนังสือแบบเดียวกับในช่องตาราง)"""
     if "tprov" not in P or not tprov_ready(P):
         return "skip"
     table_front()
-    ok, df = load_img(TREF_OK), load_img(TREF_DEF)
-    now = tcell_wide(P, slot)
-    if slide(now, ok):
+    df, item = load_img(TREF_DEF), load_img(TITEM)
+    w = item.size[0]
+    if slide(tcell_wide(P, slot, w), item):
         return "already"
-    if not slide(now, df):
-        return "other"
     x, y = tpos(P, slot)
-    if not pick(x, y, P["tprov_text_dx"], load_img(TITEM)):
+    if not pick(x, y, P["tprov_text_dx"], item):
         return False
     time.sleep(0.5)
-    return slide(tcell_wide(P, slot), ok)
+    now = tcell_wide(P, slot, w)
+    return slide(now, item) or not slide(now, df)
 
 
 def calib_tprov():
@@ -422,7 +458,7 @@ def calib_tprov():
     b = left_border(cx, cy)
     if b is None:
         sys.exit("หาเส้นขอบช่องไม่เจอ ลองชี้กลางช่องผู้ให้บริการใหม่")
-    P["tprov_text_dx"] = b + 1 - cx                  # ต้นชื่อเริ่มถัดจากเส้นขอบช่อง
+    P["tprov_text_dx"] = b + 4 - cx                  # ต้นชื่อ (เว้นเส้นขอบช่อง/ขอบรายการ 3 จุด)
     df = tcell_at(cx, P["tprov_text_dx"], cy)
     if sum(df.histogram()[60:]) < 20:
         sys.exit("ไม่เห็นตัวหนังสือในช่องนี้ ลองใหม่")
@@ -488,19 +524,21 @@ class St:
 
 def manual_provider(P, who):
     """ให้คนเลือกผู้ให้บริการเองในฟอร์ม โดยไม่มีกล่องของโปรแกรมค้างบนจอระหว่างเลือก
-    รอจนช่องเปลี่ยนแล้วนิ่ง จึงถามยืนยัน  คนแรก: จำภาพชื่อไว้เทียบคนต่อไป  คืน False = หยุด"""
-    first = not os.path.exists(REF)
-    msg(f"{who}\n\n" + ("คนแรก: " if first else "ช่องผู้ให้บริการไม่ใช่ชื่อที่จำไว้\n") +
+    รอจนช่องเปลี่ยนแล้วนิ่ง จึงถามยืนยัน  จำภาพชื่อไว้เลือกให้คนต่อไปเอง  คืน False = หยุด"""
+    import pyautogui
+    first = not ref_ok()
+    msg(f"{who}\n\n" + ("ครั้งแรก: " if first else "เลือกชื่อให้อัตโนมัติไม่สำเร็จ\n") +
         "กด OK ที่กล่องนี้ก่อน แล้วเลือก 'ผู้ให้บริการ' ในฟอร์ม JHCIS เป็น ท.พ.อำนาจ\n\n"
         "เลือกเสร็จแล้วไม่ต้องกดอะไรต่อ โปรแกรมเห็นเองแล้วจะถามยืนยัน\n"
         "(ถ้าเป็น ท.พ.อำนาจ อยู่แล้ว ไม่ต้องทำอะไร รอสักครู่โปรแกรมจะถาม)")
     jf.focus_form(); time.sleep(0.3)
-    base = ink(prov_img(P))
+    g = prov_geom(P)
+    base = prov_text(P, g)
     while True:
         t0, last, still = time.time(), base, 0
         while time.time() - t0 < 25:              # รอให้ช่องเปลี่ยน แล้วนิ่ง 2 วินาที
             time.sleep(0.5)
-            now = ink(prov_img(P))
+            now = prov_text(P, g)
             if tsame(now, base):
                 continue
             still = still + 1 if tsame(now, last) else 0
@@ -514,12 +552,11 @@ def manual_provider(P, who):
             break
         if ans != "ยังไม่ใช่ รอต่อ":
             return False
-        base = ink(prov_img(P))
+        base = prov_text(P, g)
     if not jf.focus_form():
         return False
-    img = prov_settled(P)
-    if first:
-        img.save(REF)
+    pyautogui.press("tab"); time.sleep(0.4)
+    prov_text(P).save(REF)                        # จำภาพชื่อนี้ไว้ (ใช้ทั้งเทียบ และหาในรายการให้คนต่อไป)
     return True
 
 
@@ -988,7 +1025,7 @@ def cli(pause=False):
             path = a.csv or newest_csv()
             print("ไฟล์:", os.path.basename(path))
             P0 = json.load(open(jf.CAL, encoding="utf-8"))
-            if os.path.exists(REF) and (is_old(REF) or load_img(REF).size != (260, 18)):
+            if os.path.exists(REF) and not ref_ok():
                 os.remove(REF)                    # ภาพแบบเก่า ลบทิ้ง คนแรกจะให้เลือกเองแล้วจำใหม่
             if "provider" not in P0:
                 print("** ยังไม่ได้จดผู้ให้บริการ: ช่องผู้ให้บริการจะเป็นชื่อตั้งต้นของ JHCIS (จดด้วยคำสั่ง provider)")
