@@ -545,6 +545,7 @@ class St:
         self.do_save, self.auto, self.redo, self.visible, self.night = do_save, auto, redo, visible, night
         self.log, self.extra, self.asked, self.stop = [], [], 0, False
         self.already = set()
+        self.class_seen = set()
         import glob
         for f in glob.glob(os.path.join(HERE, "ลงJHCIS_ผล_*.txt")):   # คนที่บันทึกไปแล้วรอบก่อน ๆ ไม่บันทึกซ้ำ
             for line in open(f, encoding="utf-8"):
@@ -687,6 +688,7 @@ def process_table(P, kids, room, S):
                 if S.stop: break
                 continue
             seen.add(key); new_here += 1
+            S.class_seen.add(key)
             k, how = match(kids, who, room)
             if key in S.already and not S.redo:
                 S.log.append((who, "บันทึกแล้ว (รอบก่อน)")); print(f"= {who}: บันทึกไว้แล้วรอบก่อน ข้าม")
@@ -808,6 +810,17 @@ def report(path, kids, room, S):
     print("=" * 60)
 
 
+def banner(do_save, redo, night):
+    print("=" * 60)
+    if not do_save:
+        print(" โหมด: ** ซ้อม ** ไม่กดบันทึก" + (" (รวมคนที่บันทึกแล้ว)" if redo else " (ข้ามคนที่บันทึกแล้ว)"))
+        print(" ถ้าจะบันทึกจริง ปิดหน้าต่างนี้ แล้วพิมพ์โหมด night หรือ redo")
+    else:
+        print(" โหมด: บันทึกจริง" + (" รวมคนที่บันทึกแล้ว (redo)" if redo else " ข้ามคนที่บันทึกแล้ว")
+              + (" | ไม่มีกล่องถาม (night)" if night else " | ถาม 3 คนแรก"))
+    print("=" * 60)
+
+
 def run(path, room, do_save, auto, visible, delay, redo=False, night=False):
     import pyautogui
     pyautogui.FAILSAFE = True
@@ -817,7 +830,7 @@ def run(path, room, do_save, auto, visible, delay, redo=False, night=False):
     mine = [k for k in kids if k["room"] == room]
     todo = [k for k in mine if not k["absent"]]
     print(f"ห้อง {room}: ในไฟล์ {len(mine)} คน | ต้องลง {len(todo)} | ไม่มา {len(mine) - len(todo)}")
-    print("โหมด:", "บันทึกจริง" if do_save else "ซ้อม (ไม่กดบันทึก)", "| ถามทุกคน" if not auto else "| ถาม 3 คนแรก")
+    banner(do_save, redo, night)
     input("เปิดหน้า ตรวจทันตกรรม ของห้องนี้ แป้นพิมพ์ EN แล้วกด Enter (มีเวลา 3 วินาทีสลับไป JHCIS)")
     time.sleep(3)
     console(False)                                # ย่อหน้าต่างดำลง ไม่ให้บังแถบเลื่อน/ปุ่ม Dental
@@ -906,8 +919,9 @@ def next_class(P):
     if not o:
         return False
     before = cls_img(P)
-    pyautogui.click(o[0] + P["sch_cls"][0], o[1] + P["sch_cls"][1]); time.sleep(0.4)
-    pyautogui.press("down"); pyautogui.press("enter"); time.sleep(1.2)
+    pyautogui.click(o[0] + P["sch_cls"][0], o[1] + P["sch_cls"][1]); time.sleep(1.0)   # รอรายการชั้นเปิด
+    pyautogui.press("down"); time.sleep(0.5)
+    pyautogui.press("enter"); time.sleep(1.5)
     return not same(before, cls_img(P))
 
 
@@ -1085,6 +1099,23 @@ def calib_school():
     print("บันทึกแล้ว")
 
 
+def peek_first(P):
+    """เปิดฟอร์มแถวแรกดูชื่อ แล้วปิด (ไว้เช็กว่าเลื่อนชั้นสำเร็จจริง) คืนชื่อแบบ norm หรือ None"""
+    import pyautogui
+    to = jf.table_origin()
+    if not to:
+        return None
+    table_front()
+    scroll_rows(P, -60)
+    pyautogui.click(to[0] + P["row1_dental"][0], to[1] + P["row1_dental"][1])
+    title = wait_open_form()
+    if not title:
+        return None
+    key = norm(title.split("ของ :", 1)[-1].strip(" :"))
+    close_form(P); time.sleep(0.5)
+    return key
+
+
 def run_all(path, classes, do_save, auto, visible, delay, redo=False, night=False, start=None):
     import pyautogui
     pyautogui.FAILSAFE = True
@@ -1101,7 +1132,7 @@ def run_all(path, classes, do_save, auto, visible, delay, redo=False, night=Fals
     classes = classes or len(rooms)
     print(f"ในไฟล์ {len(kids)} คน {len(rooms)} ห้อง: {', '.join(rooms)}")
     print(f"จะทำ {classes} ชั้น เริ่มจากชั้นที่เลือกไว้ในหน้าอนามัยโรงเรียนตอนนี้ แล้วเลื่อนลงทีละชั้น")
-    print("โหมด:", "บันทึกจริง" if do_save else "ซ้อม (ไม่กดบันทึก)", "| ถามทุกคน" if not auto else "| ถาม 3 คนแรก")
+    banner(do_save, redo, night)
     if night:
         print("โหมดกลางคืน: ไม่มีกล่องถาม คนที่ลงให้ไม่ได้จะข้ามแล้วจดไว้ให้ลงเองตอนเช้า เครื่องจะไม่พักระหว่างรัน")
     input(f"ในหน้าอนามัยโรงเรียน เลือกชั้น {rooms[0]} ไว้ แป้นพิมพ์ EN แล้วกด Enter (มีเวลา 3 วินาที)")
@@ -1116,20 +1147,34 @@ def run_all(path, classes, do_save, auto, visible, delay, redo=False, night=Fals
         time.sleep(0.8)
     S = St(do_save, auto, redo, visible, night)
     for c in range(classes):
-        if c > 0:
-            if jf.table_origin() and not close_table():
-                print("ปิดหน้าต่างตรวจทันตกรรมไม่ได้ -> หยุด"); break
-            if not next_class(P):
-                print("เลื่อนชั้นต่อไม่ได้ (สุดรายการชั้นแล้ว) -> จบ"); break
-        if not jf.table_origin() and not open_table(P, night):
-            print("กดตรวจทันตกรรมแล้วไม่มีหน้าต่างขึ้น -> หยุด"); break
+        moved = c == 0
+        for attempt in range(1 if c == 0 else 3):
+            if c > 0:
+                if jf.table_origin() and not close_table():
+                    print("ปิดหน้าต่างตรวจทันตกรรมไม่ได้ -> หยุด"); S.stop = True; break
+                if not next_class(P):
+                    print("เลื่อนชั้นต่อไม่ได้ (สุดรายการชั้นแล้ว) -> จบ"); S.stop = True; break
+            if not jf.table_origin() and not open_table(P, night):
+                print("กดตรวจทันตกรรมแล้วไม่มีหน้าต่างขึ้น -> หยุด"); S.stop = True; break
+            if not table_ready(P):
+                print("  ตารางไม่มีรายชื่อ (หรือโหลดไม่เสร็จใน 25 วินาที)")
+                dbg(f"class {c + 1} not ready")
+                moved = True; break
+            if c == 0:
+                break
+            first = peek_first(P)                 # เช็กว่าเป็นชั้นใหม่จริง (ชื่อแถวแรกไม่ซ้ำชั้นก่อน)
+            if first and first not in S.class_seen:
+                moved = True; break
+            print("  ชั้นยังไม่เปลี่ยน ลองเลื่อนชั้นใหม่")
+            dbg(f"class {c + 1} same as before (try {attempt + 1})")
+        if S.stop:
+            break
+        if not moved:
+            print("เลื่อนชั้นไม่สำเร็จ 3 ครั้ง -> หยุด"); break
         print(f"\n----- ชั้นที่ {c + 1}/{classes} -----")
         dbg(f"class {c + 1} start")
-        if not table_ready(P):
-            print("  ตารางไม่มีรายชื่อ (หรือโหลดไม่เสร็จใน 25 วินาที) -> ข้ามชั้นนี้")
-            dbg(f"class {c + 1} not ready")
-            continue
         hint = rooms[c] if c < len(rooms) else None   # ชั้นใน JHCIS น่าจะตรงกับห้องลำดับเดียวกันในไฟล์ ใช้ช่วยแยกชื่อซ้ำ
+        S.class_seen = set()
         n = process_table(P, kids, hint, S)
         if n == 0:
             print("  ชั้นนี้ไม่มีรายชื่อในตาราง")
@@ -1143,6 +1188,7 @@ def run_all(path, classes, do_save, auto, visible, delay, redo=False, night=Fals
 
 def room_name(r):
     """พิมพ์ห้องเป็นอังกฤษได้: a2/o2 = อ2, p1 = ป1, m1 = ม1 (ไม่ต้องสลับแป้นภาษา)"""
+    r = (r or "").replace("ฟ", "a").replace("ย", "p").replace("ท", "m")   # a3 ที่พิมพ์ตอนแป้นไทย = ฟ3
     m = re.match(r"^\s*([aopmAOPM])\.?\s*(\d+)\s*$", r or "")
     m2 = re.match(r"^\s*(\d+)\s*([aopmAOPM])\s*$", r or "")       # พิมพ์สลับ เช่น 2a
     if not (m or m2):
@@ -1173,6 +1219,8 @@ def cli(pause=False):
     ap.add_argument("--classes", type=int, default=0, help="โหมด all: จำนวนชั้นที่จะทำ (ไม่ใส่ = เท่าจำนวนห้องในไฟล์)")
     # พิมพ์รวมในช่องห้องได้ เช่น "a2 + redo" หรือ "a2 save"
     args = [x for x in sys.argv[1:] if x not in ("+", ",")]
+    thai = {"ืรเ้ะ": "night", "พำกน": "redo", "หฟอำ": "save", "ะำหะ": "test"}   # พิมพ์ตอนแป้นยังเป็นไทย
+    args = [thai.get(x.strip(), x.strip()) for x in args if x.strip()]
     for w, f in (("save", ["--save", "--auto"]), ("redo", ["--save", "--auto", "--redo"]),
                  ("test", ["--redo"]),                         # test = ซ้อมรวมคนที่บันทึกแล้ว (ไม่กดบันทึก)
                  ("night", ["--save", "--auto", "--redo", "--night"])):   # night = รันทั้งคืน ไม่มีกล่องถาม
