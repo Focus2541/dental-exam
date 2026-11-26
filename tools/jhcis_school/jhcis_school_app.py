@@ -12,7 +12,7 @@ import glob
 import threading
 import subprocess
 
-APP_VER = "1.2"
+APP_VER = "1.3"
 TOOLS = ["jhcis_roster_compare", "jhcis_student_fill", "jhcis_newperson_fill", "jhcis_dental_fill", "jhcis_dental_room",
          "jhcis_link_existing", "docx_roster_to_xlsx", "jhcis_birth_fill", "jhcis_check_report",
          "jhcis_check_detail", "jhcis_codes", "jhcis_compare_person"]

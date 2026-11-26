@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-jhcis_dental_room.py  v1.1  ลงผลตรวจฟันทั้งห้องในหน้า "บันทึกผลงานอนามัยโรงเรียน ตรวจทันตกรรม" ของ JHCIS
+jhcis_dental_room.py  v1.2  ลงผลตรวจฟันทั้งห้องในหน้า "บันทึกผลงานอนามัยโรงเรียน ตรวจทันตกรรม" ของ JHCIS
 อ่านผลจากไฟล์ "ลงJHCIS_โรงเรียน.csv" (แอปกรอกผลตรวจฟัน > ⋯ เพิ่มเติม > ไฟล์สำหรับลง JHCIS)
 
 ต่างจาก jhcis_dental_fill.py เดิม:
@@ -452,17 +452,124 @@ def next_class(P):
     return not same(before, cls_img(P))
 
 
-def open_table(P):
+# หน้าต่างเด้งหลังกด 'ตรวจทันตกรรม' (เห็นจากวิดีโอ 26 พ.ย. 2569)
+DLG_INFO = ("Please record", "1Hxxx")             # แจ้งเตือน มีปุ่ม OK ปุ่มเดียว
+DLG_DATE = "Confirm StudentHealth"                # ถามวันออกอนามัย: ซ้าย=เปลี่ยนวัน (ห้ามกด) ขวา=ยืนยันวันที่
+DLG_YES = "Select an Option"                      # ยืนยันการบันทึกตรวจทันตกรรม Yes/No/Cancel
+
+
+def find_win(*keys):
+    import pygetwindow
+    for w in pygetwindow.getAllWindows():
+        t = w.title or ""
+        if any(k in t for k in keys) and w.width > 50:
+            return w
+    return None
+
+
+def win_front(w):
+    """ทำให้หน้าต่าง w อยู่หน้าสุด คืน True ถ้าเป็นหน้าต่างที่ใช้งานอยู่จริง"""
     import pyautogui
-    school_front()
-    o = school_origin()
-    pyautogui.click(o[0] + P["sch_dent"][0], o[1] + P["sch_dent"][1])
+    t = (w.title or "")[:15]
+    try:
+        w.activate()
+    except Exception:
+        pass
+    time.sleep(0.3)
+    if t in jf.active_title():
+        return True
+    pyautogui.click(w.left + w.width // 2, w.top + 12)   # คลิกแถบชื่อหน้าต่าง
+    time.sleep(0.3)
+    return t in jf.active_title()
+
+
+def gone(key, sec=4):
     t0 = time.time()
-    while time.time() - t0 < 8:
+    while time.time() - t0 < sec:
+        if not find_win(key):
+            return True
+        time.sleep(0.2)
+    return False
+
+
+def save_point(key, val):
+    P = json.load(open(jf.CAL, encoding="utf-8"))
+    P[key] = val
+    json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
+
+
+def confirm_date(P, w):
+    """กดปุ่มขวา 'ยืนยันวันออกอนามัย นร. วันที่ ...'  ครั้งแรกให้ชี้เมาส์บอกตำแหน่ง แล้วจำไว้"""
+    import pyautogui
+    if "dlg_date" not in P:
+        console(True)
+        print("\n*** JHCIS ถาม: วันที่ในหน้าต่าง คือวันออกอนามัยโรงเรียนใช่ไหม ***")
+        print("ดูวันที่ในหน้าต่างให้เป็นวันที่ให้บริการที่ต้องการ (ปกติคือวันนี้ ที่เสียบบัตร/Authen)")
+        print("โปรแกรมจะกด 'ยืนยัน' วันที่นั้นทุกชั้น ไม่กดปุ่มเปลี่ยนวัน")
+        a = input("ชี้เมาส์ที่ปุ่ม 'ขวา' (ยืนยันวันออกอนามัย นร. วันที่ ...) ไม่ต้องคลิก แล้วกลับมากด Enter  (q = หยุด): ")
+        if a.strip().lower() == "q":
+            return False
+        x, y = pyautogui.position()
+        w = find_win(DLG_DATE) or w
+        cx, by = w.left + w.width / 2, w.top + w.height
+        if not (x > cx + 10 and w.left < x < w.left + w.width and w.top < y < by):
+            print("เมาส์ไม่ได้อยู่บนปุ่มขวาของหน้าต่างนี้ -> ไม่กด ให้กดเองในหน้าจอ")
+            return False
+        P["dlg_date"] = [round(x - cx), round(y - by)]
+        save_point("dlg_date", P["dlg_date"])
+        print("จำตำแหน่งปุ่มยืนยันวันที่แล้ว", P["dlg_date"])
+        console(False)
+    if not win_front(w):
+        return False
+    dx, dy = P["dlg_date"]
+    pyautogui.click(w.left + w.width / 2 + dx, w.top + w.height + dy)
+    return gone(DLG_DATE)
+
+
+def pass_dialogs(P, sec=20):
+    """ตอบหน้าต่างเด้งจนกว่าตาราง ตรวจทันตกรรม จะขึ้น  เจอหน้าต่างที่ไม่รู้จัก = ไม่กดอะไร"""
+    import pyautogui
+    t0 = time.time()
+    while time.time() - t0 < sec:
         if jf.table_origin():
             time.sleep(1.0); return True
+        w = find_win(*DLG_INFO)
+        if w:
+            if win_front(w):
+                pyautogui.press("enter")          # ปุ่ม OK ปุ่มเดียว
+                gone(DLG_INFO[0]); t0 = time.time()
+            continue
+        w = find_win(DLG_DATE)
+        if w:
+            if not confirm_date(P, w):
+                return False
+            t0 = time.time(); continue
+        w = find_win(DLG_YES)
+        if w:
+            if win_front(w):
+                pyautogui.press("enter")          # Yes เป็นปุ่มตั้งต้น
+                gone(DLG_YES); t0 = time.time()
+            continue
         time.sleep(0.3)
     return False
+
+
+def open_table(P):
+    import pyautogui
+    if not (find_win(*DLG_INFO) or find_win(DLG_DATE) or find_win(DLG_YES)):   # กดเองไปแล้ว ค้างที่หน้าต่างเด้ง
+        school_front()
+        o = school_origin()
+        pyautogui.click(o[0] + P["sch_dent"][0], o[1] + P["sch_dent"][1])
+    if pass_dialogs(P):
+        return True
+    # ไปไม่ถึงตาราง: ให้คนทำต่อเอง แล้วโปรแกรมทำงานต่อ
+    console(True)
+    a = input("ยังไม่ถึงหน้าตาราง ตรวจทันตกรรม: ตอบหน้าต่างใน JHCIS เองจนตารางขึ้น แล้วกลับมากด Enter (q = หยุด): ")
+    if a.strip().lower() == "q":
+        return False
+    time.sleep(2)
+    console(False)
+    return bool(jf.table_origin())
 
 
 def calib_school():
