@@ -150,22 +150,32 @@ def scroll_rows(P, n):
 
 
 REF = os.path.join(HERE, "dental_provider_ok.png")      # ภาพช่องผู้ให้บริการในฟอร์ม ที่คนยืนยันแล้วตอนลงคนแรก
-ITEM = os.path.join(HERE, "dental_provider_item.png")   # ภาพชื่อทันตแพทย์ในรายการ (ฟอร์ม)
-TREF_OK = os.path.join(HERE, "dental_tprov_ok.png")     # ภาพช่องในตารางที่เป็นชื่อที่ต้องการ
-TREF_DEF = os.path.join(HERE, "dental_tprov_def.png")   # ภาพช่องในตารางที่เป็นชื่อตั้งต้น (ชื่อคนล็อกอิน)
-TITEM = os.path.join(HERE, "dental_tprov_item.png")     # ภาพชื่อทันตแพทย์ในรายการ (ตาราง)
-IW, IH = 150, 16                                        # ขนาดภาพชื่อในรายการ (ฟอร์ม)
-TIW = 54                                                # รายการในตารางแคบ เท่าความกว้างคอลัมน์
+TREF_OK = os.path.join(HERE, "dental_tprov_ok.png")     # ต้นชื่อในช่องตาราง ที่เป็นชื่อที่ต้องการ
+TREF_DEF = os.path.join(HERE, "dental_tprov_def.png")   # ต้นชื่อในช่องตาราง ที่เป็นชื่อตั้งต้น (ชื่อคนล็อกอิน)
+TITEM = os.path.join(HERE, "dental_tprov_item.png")     # ต้นชื่อทันตแพทย์ในรายการที่เปิดจากช่องตาราง
+TW, TH = 40, 18                                         # ขนาดภาพต้นชื่อ
+
+
+# ---------- เทียบภาพตัวหนังสือ ----------
+def nrm(d):
+    """ยืดความเข้มให้ตัวเข้มสุด = 255 (ตัวหนังสือบนพื้นสีต่างกัน/แถบเลือก จะได้เทียบกันได้)"""
+    d = d.convert("L")
+    mx = d.getextrema()[1]
+    return d.point(lambda v: min(255, v * 255 // mx)) if mx > 0 else d
 
 
 def ink(img):
-    """ความเข้มของตัวหนังสือเทียบกับสีพื้น (0 = พื้น) ไม่ขึ้นกับสีพื้น/แถบเลือก
-    ใช้ภาพเทาไม่ตัดเป็นขาวดำ เพราะตัวหนังสือในตาราง JHCIS เส้นบาง ตัดขาวดำแล้วขาดเป็นจุด ๆ"""
+    """ความเข้มของตัวหนังสือเทียบกับสีพื้น (0 = พื้น) เป็นภาพเทา (ตัวหนังสือ JHCIS เส้นบาง ตัดขาวดำแล้วขาด)"""
     from PIL import Image, ImageChops
     g = img.convert("L")
     h = g.histogram()
     bg = max(range(150, 256), key=lambda v: h[v])
-    return ImageChops.subtract(Image.new("L", g.size, bg), g)
+    return nrm(ImageChops.subtract(Image.new("L", g.size, bg), g))
+
+
+def load_img(path):
+    from PIL import Image
+    return nrm(Image.open(path))
 
 
 def is_old(path):
@@ -177,18 +187,18 @@ def is_old(path):
         return True
 
 
-def tsame(a, b, lim=0.25):
-    return score(a, b) < lim
-
-
 def score(a, b):
-    """0 = เหมือนกัน, ~0.5 ขึ้นไป = คนละชื่อ"""
+    """0 = เหมือนกัน, ~0.4 ขึ้นไป = คนละชื่อ"""
     from PIL import ImageChops, ImageStat
     if a.size != b.size:
         return 9
     d = ImageStat.Stat(ImageChops.difference(a, b)).sum[0]
     t = ImageStat.Stat(a).sum[0] + ImageStat.Stat(b).sum[0]
     return d / max(t, 1)
+
+
+def tsame(a, b, lim=0.25):
+    return score(a, b) < lim
 
 
 def grab_raw(x, y, w, h):
@@ -200,46 +210,14 @@ def grab(x, y, w, h):
     return ink(grab_raw(x, y, w, h))
 
 
-def find_item(ax, ay, dx, tmpl):
-    """หาแถวในรายการที่เปิดอยู่ (ใต้หรือเหนือจุด ax,ay) ที่ตัวหนังสือตรงกับภาพ tmpl คืน y บนจอ หรือ None"""
-    w, h = tmpl.size
-    x0, top = ax + dx - 6, ay - 330
-    strip = grab_raw(x0, top, w, 660)
-    best, by = 0.25, None
-    for y in range(0, 660 - h):
-        if abs(top + y + h // 2 - ay) < 14:               # ข้ามตัวช่องเอง (แสดงชื่อปัจจุบัน)
-            continue
-        sc = score(ink(strip.crop((0, y, w, y + h))), tmpl)
-        if sc < best:
-            best, by = sc, top + y + h // 2
-    return by
-
-
-def grab_item(x, y, w):
-    """จับภาพชื่อในรายการรอบจุดที่ชี้ คืน None ถ้าแทบไม่มีตัวหนังสือ (รายการไม่ได้เปิด/ชี้ช่องว่าง)"""
-    img = grab(x - 6, y - IH // 2, w, IH)
-    mid = sum(img.crop((0, 3, w, IH - 3)).histogram()[60:])
-    return img if mid >= 20 else None
-
-
-def pick(ax, ay, dx, tmpl_path):
-    """คลิกช่องให้รายการเปิด แล้วคลิกชื่อที่ตรงภาพ (เลื่อนรายการด้วยลูกศรถ้ายังไม่เห็น) คืน True ถ้าเจอ"""
-    import pyautogui
-    from PIL import Image
-    tmpl = Image.open(tmpl_path).convert("L")
-    pyautogui.click(ax, ay); time.sleep(0.6)
-    for i in range(14):
-        y = find_item(ax, ay, dx, tmpl)
-        if y is not None:
-            pyautogui.click(ax + dx + 30, y); time.sleep(0.5)
-            return True
-        old = pyautogui.PAUSE; pyautogui.PAUSE = 0.03
-        for _ in range(4):                               # เลื่อนรายการลงทีละ 4 ชื่อ แล้วหาใหม่
-            pyautogui.press("down" if i < 9 else "up")
-        pyautogui.PAUSE = old
-        time.sleep(0.3)
-    pyautogui.press("escape"); time.sleep(0.3)
-    return False
+def slide(wide, ref, lim=0.25):
+    """ref อยู่ที่ไหนก็ได้ในภาพ wide (ตัวหนังสือเยื้องได้เล็กน้อย)"""
+    w, h = ref.size
+    best = 9
+    for oy in range(0, wide.size[1] - h + 1):
+        for ox in range(0, wide.size[0] - w + 1):
+            best = min(best, score(ink(wide.crop((ox, oy, ox + w, oy + h))), ref))
+    return best < lim
 
 
 def countdown(sec, text):
@@ -249,6 +227,16 @@ def countdown(sec, text):
     print(" " * 20)
 
 
+def msg(text):
+    """กล่องข้อความบนสุด (ไม่ต้องเปิดหน้าต่างดำที่บังจอ JHCIS)"""
+    try:
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(0, text, "ลงผลตรวจฟัน JHCIS", 0x40030)   # OK, เตือน, บนสุด
+    except Exception:
+        console(True); print("\n" + text)
+
+
+# ---------- ช่องผู้ให้บริการในฟอร์ม Dental ----------
 def prov_box(P):
     x, y = jf.fp(P, "provider")
     return (int(x - 150), int(y - 9), 260, 18)        # ในช่องชื่อผู้ให้บริการ (ไม่เอาป้ายหน้าช่อง)
@@ -265,160 +253,184 @@ def same(a, b):
 
 
 def prov_settled(P):
-    """ภาพช่องผู้ให้บริการหลังย้ายโฟกัสออก (JHCIS แสดงชื่อใหม่ตอนช่องเสียโฟกัส)"""
+    """ภาพช่องผู้ให้บริการหลังย้ายโฟกัสออก"""
     import pyautogui
     pyautogui.press("tab"); time.sleep(0.4)
     return ink(prov_img(P))
 
 
 def set_provider(P):
-    """ช่องผู้ให้บริการในฟอร์ม  คืน True = ตรงชื่อที่จำไว้แล้ว, "manual" = ให้คนเลือกเอง
-    JHCIS มักจำชื่อที่เลือกครั้งล่าสุดไว้ให้ฟอร์มถัดไป เลือกครั้งแรกแล้วคนต่อไปมักตรงเลย"""
-    from PIL import Image
+    """True = ช่องเป็นชื่อที่คนยืนยันไว้แล้ว (JHCIS จำชื่อที่เลือกล่าสุดให้ฟอร์มถัดไป), "manual" = ให้คนเลือกเอง"""
     if "provider" not in P:
         return True
     if not os.path.exists(REF):
         return "manual"
-    ok = Image.open(REF).convert("L")
-    if tsame(ink(prov_img(P)), ok):                     # เปิดมาเป็นชื่อนี้อยู่แล้ว
-        return True
-    if "prov_item_dx" in P and os.path.exists(ITEM):
-        x, y = jf.fp(P, "provider")
-        if pick(x, y, P["prov_item_dx"], ITEM) and tsame(prov_settled(P), ok):
-            return True
-    return "manual"
+    return True if tsame(ink(prov_img(P)), load_img(REF)) else "manual"
 
 
 def calib_provider():
-    """จดผู้ให้บริการ: ชี้ช่อง แล้วเปิดรายการเอง ชี้ชื่อทันตแพทย์ค้างไว้ โปรแกรมจำภาพชื่อ"""
+    """จดตำแหน่งช่องผู้ให้บริการในฟอร์ม (ชื่อไม่ต้องจด: คนแรกเลือกเองตอนลงผล โปรแกรมจำภาพไว้)"""
     import pyautogui
     if not jf.form_origin():
         sys.exit("เปิดฟอร์ม Dental ของเด็ก 1 คนค้างไว้ก่อน (ฟอร์ม การตรวจสุขภาพช่องปาก)")
     P = json.load(open(jf.CAL, encoding="utf-8"))
     ox, oy = jf.form_origin()
-    input("1) ชี้เมาส์ที่ช่อง 'ผู้ให้บริการ' ในฟอร์ม (กลางช่อง ไม่ต้องคลิก) แล้วกลับมากด Enter ")
+    input("ชี้เมาส์ที่ช่อง 'ผู้ให้บริการ' ในฟอร์ม (กลางช่อง ไม่ต้องคลิก) แล้วกลับมากด Enter ")
     x, y = pyautogui.position(); P["provider"] = [x - ox, y - oy]
-    bx, by = x, y
-    for _ in range(3):
-        countdown(15, "2) ภายใน 15 วินาที: คลิกช่องผู้ให้บริการใน JHCIS ให้รายการเปิด เลื่อนจนเห็น 'ท.พ.อำนาจ'\n"
-                      "   แล้วชี้เมาส์ค้างไว้ที่ 'กลางตัวหนังสือ' ต้นชื่อ (ตัว ท) ไม่ต้องคลิก รายการต้องเปิดค้างอยู่")
-        x, y = pyautogui.position()
-        img = grab_item(x, y, IW) if abs(y - by) >= 14 else None
-        if img:
-            break
-        print("   ไม่เห็นตัวหนังสือตรงที่ชี้ (รายการปิดไปแล้ว หรือชี้ที่ตัวช่อง) ลองใหม่")
-    else:
-        sys.exit("ยังไม่ได้บันทึก")
-    img.save(ITEM)
-    P["prov_item_dx"] = x - bx
-    for k_ in ("provider_steps", "provider_item"):
-        P.pop(k_, None)
     json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
     if os.path.exists(REF):
-        os.remove(REF)                                # ภาพช่องจะจดใหม่ตอนลงผลคนแรก (ให้คนยืนยัน)
-    print("บันทึกแล้ว  คลิกชื่อในรายการหรือกด Esc ใน JHCIS แล้วปิดฟอร์มนี้โดยไม่บันทึกได้เลย")
+        os.remove(REF)
+    print("บันทึกแล้ว  ตอนลงผลคนแรก โปรแกรมจะให้เลือกชื่อทันตแพทย์เองครั้งเดียว แล้วจำไว้")
 
 
 # ---------- คอลัมน์ 'ผู้ให้บริการ' ในตาราง ตรวจทันตกรรม (คนละค่ากับช่องในฟอร์ม Dental) ----------
+def left_border(x, y):
+    """เส้นตารางด้านซ้ายของช่องที่ x,y (เส้นตั้งสีเทาเรียบ ๆ สูงเกินตัวหนังสือ) คืน x หรือ None"""
+    img = grab_raw(x - 140, y - 12, 141, 25)
+    for c in range(140, -1, -1):
+        col = [img.getpixel((c, r)) for r in range(25)]
+        if max(col) <= 205 and min(col) >= 110 and max(col) - min(col) <= 30:
+            return x - 140 + c
+    return None
+
+
 def tpos(P, slot):
     to = jf.table_origin()
     row_h = P["row2_dental"][1] - P["row1_dental"][1]
     return to[0] + P["tprov"][0], to[1] + P["row1_dental"][1] + row_h * slot
 
 
-def tcell(P, slot):
-    """ภาพตัวหนังสือต้นชื่อในช่องผู้ให้บริการของแถว slot (ไม่เอาปุ่มลูกศรด้านขวาของช่อง)"""
-    x, y = tpos(P, slot)
-    return grab(x - 6, y - 8, 34, 16)
+def tcell_at(x, dx, y):
+    return grab(x + dx, y - TH // 2, TW, TH)
 
 
 def tcell_wide(P, slot):
     x, y = tpos(P, slot)
-    return grab_raw_ink_wide(x, y)
+    return grab_raw(x + P["tprov_text_dx"] - 6, y - TH // 2 - 5, TW + 12, TH + 10)
 
 
-def grab_raw_ink_wide(x, y):
-    return grab_raw(x - 12, y - 12, 46, 24)
+def band_center(x0, y, w):
+    """ในรายการที่เปิดอยู่ หาแนวตัวหนังสือของชื่อที่เมาส์ชี้ คืน y กลางแถว"""
+    raw = grab_raw(x0, y - 30, w, 61)
+    d = ink(raw)
+    rows = [sum(d.crop((0, r, w, r + 1)).getdata()) for r in range(61)]
+    thr = max(rows) * 0.08
+    on = [v > thr for v in rows]
+    r0 = 30
+    if not on[r0]:                                # ชี้ช่องว่างระหว่างชื่อ: ใช้แถวที่มีตัวหนังสือใกล้สุด
+        near = [r for r in range(61) if on[r]]
+        if not near:
+            return None
+        r0 = min(near, key=lambda r: abs(r - 30))
+    top = bot = r0
+    gap = 0
+    while top > 0 and (on[top - 1] or gap < 2):
+        gap = 0 if on[top - 1] else gap + 1; top -= 1
+    gap = 0
+    while bot < 60 and (on[bot + 1] or gap < 2):
+        gap = 0 if on[bot + 1] else gap + 1; bot += 1
+    return y - 30 + (top + bot) // 2
 
 
-def tmatch(wide, ref):
-    """ref (34x16) อยู่ในภาพ wide ตรงไหนก็ได้ เลื่อนได้ ±6 ซ้ายขวา ±4 บนล่าง (ช่องที่กำลังแก้ วาดตัวหนังสือเยื้องไปนิด)"""
-    w, h = ref.size
-    best = 9
-    for oy in range(0, wide.size[1] - h + 1):
-        for ox in range(0, wide.size[0] - w + 1):
-            best = min(best, score(ink(wide.crop((ox, oy, ox + w, oy + h))), ref))
-    return best < 0.25
+def find_item(ax, ay, dx, tmpl):
+    """หาแถวในรายการที่เปิดอยู่ (ใต้หรือเหนือจุด ax,ay) ที่ต้นชื่อตรงกับภาพ tmpl คืน y บนจอ หรือ None"""
+    w, h = tmpl.size
+    x0, top = ax + dx, ay - 330
+    strip = grab_raw(x0, top, w, 660)
+    best, by = 0.25, None
+    for y in range(0, 660 - h):
+        if abs(top + y + h // 2 - ay) < 14:               # ข้ามตัวช่องเอง (แสดงชื่อปัจจุบัน)
+            continue
+        sc = score(ink(strip.crop((0, y, w, y + h))), tmpl)
+        if sc < best:
+            best, by = sc, top + y + h // 2
+    return by
+
+
+def pick(ax, ay, dx, tmpl):
+    """คลิกช่องให้รายการเปิด แล้วคลิกชื่อที่ตรงภาพ (เลื่อนรายการด้วยลูกศรถ้ายังไม่เห็น) คืน True ถ้าเจอ"""
+    import pyautogui
+    pyautogui.click(ax, ay); time.sleep(0.6)
+    for i in range(14):
+        y = find_item(ax, ay, dx, tmpl)
+        if y is not None:
+            pyautogui.click(ax + dx + TW // 2, y); time.sleep(0.5)
+            return True
+        old = pyautogui.PAUSE; pyautogui.PAUSE = 0.03
+        for _ in range(4):                               # เลื่อนรายการทีละ 4 ชื่อ แล้วหาใหม่
+            pyautogui.press("down" if i < 9 else "up")
+        pyautogui.PAUSE = old
+        time.sleep(0.3)
+    pyautogui.press("escape"); time.sleep(0.3)
+    return False
+
+
+def tprov_ready(P):
+    return "tprov_text_dx" in P and all(os.path.exists(f) and not is_old(f) for f in (TREF_OK, TREF_DEF, TITEM))
 
 
 def set_table_provider(P, slot):
     """คืน "skip" = ไม่ได้ตั้งค่าไว้, "already" = เป็นชื่อที่ต้องการอยู่แล้ว, "other" = เป็นชื่ออื่น ไม่แตะ,
     True = เปลี่ยนแล้วตรงภาพ, False = เปลี่ยนแล้วไม่ตรง/หาไม่เจอ"""
-    from PIL import Image
-    if "tprov" not in P or "tprov_item_dx" not in P or not all(map(os.path.exists, (TREF_OK, TREF_DEF, TITEM))):
+    if "tprov" not in P or not tprov_ready(P):
         return "skip"
     table_front()
-    ok, df = Image.open(TREF_OK).convert("L"), Image.open(TREF_DEF).convert("L")
+    ok, df = load_img(TREF_OK), load_img(TREF_DEF)
     now = tcell_wide(P, slot)
-    if tmatch(now, ok):
+    if slide(now, ok):
         return "already"
-    if not tmatch(now, df):
+    if not slide(now, df):
         return "other"
     x, y = tpos(P, slot)
-    if not pick(x, y, P["tprov_item_dx"], TITEM):
+    if not pick(x, y, P["tprov_text_dx"], load_img(TITEM)):
         return False
     time.sleep(0.5)
-    return tmatch(tcell_wide(P, slot), ok)
+    return slide(tcell_wide(P, slot), ok)
 
 
 def calib_tprov():
-    """จดคอลัมน์ผู้ให้บริการในตาราง: ชี้แถวที่ยังเป็นชื่อตั้งต้น แล้วเปิดรายการเอง ชี้ชื่อทันตแพทย์ค้างไว้"""
+    """จดคอลัมน์ผู้ให้บริการในตาราง: ชี้ช่องของแถวที่ยังเป็นชื่อตั้งต้น แล้วเปิดรายการเอง ชี้ชื่อทันตแพทย์ค้างไว้"""
     import pyautogui
     if not jf.table_origin():
         sys.exit("เปิดหน้า ตรวจทันตกรรม ค้างไว้ก่อน")
     P = json.load(open(jf.CAL, encoding="utf-8"))
-    for k_ in ("tprov", "tprov_steps", "tprov_item_dx"):
+    for k_ in ("tprov", "tprov_steps", "tprov_item_dx", "tprov_text_dx"):
         P.pop(k_, None)
     print("ย้ายหน้าต่างดำนี้ไปไว้ด้านซ้ายล่าง ไม่ให้บังคอลัมน์ 'ผู้ให้บริการ' ในตาราง")
-    input("1) ชี้เมาส์ที่ 'ตัวแรกของชื่อ' ในช่องผู้ให้บริการ ของแถวที่ยังเป็นชื่อตั้งต้น (ตัว น ของ นายไพโรจน์) ไม่ต้องคลิก แล้วกลับมากด Enter ")
+    input("1) ชี้เมาส์ที่ช่อง 'ผู้ให้บริการ' ของแถวที่ยังเป็นชื่อตั้งต้น (นายไพโรจน์) ตรงไหนของช่องก็ได้ ไม่ต้องคลิก แล้วกลับมากด Enter ")
     x, y = pyautogui.position(); ox, oy = jf.table_origin()
     row_h = P["row2_dental"][1] - P["row1_dental"][1]
     slot = round((y - oy - P["row1_dental"][1]) / row_h)
     if not (0 <= slot < 40):
         sys.exit("เมาส์ไม่ได้อยู่ในแถวของตาราง ลองใหม่")
     P["tprov"] = [x - ox, 0]
-    tcell(P, slot).save(TREF_DEF)
     cx, cy = tpos(P, slot)
+    b = left_border(cx, cy)
+    if b is None:
+        sys.exit("หาเส้นขอบช่องไม่เจอ ลองชี้กลางช่องผู้ให้บริการใหม่")
+    P["tprov_text_dx"] = b + 1 - cx                  # ต้นชื่อเริ่มถัดจากเส้นขอบช่อง
+    df = tcell_at(cx, P["tprov_text_dx"], cy)
+    if sum(df.histogram()[60:]) < 20:
+        sys.exit("ไม่เห็นตัวหนังสือในช่องนี้ ลองใหม่")
     for _ in range(3):
         countdown(15, f"2) ภายใน 15 วินาที: คลิกช่องเดิมนี้ (แถวที่ {slot + 1}) ใน JHCIS ให้รายการเปิด เลื่อนจนเห็น 'ท.พ.อำนาจ'\n"
-                      "   แล้วชี้เมาส์ค้างไว้ที่ 'กลางตัวหนังสือ' ต้นชื่อ (ตัว ท) ไม่ต้องคลิก รายการต้องเปิดค้างอยู่")
-        x, y = pyautogui.position()
-        img = grab_item(x, y, TIW) if abs(y - cy) >= 14 else None
-        if img:
+                      "   แล้วชี้เมาส์ค้างไว้บนชื่อนั้น ไม่ต้องคลิก รายการต้องเปิดค้างอยู่")
+        ix, iy = pyautogui.position()
+        mid = band_center(cx + P["tprov_text_dx"], iy, TW) if abs(iy - cy) >= 14 else None
+        item = tcell_at(cx, P["tprov_text_dx"], mid) if mid else None
+        if item is not None and sum(item.histogram()[60:]) >= 20:
             break
-        print("   ไม่เห็นตัวหนังสือตรงที่ชี้ (รายการปิดไปแล้ว หรือชี้ที่ตัวช่อง) ลองใหม่")
+        print("   ไม่เห็นชื่อตรงที่ชี้ (รายการปิดไปแล้ว หรือชี้ที่ตัวช่อง) ลองใหม่")
     else:
         sys.exit("ยังไม่ได้บันทึก")
-    img.save(TITEM)
-    P["tprov_item_dx"] = x - cx
-    pyautogui.click(x + 30, y); time.sleep(0.8)        # เลือกชื่อนี้ให้แถวนี้เลย
+    pyautogui.click(ix, iy); time.sleep(0.8)           # เลือกชื่อนี้ให้แถวนี้เลย
     table_front(); time.sleep(0.3)
-    img = tcell(P, slot)
-    if tmatch(tcell_wide(P, slot), Image_open(TREF_DEF)):
+    ok = tcell_at(cx, P["tprov_text_dx"], cy)
+    if tsame(ok, df):
         sys.exit("ช่องยังเป็นชื่อตั้งต้น (เลือกไม่สำเร็จ หรือหน้าต่างดำบังอยู่) ยังไม่ได้บันทึก ลองใหม่")
-    img.save(TREF_OK)
+    df.save(TREF_DEF); item.save(TITEM); ok.save(TREF_OK)
     json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
     print("บันทึกแล้ว  ดูช่องในตารางว่าแถวนี้เป็น ท.พ.อำนาจ แล้ว")
-
-
-def ink_open(path):
-    from PIL import Image
-    return Image.open(path).convert("L")
-
-
-def Image_open(path):
-    from PIL import Image
-    return Image.open(path).convert("L")
 
 
 def calib_scroll():
@@ -793,15 +805,6 @@ def right_button(img):
     return ((x0 + x1) // 2, (y0 + y1) // 2)
 
 
-def msg(text):
-    """กล่องข้อความบนสุด (ไม่ต้องเปิดหน้าต่างดำที่บังจอ JHCIS)"""
-    try:
-        import ctypes
-        ctypes.windll.user32.MessageBoxW(0, text, "ลงผลตรวจฟัน JHCIS", 0x40030)   # OK, เตือน, บนสุด
-    except Exception:
-        console(True); print("\n" + text)
-
-
 def confirm_date(P, w):
     """กดปุ่มขวา 'ยืนยันวันออกอนามัย นร. วันที่ ...' หาตำแหน่งปุ่มจากภาพทุกครั้ง  ไม่เจอ = ไม่กด"""
     import pyautogui
@@ -966,18 +969,12 @@ def cli(pause=False):
             path = a.csv or newest_csv()
             print("ไฟล์:", os.path.basename(path))
             P0 = json.load(open(jf.CAL, encoding="utf-8"))
-            for f_ in (REF, ITEM):                # ภาพแบบเก่า (ขาวดำ) ลบทิ้ง ให้จดใหม่เองตอนลงคนแรก
-                if os.path.exists(f_) and (is_old(f_) or f_ == REF and Image_open(f_).size != (260, 18)):
-                    os.remove(f_)
+            if os.path.exists(REF) and (is_old(REF) or load_img(REF).size != (260, 18)):
+                os.remove(REF)                    # ภาพแบบเก่า ลบทิ้ง คนแรกจะให้เลือกเองแล้วจำใหม่
             if "provider" not in P0:
                 print("** ยังไม่ได้จดผู้ให้บริการ: ช่องผู้ให้บริการจะเป็นชื่อตั้งต้นของ JHCIS (จดด้วยคำสั่ง provider)")
-            if "tprov" in P0:
-                from PIL import Image
-                bad = "tprov_item_dx" not in P0 or not all(map(os.path.exists, (TITEM, TREF_OK, TREF_DEF)))
-                if not bad:
-                    bad = Image.open(TREF_OK).size != (34, 16) or any(map(is_old, (TITEM, TREF_OK, TREF_DEF)))
-                if bad:
-                    sys.exit("ต้องจดผู้ให้บริการในตารางใหม่ก่อน (พิมพ์ห้องเป็น tprov) ครั้งเดียว")
+            if "tprov" in P0 and not tprov_ready(P0):
+                print("** คอลัมน์ผู้ให้บริการในตาราง: ยังไม่ได้จดแบบใหม่ (tprov) รอบนี้จะไม่เปลี่ยนคอลัมน์ในตาราง")
             if a.room.lower() == "all":
                 run_all(path, a.classes, a.save, a.auto, a.visible, a.delay, a.redo)
             else:
