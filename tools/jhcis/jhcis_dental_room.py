@@ -18,6 +18,7 @@ jhcis_dental_room.py  v1.1  ลงผลตรวจฟันทั้งห้�
   หยุดฉุกเฉิน: ลากเมาส์ไปมุมซ้ายบนสุดของจอ
 """
 import argparse
+import json
 import csv
 import os
 import re
@@ -148,6 +149,56 @@ def scroll_rows(P, n):
     time.sleep(0.5)
 
 
+REF = os.path.join(HERE, "dental_provider_ref.png")
+
+
+def prov_box(P):
+    x, y = jf.fp(P, "provider")
+    return (int(x - 200), int(y - 11), 400, 22)       # แถบชื่อผู้ให้บริการ กว้างพอเห็นชื่อทั้งชื่อ
+
+
+def set_provider(P):
+    """เลือกผู้ให้บริการตามที่จดไว้ แล้วเทียบภาพช่องกับภาพตัวอย่าง คืน True ถ้าตรง"""
+    import pyautogui
+    if "provider" not in P:
+        return True
+    pyautogui.click(*jf.fp(P, "provider")); time.sleep(0.5)
+    pyautogui.click(*jf.fp(P, "provider_item")); time.sleep(0.4)
+    if not os.path.exists(REF):
+        return True
+    from PIL import Image, ImageChops, ImageStat
+    now = pyautogui.screenshot(region=prov_box(P)).convert("RGB")
+    ref = Image.open(REF).convert("RGB")
+    if now.size != ref.size:
+        return False
+    diff = ImageStat.Stat(ImageChops.difference(now, ref)).mean
+    return sum(diff) / 3 < 12
+
+
+def calib_provider():
+    """จดตำแหน่ง ช่องผู้ให้บริการ และชื่อที่ต้องการในรายการ (ครั้งเดียว)"""
+    import json, pyautogui
+    if not jf.form_origin():
+        sys.exit("เปิดฟอร์ม Dental ของเด็ก 1 คนค้างไว้ก่อน (ฟอร์ม การตรวจสุขภาพช่องปาก)")
+    P = json.load(open(jf.CAL, encoding="utf-8"))
+    ox, oy = jf.form_origin()
+    input("1) ชี้เมาส์ที่ช่อง 'ผู้ให้บริการ' ในฟอร์ม (กลางช่อง ไม่ต้องคลิก) แล้วกลับมากด Enter ")
+    x, y = pyautogui.position(); P["provider"] = [x - ox, y - oy]
+    print("   โปรแกรมจะคลิกเปิดรายการให้ใน 2 วินาที"); time.sleep(2)
+    pyautogui.click(ox + P["provider"][0], oy + P["provider"][1]); time.sleep(0.6)
+    input("2) ชี้เมาส์ที่ชื่อผู้ให้บริการที่ต้องการในรายการที่เปิดอยู่ (ไม่ต้องคลิก) แล้วกด Enter ")
+    x, y = pyautogui.position(); P["provider_item"] = [x - ox, y - oy]
+    if abs(P["provider_item"][1] - P["provider"][1]) < 5:
+        sys.exit("ตำแหน่งชื่อในรายการซ้ำกับช่อง (เมาส์ไม่ได้ย้าย) ลองใหม่")
+    json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
+    time.sleep(0.5)
+    jf.focus_form()                               # รายการปิดไปตอนสลับหน้าต่าง: เปิดใหม่แล้วเลือก
+    pyautogui.click(*jf.fp(P, "provider")); time.sleep(0.6)
+    pyautogui.click(*jf.fp(P, "provider_item")); time.sleep(0.6)
+    pyautogui.screenshot(region=prov_box(P)).save(REF)
+    print("บันทึกแล้ว ดูในฟอร์มว่าช่องผู้ให้บริการเป็นชื่อที่ต้องการ แล้วปิดฟอร์มโดยไม่บันทึก")
+
+
 def calib_scroll():
     """จดตำแหน่งปุ่มลูกศร ขึ้น/ลง ของแถบเลื่อนตาราง (ครั้งเดียว)"""
     import json, pyautogui
@@ -173,7 +224,7 @@ def close_form(P):
     return jf.form_closed()
 
 
-def run(path, room, do_save, auto, visible, delay):
+def run(path, room, do_save, auto, visible, delay, redo=False):
     import pyautogui
     pyautogui.FAILSAFE = True
     pyautogui.PAUSE = delay
@@ -217,7 +268,7 @@ def run(path, room, do_save, auto, visible, delay):
                 if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); stop = True; break
                 continue
             seen.add(key); new_here += 1
-            if key in already:
+            if key in already and not redo:
                 log.append((who, "บันทึกแล้ว (รอบก่อน)")); print(f"= {who}: บันทึกไว้แล้วรอบก่อน ข้าม")
                 for k0 in kids:
                     if match(kids, who, room)[0] is k0: k0["done"] = True
@@ -242,6 +293,11 @@ def run(path, room, do_save, auto, visible, delay):
             for f, v in k["nums"]:
                 pyautogui.click(*jf.fp(P, f)); pyautogui.hotkey("ctrl", "a"); pyautogui.write(v)
             pyautogui.click(*jf.fp(P, "cpi_all_normal"))
+            if not set_provider(P):
+                ans = jf.ask(f"{who}\n\nช่องผู้ให้บริการไม่ใช่ชื่อที่จดไว้\nดูในฟอร์มแล้วเลือกเอง หรือหยุดแล้วจดตำแหน่งใหม่ (calib-provider)",
+                             ["เลือกเองแล้ว ทำต่อ", "หยุด"])
+                if ans != "เลือกเองแล้ว ทำต่อ":
+                    close_form(P); log.append((who, "หยุด-ผู้ให้บริการไม่ตรง")); stop = True; break
             ok = "บันทึก" if do_save else "ปิดโดยไม่บันทึก (ซ้อม)"
             ans = ok
             if not auto or asked < 3:
@@ -307,14 +363,19 @@ def cli(pause=False):
     ap.add_argument("--auto", action="store_true")
     ap.add_argument("--visible", type=int, default=17, help="จำนวนแถวที่เห็นในตารางโดยไม่เลื่อน")
     ap.add_argument("--delay", type=float, default=0.25)
+    ap.add_argument("--redo", action="store_true", help="บันทึกซ้ำคนที่ลงไปแล้ว (เช่น แก้ผู้ให้บริการ)")
     try:
         if len(sys.argv) > 1 and sys.argv[1] == "calib":
             calib_scroll()
+        elif len(sys.argv) > 1 and sys.argv[1] in ("calib-provider", "provider"):
+            calib_provider()
         else:
             a = ap.parse_args()
             path = a.csv or newest_csv()
             print("ไฟล์:", os.path.basename(path))
-            run(path, room_name(a.room), a.save, a.auto, a.visible, a.delay)
+            if "provider" not in json.load(open(jf.CAL, encoding="utf-8")):
+                print("** ยังไม่ได้จดผู้ให้บริการ: ช่องผู้ให้บริการจะเป็นชื่อตั้งต้นของ JHCIS (จดด้วยคำสั่ง provider)")
+            run(path, room_name(a.room), a.save, a.auto, a.visible, a.delay, a.redo)
     except BaseException as e:            # รวม sys.exit ด้วย จะได้เห็นข้อความก่อนหน้าต่างปิด
         import traceback
         console(True)
