@@ -54,12 +54,12 @@ def load(path, room):
     if not rows or "CID" not in rows[0]:
         sys.exit("ไฟล์นี้ไม่ใช่ไฟล์ ลงJHCIS_*.csv จากแอปกรอกผล")
     rooms = sorted({r["ROOM"] for r in rows})
-    mine = [r for r in rows if r["ROOM"] == room]
-    if not mine:
+    if not any(r["ROOM"] == room for r in rows):
         sys.exit(f"ไม่พบห้อง '{room}' ในไฟล์ มีห้อง: {', '.join(rooms)}")
     kids = []
-    for r in mine:
+    for r in rows:                                # โหลดทั้งโรงเรียน เผื่อ JHCIS ยังใส่เด็กไว้ผิดชั้น
         k = {"name": f"{r['PRENAME']}{r['NAME']} {r['LNAME']}".strip(), "full": norm(r["NAME"] + r["LNAME"]),
+             "room": r["ROOM"], "ln": norm(r["LNAME"]),
              "fn": norm(r["NAME"]), "absent": r["ABSENT"] == "1", "err": None, "done": False}
         try:
             k["nums"] = [(key, n0(r[col])) for key, col in NUMS] + [("occl", "0")]
@@ -74,14 +74,30 @@ def load(path, room):
     return kids
 
 
-def match(kids, who):
+def match(kids, who, room):
+    """คืน (เด็ก, วิธีจับคู่)  ลำดับ: ชื่อ-สกุลตรงในห้อง > ตรงทั้งโรงเรียน > ชื่ออย่างเดียวในห้อง > สะกดต่างนิดหน่อย"""
+    from difflib import SequenceMatcher as SM
     w = norm(who)
-    hit = [k for k in kids if k["full"] and k["full"] == w]
-    if not hit:                                   # ในไฟล์ไม่มีนามสกุล หรือ JHCIS ใส่ "-"
-        hit = [k for k in kids if k["fn"] and (w == k["fn"] or w.startswith(k["fn"]))]
+    parts = re.sub(r"\s+", " ", PRE.sub("", str(who).strip())).strip().split(" ")
+    wfn = norm(parts[0])
+    wln = norm(parts[-1]) if len(parts) > 1 else ""
+    same = [k for k in kids if k["room"] == room]
+    for pool, other in ((same, False), (kids, True)):
+        hit = [k for k in pool if k["full"] and k["full"] == w]
+        if len(hit) == 1:
+            return hit[0], (f"ชั้นในไฟล์ {hit[0]['room']}" if other else "")
         if len(hit) > 1:
-            hit = [k for k in hit if k["full"] == w] or hit
-    return hit[0] if len(hit) == 1 else (None if not hit else "many")
+            return "many", ""
+    hit = [k for k in same if k["fn"] and k["fn"] == wfn and (not k["ln"] or not wln)]
+    if len(hit) == 1:
+        return hit[0], ""
+    # สะกดต่างกันนิดหน่อย เช่น นัธวัฒน์ / นัธทวัฒน์: นามสกุลต้องตรง และชื่อคล้ายกันมาก
+    hit = [k for k in kids if wln and k["ln"] == wln and SM(None, k["fn"], wfn).ratio() >= 0.8]
+    if not hit:
+        hit = [k for k in same if not wln and not k["ln"] and SM(None, k["fn"], wfn).ratio() >= 0.85]
+    if len(hit) == 1:
+        return hit[0], f"สะกดต่าง ในไฟล์: {hit[0]['name']} ({hit[0]['room']})"
+    return (None if not hit else "many"), ""
 
 
 def close_form(P):
@@ -98,8 +114,9 @@ def run(path, room, do_save, auto, visible, delay):
     P = jf.load_points()
     kids = load(path, room)
     row_h = P["row2_dental"][1] - P["row1_dental"][1]
-    todo = [k for k in kids if not k["absent"]]
-    print(f"ห้อง {room}: ในไฟล์ {len(kids)} คน | ต้องลง {len(todo)} | ไม่มา {len(kids) - len(todo)}")
+    mine = [k for k in kids if k["room"] == room]
+    todo = [k for k in mine if not k["absent"]]
+    print(f"ห้อง {room}: ในไฟล์ {len(mine)} คน | ต้องลง {len(todo)} | ไม่มา {len(mine) - len(todo)}")
     print("โหมด:", "บันทึกจริง" if do_save else "ซ้อม (ไม่กดบันทึก)", "| ถามทุกคน" if not auto else "| ถาม 3 คนแรก")
     input("เปิดหน้า ตรวจทันตกรรม ของห้องนี้ เลื่อนตารางไว้บนสุด แป้นพิมพ์ EN แล้วกด Enter (มีเวลา 3 วินาทีสลับไป JHCIS)")
     time.sleep(3)
@@ -123,7 +140,9 @@ def run(path, room, do_save, auto, visible, delay):
                 if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); stop = True; break
                 continue
             seen.add(key); new_here += 1
-            k = match(kids, who)
+            k, how = match(kids, who, room)
+            if how:
+                print(f"  * {who}: จับคู่แบบ {how}")
             if k is None or k == "many":
                 extra.append(who); log.append((who, "ไม่มีในไฟล์" if k is None else "ชื่อซ้ำในไฟล์ ไม่ลง"))
                 print(f"- {who}: {'ไม่มีในไฟล์ห้องนี้' if k is None else 'ชื่อซ้ำในไฟล์'} ข้าม")
@@ -151,7 +170,7 @@ def run(path, room, do_save, auto, visible, delay):
             if ans in (None, "หยุด"):
                 close_form(P); log.append((who, "หยุดโดยผู้ใช้")); stop = True; break
             if do_save and ans == ok:
-                pyautogui.click(*jf.fp(P, "save")); time.sleep(1.5); log.append((who, "บันทึกแล้ว"))
+                pyautogui.click(*jf.fp(P, "save")); time.sleep(1.5); log.append((who, "บันทึกแล้ว" + (f" ({how})" if how else "")))
                 print(f"✓ {who}")
             else:
                 log.append((who, f"ไม่บันทึก ({ans})")); print(f"  {who}: ไม่บันทึก")
@@ -165,14 +184,14 @@ def run(path, room, do_save, auto, visible, delay):
         pyautogui.moveTo(to[0] + P["row1_dental"][0] - 600, to[1] + P["row1_dental"][1] + row_h * (visible // 2))
         pyautogui.scroll(-max(1, (visible - 2) // 3))
         time.sleep(0.6); page += 1
-    missing = [k["name"] for k in kids if not k["done"] and not k["absent"]]
+    missing = [k["name"] for k in kids if k["room"] == room and not k["done"] and not k["absent"]]
     out = os.path.join(HERE, f"ลงJHCIS_ผล_{room}_{time.strftime('%Y%m%d_%H%M')}.txt")
     with open(out, "w", encoding="utf-8") as f:
         f.write(f"ไฟล์ {os.path.basename(path)} ห้อง {room} โหมด {'บันทึกจริง' if do_save else 'ซ้อม'}\n\n")
         for who, st in log:
             f.write(f"{who}\t{st}\n")
         f.write(f"\nมีในไฟล์ แต่ไม่เจอในตาราง JHCIS ({len(missing)}):\n" + "\n".join(missing) + "\n")
-    saved = sum(1 for _, st in log if st == "บันทึกแล้ว")
+    saved = sum(1 for _, st in log if st.startswith("บันทึกแล้ว"))
     print("\n" + "=" * 60)
     print(f" ห้อง {room}: บันทึก {saved} คน | ไม่มีในไฟล์ {len(extra)} | ไม่เจอในตาราง {len(missing)}")
     if missing:
