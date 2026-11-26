@@ -498,31 +498,61 @@ def save_point(key, val):
     json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
 
 
+def right_button(img):
+    """หาปุ่มขวาในแถวปุ่มของหน้าต่าง 2 ปุ่ม จากเส้นขอบปุ่ม คืน (x, y) ในภาพ หรือ None
+    ต้องเจอปุ่มซ้ายที่จบก่อนกลางหน้าต่าง และปุ่มขวาที่เริ่มหลังกลางหน้าต่าง ในแถวเดียวกัน"""
+    W, H = img.size
+    px = img.load()
+    cx = W // 2
+    rows = []
+    for y in range(max(0, H - 110), H):
+        runs, s = [], None
+        for x in range(5, W - 5):
+            d = sum(px[x, y][:3]) < 600
+            if d and s is None:
+                s = x
+            if (not d or x == W - 6) and s is not None:
+                if x - s >= 120:
+                    runs.append((s, x))
+                s = None
+        L = [r for r in runs if cx - 60 < r[1] <= cx + 2]
+        R = [r for r in runs if cx - 2 <= r[0] < cx + 60]
+        if L and R:
+            rows.append((y, R[0]))
+    if len(rows) < 2:
+        return None
+    top, bot = rows[0], rows[-1]
+    if not (15 <= bot[0] - top[0] <= 70) or abs(top[1][0] - bot[1][0]) > 4:
+        return None
+    (x0, x1), y0, y1 = top[1], top[0], bot[0]
+    return ((x0 + x1) // 2, (y0 + y1) // 2)
+
+
+def msg(text):
+    """กล่องข้อความบนสุด (ไม่ต้องเปิดหน้าต่างดำที่บังจอ JHCIS)"""
+    try:
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(0, text, "ลงผลตรวจฟัน JHCIS", 0x40030)   # OK, เตือน, บนสุด
+    except Exception:
+        console(True); print("\n" + text)
+
+
 def confirm_date(P, w):
-    """กดปุ่มขวา 'ยืนยันวันออกอนามัย นร. วันที่ ...'  ครั้งแรกให้ชี้เมาส์บอกตำแหน่ง แล้วจำไว้"""
+    """กดปุ่มขวา 'ยืนยันวันออกอนามัย นร. วันที่ ...' หาตำแหน่งปุ่มจากภาพทุกครั้ง  ไม่เจอ = ไม่กด"""
     import pyautogui
-    if "dlg_date" not in P:
-        console(True)
-        print("\n*** JHCIS ถาม: วันที่ในหน้าต่าง คือวันออกอนามัยโรงเรียนใช่ไหม ***")
-        print("ดูวันที่ในหน้าต่างให้เป็นวันที่ให้บริการที่ต้องการ (ปกติคือวันนี้ ที่เสียบบัตร/Authen)")
-        print("โปรแกรมจะกด 'ยืนยัน' วันที่นั้นทุกชั้น ไม่กดปุ่มเปลี่ยนวัน")
-        a = input("ชี้เมาส์ที่ปุ่ม 'ขวา' (ยืนยันวันออกอนามัย นร. วันที่ ...) ไม่ต้องคลิก แล้วกลับมากด Enter  (q = หยุด): ")
-        if a.strip().lower() == "q":
-            return False
-        x, y = pyautogui.position()
-        w = find_win(DLG_DATE) or w
-        cx, by = w.left + w.width / 2, w.top + w.height
-        if not (x > cx + 10 and w.left < x < w.left + w.width and w.top < y < by):
-            print("เมาส์ไม่ได้อยู่บนปุ่มขวาของหน้าต่างนี้ -> ไม่กด ให้กดเองในหน้าจอ")
-            return False
-        P["dlg_date"] = [round(x - cx), round(y - by)]
-        save_point("dlg_date", P["dlg_date"])
-        print("จำตำแหน่งปุ่มยืนยันวันที่แล้ว", P["dlg_date"])
-        console(False)
     if not win_front(w):
         return False
-    dx, dy = P["dlg_date"]
-    pyautogui.click(w.left + w.width / 2 + dx, w.top + w.height + dy)
+    time.sleep(0.3)
+    w = find_win(DLG_DATE) or w
+    img = pyautogui.screenshot(region=(w.left, w.top, w.width, w.height)).convert("RGB")
+    pt = right_button(img)
+    if not pt:
+        try:
+            img.save(os.path.join(HERE, "dlg_date_notfound.png"))
+        except Exception:
+            pass
+        return False
+    pyautogui.click(w.left + pt[0], w.top + pt[1])
     return gone(DLG_DATE)
 
 
@@ -562,14 +592,15 @@ def open_table(P):
         pyautogui.click(o[0] + P["sch_dent"][0], o[1] + P["sch_dent"][1])
     if pass_dialogs(P):
         return True
-    # ไปไม่ถึงตาราง: ให้คนทำต่อเอง แล้วโปรแกรมทำงานต่อ
-    console(True)
-    a = input("ยังไม่ถึงหน้าตาราง ตรวจทันตกรรม: ตอบหน้าต่างใน JHCIS เองจนตารางขึ้น แล้วกลับมากด Enter (q = หยุด): ")
-    if a.strip().lower() == "q":
-        return False
-    time.sleep(2)
-    console(False)
-    return bool(jf.table_origin())
+    # ไปไม่ถึงตาราง: ให้คนทำต่อเอง (ไม่ต้องกด Enter ในหน้าต่างดำ กัน Enter หลุดไปกดปุ่มใน JHCIS) แล้วโปรแกรมทำงานต่อ
+    msg("ยังไปไม่ถึงตาราง 'ตรวจทันตกรรม'\n\nกด OK ที่กล่องนี้ แล้วตอบหน้าต่างใน JHCIS เองจนตารางขึ้น\n"
+        "(หน้าต่างถามวันที่: กดปุ่มขวา 'ยืนยันวันออกอนามัย')\n\nโปรแกรมจะรอ 3 นาที แล้วทำต่อเอง")
+    t0 = time.time()
+    while time.time() - t0 < 180:
+        if jf.table_origin():
+            time.sleep(1.5); return True
+        time.sleep(0.5)
+    return False
 
 
 def calib_school():
