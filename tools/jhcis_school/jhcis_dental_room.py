@@ -429,6 +429,42 @@ class St:
                     self.already.add(norm(nm))
 
 
+def manual_provider(P, who):
+    """ให้คนเลือกผู้ให้บริการเองในฟอร์ม โดยไม่มีกล่องของโปรแกรมค้างบนจอระหว่างเลือก
+    รอจนช่องเปลี่ยนแล้วนิ่ง จึงถามยืนยัน  คนแรก: จำภาพชื่อไว้เทียบคนต่อไป  คืน False = หยุด"""
+    first = not os.path.exists(REF)
+    msg(f"{who}\n\n" + ("คนแรก: " if first else "ช่องผู้ให้บริการไม่ใช่ชื่อที่จำไว้\n") +
+        "กด OK ที่กล่องนี้ก่อน แล้วเลือก 'ผู้ให้บริการ' ในฟอร์ม JHCIS เป็น ท.พ.อำนาจ\n\n"
+        "เลือกเสร็จแล้วไม่ต้องกดอะไรต่อ โปรแกรมเห็นเองแล้วจะถามยืนยัน")
+    jf.focus_form(); time.sleep(0.3)
+    base = ink(prov_img(P))
+    while True:
+        t0, last, still = time.time(), base, 0
+        while time.time() - t0 < 40:              # รอให้ช่องเปลี่ยน แล้วนิ่ง 2 วินาที
+            time.sleep(0.5)
+            now = ink(prov_img(P))
+            if tsame(now, base):
+                continue
+            still = still + 1 if tsame(now, last) else 0
+            last = now
+            if still >= 4:
+                break
+        ans = jf.ask(f"{who}\n\nช่อง 'ผู้ให้บริการ' ในฟอร์มตอนนี้เป็น ท.พ.อำนาจ แล้วใช่ไหม?",
+                     ["ใช่ ทำต่อ", "ยังไม่ใช่ รอต่อ", "หยุด"])
+        time.sleep(0.4)
+        if ans == "ใช่ ทำต่อ":
+            break
+        if ans != "ยังไม่ใช่ รอต่อ":
+            return False
+        base = ink(prov_img(P))
+    if not jf.focus_form():
+        return False
+    img = prov_settled(P)
+    if first:
+        img.save(REF)
+    return True
+
+
 def table_prov(P, slot, who, S):
     """เปลี่ยนคอลัมน์ผู้ให้บริการในตารางของแถวนี้  คืน False = ให้หยุด"""
     r = set_table_provider(P, slot)
@@ -499,22 +535,8 @@ def process_table(P, kids, room, S):
             pyautogui.click(*jf.fp(P, "cpi_all_normal"))
             sp = set_provider(P)
             if sp == "manual":                    # ให้คนเลือกเองในฟอร์ม (คนแรก: จำภาพชื่อนี้ไว้เทียบคนต่อไป)
-                first = not os.path.exists(REF)
-                ans = jf.ask(f"{who}\n\n" + ("คนแรก: " if first else "ช่องผู้ให้บริการไม่ใช่ชื่อที่จำไว้\n") +
-                             "เลือก 'ผู้ให้บริการ' ในฟอร์ม JHCIS เป็น ท.พ.อำนาจ เอง\nแล้วกด 'เลือกแล้ว ทำต่อ'",
-                             ["เลือกแล้ว ทำต่อ", "หยุด"])
-                time.sleep(0.4)
-                if ans != "เลือกแล้ว ทำต่อ" or not jf.focus_form():
+                if not manual_provider(P, who):
                     close_form(P); S.log.append((who, "หยุด-ผู้ให้บริการ")); S.stop = True; break
-                img = prov_settled(P)
-                if first:
-                    img.save(REF)
-                elif not tsame(img, ink_open(REF)):
-                    ans = jf.ask(f"{who}\n\nช่องผู้ให้บริการยังไม่ตรงกับชื่อที่จำไว้ ดูในฟอร์มอีกครั้ง",
-                                 ["ถูกแล้ว ทำต่อ", "หยุด"])
-                    if ans != "ถูกแล้ว ทำต่อ":
-                        close_form(P); S.log.append((who, "หยุด-ผู้ให้บริการ")); S.stop = True; break
-                    jf.focus_form()
             ok = "บันทึก" if S.do_save else "ปิดโดยไม่บันทึก (ซ้อม)"
             ans = ok
             if not S.auto or S.asked < 3:
