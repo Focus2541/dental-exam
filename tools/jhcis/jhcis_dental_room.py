@@ -184,66 +184,46 @@ def prov_steps(P, n):
 
 
 def set_provider(P):
-    """เลือกผู้ให้บริการด้วยแป้นลูกศร แล้วเทียบภาพช่องกับภาพที่จดไว้ คืน True ถ้าตรง
-    ครั้งแรกจะหาเองว่าต้องเลื่อนกี่รายการจากชื่อตั้งต้น แล้วจำไว้"""
-    import json
-    if "provider" not in P or not os.path.exists(REF):
+    """เลือกผู้ให้บริการ: เปิดรายการแล้วกดลูกศรตามจำนวนที่จดไว้ (นับจากชื่อตั้งต้น) แล้วเทียบภาพช่องกับภาพที่จดไว้"""
+    if "provider" not in P or "provider_steps" not in P or not os.path.exists(REF):
         return True
     prov_steps(P, 0)                              # คลิกช่อง + Enter = ยังไม่เปลี่ยนชื่อ แต่ได้โฟกัสเหมือนตอนจด
     if prov_match(P):                             # ฟอร์มเปิดมาเป็นชื่อนี้อยู่แล้ว
         return True
-    n = P.get("provider_steps")
-    if n is not None:
-        prov_steps(P, n)
-        if prov_match(P):
-            return True
-        prov_steps(P, -n)                         # กลับไปชื่อตั้งต้นก่อนหาใหม่
-    print("   กำลังหาผู้ให้บริการในรายการ (ครั้งแรกครั้งเดียว)...")
-    for d in (1, -1):
-        prov_steps(P, 0)                          # ให้ช่องได้โฟกัสก่อน ภาพจะได้เทียบกันตรง
-        k, last = 0, prov_img(P)
-        for _ in range(80):
-            prov_steps(P, d)
-            now = prov_img(P)
-            if same(now, last):                   # สุดรายการแล้ว
-                break
-            k += d; last = now
-            if prov_match(P):
-                P["provider_steps"] = k
-                json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
-                print(f"   เจอแล้ว: เลื่อน {k:+d} รายการจากชื่อตั้งต้น")
-                return True
-        if k:
-            prov_steps(P, -k)                     # กลับที่เดิมแล้วลองอีกทิศ
-    return False
+    prov_steps(P, P["provider_steps"])
+    return prov_match(P)
 
 
 def calib_provider():
-    """จดตำแหน่งช่องผู้ให้บริการ และภาพชื่อที่ต้องการ (ครั้งเดียว)"""
-    import json, pyautogui
+    """จดผู้ให้บริการแบบให้คนดู: โปรแกรมกดลูกศรทีละชื่อ คนตอบว่าใช่ชื่อที่ต้องการหรือยัง"""
+    import pyautogui
     if not jf.form_origin():
-        sys.exit("เปิดฟอร์ม Dental ของเด็ก 1 คนค้างไว้ก่อน (ฟอร์ม การตรวจสุขภาพช่องปาก)")
+        sys.exit("เปิดฟอร์ม Dental ของเด็ก 1 คนค้างไว้ก่อน (ฟอร์ม การตรวจสุขภาพช่องปาก) ช่องผู้ให้บริการต้องเป็นชื่อตั้งต้น")
     P = json.load(open(jf.CAL, encoding="utf-8"))
     ox, oy = jf.form_origin()
     input("1) ชี้เมาส์ที่ช่อง 'ผู้ให้บริการ' ในฟอร์ม (กลางช่อง ไม่ต้องคลิก) แล้วกลับมากด Enter ")
     x, y = pyautogui.position(); P["provider"] = [x - ox, y - oy]
-    P.pop("provider_steps", None); P.pop("provider_item", None)
-    print("\n2) อ่านก่อนทำ: อีก 3 วินาทีโปรแกรมจะคลิกเปิดรายการชื่อให้")
-    print("   พอรายการเปิด ให้เลื่อนเมาส์ไปชี้ชื่อที่ต้องการ แล้ว *ค้างไว้เฉย ๆ* ห้ามคลิก ห้ามกดปุ่ม")
-    print("   เมื่อนับถึง 0 โปรแกรมจะคลิกชื่อนั้นให้เอง")
-    time.sleep(3)
-    pyautogui.click(ox + P["provider"][0], oy + P["provider"][1]); time.sleep(0.5)
-    for i in range(8, 0, -1):
-        print(f"   ชี้ชื่อค้างไว้... {i}", flush=True); time.sleep(1)
-    x, y = pyautogui.position()
-    if abs((y - oy) - P["provider"][1]) < 8:
-        pyautogui.press("esc")
-        sys.exit("เมาส์ไม่ได้ย้ายไปที่รายการ ลองใหม่")
-    pyautogui.click(x, y); time.sleep(0.6)        # คลิกตอนรายการยังเปิดอยู่ ตำแหน่งเดียวกับที่ชี้
-    pyautogui.screenshot(region=prov_box(P)).save(REF)
-    json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
-    print("\nบันทึกแล้ว ** ดูในฟอร์ม ช่องผู้ให้บริการต้องเป็นชื่อที่ต้องการ **")
-    print("ถ้าไม่ใช่ จดใหม่อีกครั้ง  ถ้าใช่ ปิดฟอร์มโดยไม่บันทึก")
+    for k_ in ("provider_steps", "provider_item"):
+        P.pop(k_, None)
+    print("\n2) โปรแกรมจะเลื่อนชื่อผู้ให้บริการทีละ 1 ชื่อ ดูชื่อในช่องของฟอร์ม แล้วตอบที่หน้าต่างนี้")
+    print("   (คลิกหน้าต่างดำนี้ก่อนพิมพ์ทุกครั้ง)")
+    print("   Enter = ยังไม่ใช่ เลื่อนลงต่อ | u = เลื่อนขึ้นแทน | y = ใช่แล้ว | q = เลิก")
+    k, d = 0, 1
+    for _ in range(120):
+        prov_steps(P, d); k += d
+        img = prov_img(P)                         # เก็บภาพตอนช่องยังโฟกัส (เหมือนตอนลงผลจริง)
+        ans = input(f"   [{k:+d}] เป็นชื่อที่ต้องการหรือยัง? ").strip().lower()
+        if ans == "y":
+            P["provider_steps"] = k
+            img.save(REF)
+            json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
+            print(f"\nบันทึกแล้ว: จากชื่อตั้งต้น เลื่อน {k:+d} ชื่อ  ปิดฟอร์มนี้โดยไม่บันทึกได้เลย")
+            return
+        if ans == "q":
+            sys.exit("เลิกแล้ว ยังไม่ได้บันทึก")
+        if ans == "u":
+            d = -1
+    sys.exit("เลื่อนเกิน 120 ครั้งแล้ว ยังไม่ได้บันทึก")
 
 
 def calib_scroll():
