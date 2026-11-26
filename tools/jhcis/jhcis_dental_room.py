@@ -11,8 +11,9 @@ jhcis_dental_room.py  v1.0  ลงผลตรวจฟันทั้งห้�
 ใช้ตำแหน่งช่องที่จดไว้แล้วใน jhcis_dental_points.json และต้องมี jhcis_dental_fill.py อยู่โฟลเดอร์เดียวกัน
 
 วิธีใช้ (เปิดหน้า ตรวจทันตกรรม ของห้องนั้นค้างไว้ เลื่อนตารางไว้บนสุด แป้นพิมพ์ EN)
-  ซ้อม ไม่บันทึก:     python jhcis_dental_room.py "ลงJHCIS_วัดห้วยไร่.csv" อ2
-  บันทึกจริง:         python jhcis_dental_room.py "ลงJHCIS_วัดห้วยไร่.csv" อ2 --save
+  ง่ายสุด: ดับเบิลคลิก run_room.bat แล้วพิมพ์ห้อง (a2 = อ2, p1 = ป1)
+  ซ้อม ไม่บันทึก:     python jhcis_dental_room.py a2
+  บันทึกจริง:         python jhcis_dental_room.py a2 --save
   ไม่ถามทุกคน:        เติม --auto  (ถาม 3 คนแรกให้ตรวจก่อน แล้วทำต่อเอง)
   หยุดฉุกเฉิน: ลากเมาส์ไปมุมซ้ายบนสุดของจอ
 """
@@ -180,17 +181,35 @@ def run(path, room, do_save, auto, visible, delay):
     print("=" * 60)
 
 
+def room_name(r):
+    """พิมพ์ห้องเป็นอังกฤษได้: a2/o2 = อ2, p1 = ป1, m1 = ม1 (ไม่ต้องสลับแป้นภาษา)"""
+    m = re.match(r"^\s*([aopmAOPM])\.?\s*(\d+)\s*$", r or "")
+    if not m:
+        return (r or "").strip()
+    return {"a": "อ", "o": "อ", "p": "ป", "m": "ม"}[m.group(1).lower()] + m.group(2)
+
+
+def newest_csv():
+    import glob
+    fs = [f for f in glob.glob(os.path.join(HERE, "ลงJHCIS_*.csv"))]
+    if not fs:
+        sys.exit("ไม่พบไฟล์ ลงJHCIS_*.csv ในโฟลเดอร์นี้ ดาวน์โหลดจากแอปกรอกผลแล้ววางไว้ที่นี่")
+    return max(fs, key=os.path.getmtime)
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("csv")
-    ap.add_argument("room", help="ห้องตามแอป เช่น อ2 ป1")
+    ap.add_argument("room", help="ห้อง เช่น อ2 ป1 หรือพิมพ์ a2 p1")
+    ap.add_argument("--csv", help="ไฟล์ ลงJHCIS_*.csv (ไม่ใส่ = ใช้ไฟล์ล่าสุดในโฟลเดอร์นี้)")
     ap.add_argument("--save", action="store_true")
     ap.add_argument("--auto", action="store_true")
     ap.add_argument("--visible", type=int, default=17, help="จำนวนแถวที่เห็นในตารางโดยไม่เลื่อน")
     ap.add_argument("--delay", type=float, default=0.25)
     a = ap.parse_args()
     try:
-        run(a.csv, a.room, a.save, a.auto, a.visible, a.delay)
+        path = a.csv or newest_csv()
+        print("ไฟล์:", os.path.basename(path))
+        run(path, room_name(a.room), a.save, a.auto, a.visible, a.delay)
     except Exception as e:
         print("เกิดข้อผิดพลาด:", e)
     input("\nกด Enter เพื่อปิด")
