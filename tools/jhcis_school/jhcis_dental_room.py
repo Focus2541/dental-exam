@@ -544,8 +544,8 @@ def close_form(P):
 
 class St:
     """สถานะร่วมระหว่างห้อง (โหมดทุกห้องใช้ต่อกัน)"""
-    def __init__(self, do_save, auto, redo, visible):
-        self.do_save, self.auto, self.redo, self.visible = do_save, auto, redo, visible
+    def __init__(self, do_save, auto, redo, visible, night=False):
+        self.do_save, self.auto, self.redo, self.visible, self.night = do_save, auto, redo, visible, night
         self.log, self.extra, self.asked, self.stop = [], [], 0, False
         self.already = set()
         import glob
@@ -594,9 +594,49 @@ def manual_provider(P, who):
     return True
 
 
+def keep_awake(on):
+    """กันเครื่องพัก/จอดับระหว่างรัน (โหมดกลางคืน)"""
+    try:
+        import ctypes
+        ctypes.windll.kernel32.SetThreadExecutionState(0x80000003 if on else 0x80000000)
+    except Exception:
+        pass
+
+
+def dismiss_popups():
+    """กด OK ปิดหน้าต่างเตือนของ JHCIS (Message / เตือน) คืนจำนวนที่ปิด"""
+    import pyautogui, pygetwindow
+    n = 0
+    for _ in range(4):
+        ws = [w for w in pygetwindow.getAllWindows() if w.title and w.width > 50 and "JHCIS" not in w.title
+              and ("เตือน" in w.title or "ผิดพลาด" in w.title or w.title.strip() == "Message")]
+        if not ws:
+            break
+        if win_front(ws[0]):
+            pyautogui.press("enter"); n += 1; time.sleep(0.6)
+        else:
+            break
+    return n
+
+
+def skip_kid(P, who, S, why):
+    """โหมดกลางคืน: ไม่บันทึกคนนี้ ปิดฟอร์ม จดไว้ให้ลงเองตอนเช้า แล้วไปคนต่อไป  คืน False ถ้าปิดฟอร์มไม่ได้"""
+    dismiss_popups()
+    S.log.append((who, "ต้องลงเอง: " + why)); print(f"! {who}: {why} -> ข้าม (ต้องลงเอง)")
+    ok = close_form(P)
+    time.sleep(0.5)
+    if dismiss_popups():                          # ปิดฟอร์มแล้วมีถามต่อ ปิดอีกรอบ
+        ok = close_form(P) or jf.form_closed()
+    return ok
+
+
 def table_prov(P, slot, who, S):
     """เปลี่ยนคอลัมน์ผู้ให้บริการในตารางของแถวนี้  คืน False = ให้หยุด"""
     r = set_table_provider(P, slot)
+    if r is False and S.night:
+        dismiss_popups()
+        S.log.append((who, "ต้องแก้เอง: คอลัมน์ผู้ให้บริการในตาราง")); print(f"! {who}: เปลี่ยนผู้ให้บริการในตารางไม่ได้ (แก้เอง)")
+        return True
     if r is False:
         ans = jf.ask(f"{who}\n\nคอลัมน์ 'ผู้ให้บริการ' ในตารางของแถวนี้ ไม่ใช่ชื่อที่จดไว้\nแก้เองในตารางแล้วทำต่อ หรือหยุด",
                      ["แก้เองแล้ว ทำต่อ", "หยุด"])
@@ -681,19 +721,35 @@ def process_table(P, kids, room, S):
                 pyautogui.click(*jf.fp(P, f)); pyautogui.hotkey("ctrl", "a"); pyautogui.press("end")
                 pyautogui.press("backspace", presses=5, interval=0.02); pyautogui.write(v)
             if dbg("after numbers"):
+                if S.night:
+                    if not skip_kid(P, who, S, "JHCIS เตือนตอนกรอก"):
+                        print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); S.stop = True; break
+                    continue
                 S.log.append((who, "หยุด-มีหน้าต่างเตือนของ JHCIS")); S.stop = True; break
             pyautogui.click(*jf.fp(P, "cpi_all_normal"))
             if dbg("after cpi"):
+                if S.night:
+                    if not skip_kid(P, who, S, "JHCIS เตือนตอนกรอก"):
+                        print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); S.stop = True; break
+                    continue
                 S.log.append((who, "หยุด-มีหน้าต่างเตือนของ JHCIS")); S.stop = True; break
             sp = set_provider(P)
             if dbg(f"after provider ({sp})"):
+                if S.night:
+                    if not skip_kid(P, who, S, "JHCIS เตือนตอนกรอก"):
+                        print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); S.stop = True; break
+                    continue
                 S.log.append((who, "หยุด-มีหน้าต่างเตือนของ JHCIS")); S.stop = True; break
+            if sp == "manual" and S.night:
+                if not skip_kid(P, who, S, "เลือกผู้ให้บริการให้ไม่ได้"):
+                    print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); S.stop = True; break
+                continue
             if sp == "manual":                    # ให้คนเลือกเองในฟอร์ม (คนแรก: จำภาพชื่อนี้ไว้เทียบคนต่อไป)
                 if not manual_provider(P, who):
                     close_form(P); S.log.append((who, "หยุด-ผู้ให้บริการ")); S.stop = True; break
             ok = "บันทึก" if S.do_save else "ปิดโดยไม่บันทึก (ซ้อม)"
             ans = ok
-            if not S.auto or S.asked < 3:
+            if not S.night and (not S.auto or S.asked < 3):
                 S.asked += 1
                 ans = jf.ask(f"{who}\n\nกรอกเสร็จแล้ว ดูค่าในฟอร์ม JHCIS (รวมช่องผู้ให้บริการ) ให้ถูกต้องก่อนกด", [ok, "ข้ามคนนี้", "หยุด"])
                 time.sleep(0.4)
@@ -704,6 +760,12 @@ def process_table(P, kids, room, S):
             saved = S.do_save and ans == ok
             if saved:
                 pyautogui.click(*jf.fp(P, "save")); time.sleep(1.5)
+                if dbg("after save"):                 # JHCIS ไม่ยอมบันทึก
+                    if S.night:
+                        if not skip_kid(P, who, S, "JHCIS ไม่ยอมบันทึก"):
+                            print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); S.stop = True; break
+                        continue
+                    S.log.append((who, "หยุด-JHCIS ไม่ยอมบันทึก")); S.stop = True; break
                 S.log.append((who, "บันทึกแล้ว" + (f" ({how})" if how else ""))); print(f"✓ {who}")
             else:
                 S.log.append((who, f"ไม่บันทึก ({ans})")); print(f"  {who}: ไม่บันทึก")
@@ -732,16 +794,22 @@ def report(path, kids, room, S):
         f.write(f"\nมีในไฟล์ แต่ไม่เจอในตาราง JHCIS ({len(missing)}):\n" + "\n".join(f"{k['name']} ({k['room']})" for k in missing) + "\n")
         ab = [k for k in mine if k["absent"]]
         f.write(f"\nไม่มาตรวจ ({len(ab)}) ควรเปลี่ยนเป็น 'ไม่ตรวจ' ในตาราง JHCIS:\n" + "\n".join(f"{k['name']} ({k['room']})" for k in ab) + "\n")
+    todo = [(w, st) for w, st in S.log if st.startswith("ต้องลงเอง") or st.startswith("ต้องแก้เอง")]
+    if todo:
+        with open(out, "a", encoding="utf-8") as f:
+            f.write(f"\nต้องลง/แก้เองใน JHCIS ({len(todo)}):\n" + "\n".join(f"{w}\t{st}" for w, st in todo) + "\n")
     saved = sum(1 for _, st in S.log if st.startswith("บันทึกแล้ว") and "รอบก่อน" not in st)
     print("\n" + "=" * 60)
     print(f" {label}: บันทึก {saved} คน | ไม่มีในไฟล์ {len(S.extra)} | ไม่เจอในตาราง {len(missing)}")
+    if todo:
+        print(f" ต้องลง/แก้เอง {len(todo)} คน:", ", ".join(w for w, _ in todo))
     if missing:
         print(" ไม่เจอในตาราง JHCIS (ต้องลงเอง หรือเช็กชั้นเรียน):", ", ".join(f"{k['name']} ({k['room']})" for k in missing))
     print(" สรุปอยู่ที่:", out)
     print("=" * 60)
 
 
-def run(path, room, do_save, auto, visible, delay, redo=False):
+def run(path, room, do_save, auto, visible, delay, redo=False, night=False):
     import pyautogui
     pyautogui.FAILSAFE = True
     pyautogui.PAUSE = delay
@@ -756,16 +824,18 @@ def run(path, room, do_save, auto, visible, delay, redo=False):
     console(False)                                # ย่อหน้าต่างดำลง ไม่ให้บังแถบเลื่อน/ปุ่ม Dental
     ensure_en()
     if not jf.table_origin():                     # ยังไม่ได้กดตรวจทันตกรรม: กดให้ถ้าจดตำแหน่งไว้แล้ว
-        if "sch_dent" in P and school_origin() and open_table(P):
+        if "sch_dent" in P and school_origin() and open_table(P, night):
             print("เปิดหน้า ตรวจทันตกรรม ให้แล้ว")
         else:
             console(True)
             sys.exit("ยังไม่ได้เปิดหน้า ตรวจทันตกรรม: ในหน้าอนามัยโรงเรียน กดปุ่ม 'ตรวจทันตกรรม' ก่อน แล้วรันใหม่")
-    S = St(do_save, auto, redo, visible)
+    keep_awake(night)
+    S = St(do_save, auto, redo, visible, night)
     if S.already and not redo:
         print(f"บันทึกไปแล้วในรอบก่อน {len(S.already)} คน จะข้ามคนเหล่านี้")
     if process_table(P, kids, room, S) == 0 and not S.stop:
         print("คลิกแถวแรกแล้วไม่มีฟอร์มขึ้น: ตารางว่าง หรือตำแหน่งปุ่ม Dental ไม่ตรง (เช็กด้วย python jhcis_dental_fill.py check)")
+    keep_awake(False)
     console(True)
     report(path, kids, room, S)
 
@@ -948,7 +1018,7 @@ def pass_dialogs(P, sec=20):
     return False
 
 
-def open_table(P):
+def open_table(P, night=False):
     import pyautogui
     if not (find_win(*DLG_INFO) or find_win(DLG_DATE) or find_win(DLG_YES)):   # กดเองไปแล้ว ค้างที่หน้าต่างเด้ง
         school_front()
@@ -956,6 +1026,13 @@ def open_table(P):
         pyautogui.click(o[0] + P["sch_dent"][0], o[1] + P["sch_dent"][1])
     if pass_dialogs(P):
         return True
+    if night:                                     # โหมดกลางคืน: ไม่มีใครตอบ ลองกดใหม่อีกครั้ง แล้วหยุด
+        dismiss_popups()
+        if school_origin() and not jf.table_origin():
+            school_front(); o = school_origin()
+            pyautogui.click(o[0] + P["sch_dent"][0], o[1] + P["sch_dent"][1])
+            return pass_dialogs(P)
+        return bool(jf.table_origin())
     # ไปไม่ถึงตาราง: ให้คนทำต่อเอง (ไม่ต้องกด Enter ในหน้าต่างดำ กัน Enter หลุดไปกดปุ่มใน JHCIS) แล้วโปรแกรมทำงานต่อ
     msg("ยังไปไม่ถึงตาราง 'ตรวจทันตกรรม'\n\nกด OK ที่กล่องนี้ แล้วตอบหน้าต่างใน JHCIS เองจนตารางขึ้น\n"
         "(หน้าต่างถามวันที่: กดปุ่มขวา 'ยืนยันวันออกอนามัย')\n\nโปรแกรมจะรอ 3 นาที แล้วทำต่อเอง")
@@ -983,7 +1060,7 @@ def calib_school():
     print("บันทึกแล้ว")
 
 
-def run_all(path, classes, do_save, auto, visible, delay, redo=False):
+def run_all(path, classes, do_save, auto, visible, delay, redo=False, night=False, start=None):
     import pyautogui
     pyautogui.FAILSAFE = True
     pyautogui.PAUSE = delay
@@ -992,22 +1069,31 @@ def run_all(path, classes, do_save, auto, visible, delay, redo=False):
         sys.exit("ยังไม่ได้จดตำแหน่งหน้าอนามัยโรงเรียน: พิมพ์ห้องเป็น school ก่อน (ครั้งเดียว)")
     kids = load(path, None)
     rooms = sorted({k["room"] for k in kids}, key=lambda r: ("อปม".find(r[:1]) if r[:1] in "อปม" else 9, r))
+    if start:
+        if start not in rooms:
+            sys.exit(f"ไม่พบห้อง '{start}' ในไฟล์ มีห้อง: {', '.join(rooms)}")
+        rooms = rooms[rooms.index(start):]
     classes = classes or len(rooms)
     print(f"ในไฟล์ {len(kids)} คน {len(rooms)} ห้อง: {', '.join(rooms)}")
     print(f"จะทำ {classes} ชั้น เริ่มจากชั้นที่เลือกไว้ในหน้าอนามัยโรงเรียนตอนนี้ แล้วเลื่อนลงทีละชั้น")
     print("โหมด:", "บันทึกจริง" if do_save else "ซ้อม (ไม่กดบันทึก)", "| ถามทุกคน" if not auto else "| ถาม 3 คนแรก")
-    input("ในหน้าอนามัยโรงเรียน เลือกชั้นแรก (เช่น อนุบาล2) ไว้ แป้นพิมพ์ EN แล้วกด Enter (มีเวลา 3 วินาที)")
+    if night:
+        print("โหมดกลางคืน: ไม่มีกล่องถาม คนที่ลงให้ไม่ได้จะข้ามแล้วจดไว้ให้ลงเองตอนเช้า เครื่องจะไม่พักระหว่างรัน")
+    input(f"ในหน้าอนามัยโรงเรียน เลือกชั้น {rooms[0]} ไว้ แป้นพิมพ์ EN แล้วกด Enter (มีเวลา 3 วินาที)")
     time.sleep(3)
     console(False)
     ensure_en()
-    S = St(do_save, auto, redo, visible)
+    keep_awake(True)
+    if jf.table_origin():                         # ตารางของชั้นก่อนหน้ายังเปิดค้าง ปิดก่อน แล้วเปิดของชั้นที่เลือกใหม่
+        close_table(); time.sleep(0.8)
+    S = St(do_save, auto, redo, visible, night)
     for c in range(classes):
         if c > 0:
             if jf.table_origin() and not close_table():
                 print("ปิดหน้าต่างตรวจทันตกรรมไม่ได้ -> หยุด"); break
             if not next_class(P):
                 print("เลื่อนชั้นต่อไม่ได้ (สุดรายการชั้นแล้ว) -> จบ"); break
-        if not jf.table_origin() and not open_table(P):
+        if not jf.table_origin() and not open_table(P, night):
             print("กดตรวจทันตกรรมแล้วไม่มีหน้าต่างขึ้น -> หยุด"); break
         print(f"\n----- ชั้นที่ {c + 1}/{classes} -----")
         hint = rooms[c] if c < len(rooms) else None   # ชั้นใน JHCIS น่าจะตรงกับห้องลำดับเดียวกันในไฟล์ ใช้ช่วยแยกชื่อซ้ำ
@@ -1016,6 +1102,7 @@ def run_all(path, classes, do_save, auto, visible, delay, redo=False):
             print("  ชั้นนี้ไม่มีรายชื่อในตาราง")
         if S.stop:
             break
+    keep_awake(False)
     console(True)
     report(path, kids, None, S)
 
@@ -1047,13 +1134,18 @@ def cli(pause=False):
     ap.add_argument("--visible", type=int, default=17, help="จำนวนแถวที่เห็นในตารางโดยไม่เลื่อน")
     ap.add_argument("--delay", type=float, default=0.25)
     ap.add_argument("--redo", action="store_true", help="บันทึกซ้ำคนที่ลงไปแล้ว (เช่น แก้ผู้ให้บริการ)")
+    ap.add_argument("--night", action="store_true", help="รันทั้งคืน: ไม่มีกล่องถาม ข้ามคนที่ลงไม่ได้แล้วจดไว้")
+    ap.add_argument("--from", dest="start", default=None, help="โหมด all: เริ่มจากห้องนี้ (เช่น a3)")
     ap.add_argument("--classes", type=int, default=0, help="โหมด all: จำนวนชั้นที่จะทำ (ไม่ใส่ = เท่าจำนวนห้องในไฟล์)")
     # พิมพ์รวมในช่องห้องได้ เช่น "a2 + redo" หรือ "a2 save"
     args = [x for x in sys.argv[1:] if x not in ("+", ",")]
     for w, f in (("save", ["--save", "--auto"]), ("redo", ["--save", "--auto", "--redo"]),
-                 ("test", ["--redo"])):                        # test = ซ้อมรวมคนที่บันทึกแล้ว (ไม่กดบันทึก)
+                 ("test", ["--redo"]),                         # test = ซ้อมรวมคนที่บันทึกแล้ว (ไม่กดบันทึก)
+                 ("night", ["--save", "--auto", "--redo", "--night"])):   # night = รันทั้งคืน ไม่มีกล่องถาม
         if w in [x.lower() for x in args[1:]]:
             args = [x for x in args if x.lower() != w] + f
+    if len(args) > 1 and args[0].lower() == "all" and not args[1].startswith("-"):
+        args = [args[0], "--from", args[1]] + args[2:]          # all a3 = เริ่มจากชั้น อ3
     sys.argv = sys.argv[:1] + list(dict.fromkeys(args))
     try:
         if len(sys.argv) > 1 and sys.argv[1] == "calib":
@@ -1076,9 +1168,10 @@ def cli(pause=False):
             if "tprov" in P0 and not tprov_ready(P0):
                 print("** คอลัมน์ผู้ให้บริการในตาราง: ยังไม่ได้จดแบบใหม่ (tprov) รอบนี้จะไม่เปลี่ยนคอลัมน์ในตาราง")
             if a.room.lower() == "all":
-                run_all(path, a.classes, a.save, a.auto, a.visible, a.delay, a.redo)
+                run_all(path, a.classes, a.save, a.auto, a.visible, a.delay, a.redo, a.night,
+                        room_name(a.start) if a.start else None)
             else:
-                run(path, room_name(a.room), a.save, a.auto, a.visible, a.delay, a.redo)
+                run(path, room_name(a.room), a.save, a.auto, a.visible, a.delay, a.redo, a.night)
     except BaseException as e:            # รวม sys.exit ด้วย จะได้เห็นข้อความก่อนหน้าต่างปิด
         import traceback
         console(True)
