@@ -59,7 +59,7 @@ def load(path, room):
     if not rows or "CID" not in rows[0]:
         sys.exit("ไฟล์นี้ไม่ใช่ไฟล์ ลงJHCIS_*.csv จากแอปกรอกผล")
     rooms = sorted({r["ROOM"] for r in rows})
-    if not any(r["ROOM"] == room for r in rows):
+    if room is not None and not any(r["ROOM"] == room for r in rows):
         sys.exit(f"ไม่พบห้อง '{room}' ในไฟล์ มีห้อง: {', '.join(rooms)}")
     kids = []
     for r in rows:                                # โหลดทั้งโรงเรียน เผื่อ JHCIS ยังใส่เด็กไว้ผิดชั้น
@@ -86,11 +86,11 @@ def match(kids, who, room):
     parts = re.sub(r"\s+", " ", PRE.sub("", str(who).strip())).strip().split(" ")
     wfn = norm(parts[0])
     wln = norm(parts[-1]) if len(parts) > 1 else ""
-    same = [k for k in kids if k["room"] == room]
+    same = [k for k in kids if k["room"] == room] if room else kids
     for pool, other in ((same, False), (kids, True)):
         hit = [k for k in pool if k["full"] and k["full"] == w]
         if len(hit) == 1:
-            return hit[0], (f"ชั้นในไฟล์ {hit[0]['room']}" if other else "")
+            return hit[0], (f"ชั้นในไฟล์ {hit[0]['room']}" if other and room else "")
         if len(hit) > 1:
             return "many", ""
     hit = [k for k in same if k["fn"] and k["fn"] == wfn and (not k["ln"] or not wln)]
@@ -271,69 +271,66 @@ def close_form(P):
     return jf.form_closed()
 
 
-def run(path, room, do_save, auto, visible, delay, redo=False):
+class St:
+    """สถานะร่วมระหว่างห้อง (โหมดทุกห้องใช้ต่อกัน)"""
+    def __init__(self, do_save, auto, redo, visible):
+        self.do_save, self.auto, self.redo, self.visible = do_save, auto, redo, visible
+        self.log, self.extra, self.asked, self.stop = [], [], 0, False
+        self.already = set()
+        import glob
+        for f in glob.glob(os.path.join(HERE, "ลงJHCIS_ผล_*.txt")):   # คนที่บันทึกไปแล้วรอบก่อน ๆ ไม่บันทึกซ้ำ
+            for line in open(f, encoding="utf-8"):
+                nm, _, st = line.rstrip("\n").partition("\t")
+                if st.startswith("บันทึกแล้ว"):
+                    self.already.add(norm(nm))
+
+
+def process_table(P, kids, room, S):
+    """ทำทุกแถวในหน้าต่าง ตรวจทันตกรรม ที่เปิดอยู่ คืนจำนวนแถวที่เปิดได้ (0 = ห้องว่าง)"""
     import pyautogui
-    pyautogui.FAILSAFE = True
-    pyautogui.PAUSE = delay
-    P = jf.load_points()
-    kids = load(path, room)
     row_h = P["row2_dental"][1] - P["row1_dental"][1]
-    mine = [k for k in kids if k["room"] == room]
-    todo = [k for k in mine if not k["absent"]]
-    print(f"ห้อง {room}: ในไฟล์ {len(mine)} คน | ต้องลง {len(todo)} | ไม่มา {len(mine) - len(todo)}")
-    print("โหมด:", "บันทึกจริง" if do_save else "ซ้อม (ไม่กดบันทึก)", "| ถามทุกคน" if not auto else "| ถาม 3 คนแรก")
-    input("เปิดหน้า ตรวจทันตกรรม ของห้องนี้ เลื่อนตารางไว้บนสุด แป้นพิมพ์ EN แล้วกด Enter (มีเวลา 3 วินาทีสลับไป JHCIS)")
-    time.sleep(3)
-    console(False)                                # ย่อหน้าต่างดำลง ไม่ให้บังแถบเลื่อน/ปุ่ม Dental
-    seen, log, extra, asked = set(), [], [], 0
-    import glob
-    already = set()                               # คนที่บันทึกไปแล้วในรอบก่อน ๆ ของห้องนี้ ไม่บันทึกซ้ำ
-    for f in glob.glob(os.path.join(HERE, f"ลงJHCIS_ผล_{room}_*.txt")):
-        for line in open(f, encoding="utf-8"):
-            nm, _, st = line.rstrip("\n").partition("\t")
-            if st.startswith("บันทึกแล้ว"):
-                already.add(norm(nm))
-    if already:
-        print(f"บันทึกไปแล้วในรอบก่อน {len(already)} คน จะข้ามคนเหล่านี้")
-    stop, page = False, 0
+    seen, page, opened = set(), 0, 0
     scroll_rows(P, -60)                           # เลื่อนตารางขึ้นบนสุดก่อนเริ่ม
-    while not stop:
+    while not S.stop:
         new_here = 0
-        for slot in range(visible):
+        for slot in range(S.visible):
             to = jf.table_origin()
             if not to:
-                print("ไม่พบหน้าต่างตาราง ตรวจทันตกรรม -> หยุด"); stop = True; break
+                print("ไม่พบหน้าต่างตาราง ตรวจทันตกรรม -> หยุด"); S.stop = True; break
             pyautogui.click(to[0] + P["row1_dental"][0], to[1] + P["row1_dental"][1] + row_h * slot)
             title = jf.wait_form(3.0)
             if not title:                         # คลิกแถวว่าง = สุดรายชื่อแล้ว
-                if slot == 0 and page == 0:
-                    print("คลิกแถวแรกแล้วไม่มีฟอร์มขึ้น -> หยุด ตรวจตำแหน่งด้วย python jhcis_dental_fill.py check")
-                stop = True; break
+                return opened
+            opened += 1
             who = title.split("ของ :", 1)[-1].strip(" :")
             key = norm(who)
             if key in seen:                       # แถวที่ทำไปแล้วก่อนเลื่อนตาราง
-                if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); stop = True; break
+                if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); S.stop = True
+                if S.stop: break
                 continue
             seen.add(key); new_here += 1
-            if key in already and not redo:
-                log.append((who, "บันทึกแล้ว (รอบก่อน)")); print(f"= {who}: บันทึกไว้แล้วรอบก่อน ข้าม")
-                for k0 in kids:
-                    if match(kids, who, room)[0] is k0: k0["done"] = True
-                if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); stop = True; break
-                continue
             k, how = match(kids, who, room)
+            if key in S.already and not S.redo:
+                S.log.append((who, "บันทึกแล้ว (รอบก่อน)")); print(f"= {who}: บันทึกไว้แล้วรอบก่อน ข้าม")
+                if isinstance(k, dict): k["done"] = True
+                if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); S.stop = True; break
+                continue
             if how:
                 print(f"  * {who}: จับคู่แบบ {how}")
             if k is None or k == "many":
-                extra.append(who); log.append((who, "ไม่มีในไฟล์" if k is None else "ชื่อซ้ำในไฟล์ ไม่ลง"))
-                print(f"- {who}: {'ไม่มีในไฟล์ห้องนี้' if k is None else 'ชื่อซ้ำในไฟล์'} ข้าม")
-                if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); stop = True; break
+                S.extra.append(who); S.log.append((who, "ไม่มีในไฟล์" if k is None else "ชื่อซ้ำในไฟล์ ไม่ลง"))
+                print(f"- {who}: {'ไม่มีในไฟล์' if k is None else 'ชื่อซ้ำในไฟล์'} ข้าม")
+                if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); S.stop = True; break
+                continue
+            if k["done"]:                         # ลงไปแล้วในรอบนี้ (เด็กอยู่ 2 ชั้นใน JHCIS)
+                S.log.append((who, "ลงแล้วในรอบนี้ ข้าม"))
+                if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); S.stop = True; break
                 continue
             k["done"] = True
             if k["absent"] or k["err"]:
                 st = "ไม่มาตรวจ ข้าม" if k["absent"] else "ข้อมูลผิด: " + k["err"]
-                log.append((who, st)); print(f"- {who}: {st}")
-                if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); stop = True; break
+                S.log.append((who, st)); print(f"- {who}: {st}")
+                if not close_form(P): print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); S.stop = True; break
                 continue
             for f, v in k["combos"]:
                 pyautogui.click(*jf.fp(P, f)); pyautogui.write(v); pyautogui.press("enter")
@@ -341,49 +338,197 @@ def run(path, room, do_save, auto, visible, delay, redo=False):
                 pyautogui.click(*jf.fp(P, f)); pyautogui.hotkey("ctrl", "a"); pyautogui.write(v)
             pyautogui.click(*jf.fp(P, "cpi_all_normal"))
             if not set_provider(P):
-                ans = jf.ask(f"{who}\n\nช่องผู้ให้บริการไม่ใช่ชื่อที่จดไว้\nดูในฟอร์มแล้วเลือกเอง หรือหยุดแล้วจดตำแหน่งใหม่ (calib-provider)",
+                ans = jf.ask(f"{who}\n\nช่องผู้ให้บริการไม่ใช่ชื่อที่จดไว้\nดูในฟอร์มแล้วเลือกเอง หรือหยุดแล้วจดใหม่ (provider)",
                              ["เลือกเองแล้ว ทำต่อ", "หยุด"])
                 if ans != "เลือกเองแล้ว ทำต่อ":
-                    close_form(P); log.append((who, "หยุด-ผู้ให้บริการไม่ตรง")); stop = True; break
-            ok = "บันทึก" if do_save else "ปิดโดยไม่บันทึก (ซ้อม)"
+                    close_form(P); S.log.append((who, "หยุด-ผู้ให้บริการไม่ตรง")); S.stop = True; break
+            ok = "บันทึก" if S.do_save else "ปิดโดยไม่บันทึก (ซ้อม)"
             ans = ok
-            if not auto or asked < 3:
-                asked += 1
+            if not S.auto or S.asked < 3:
+                S.asked += 1
                 ans = jf.ask(f"{who}\n\nกรอกเสร็จแล้ว ดูค่าในฟอร์ม JHCIS ให้ถูกต้องก่อนกด", [ok, "ข้ามคนนี้", "หยุด"])
                 time.sleep(0.4)
             if not jf.focus_form():
-                print(f"{who}: ดึงฟอร์มขึ้นหน้าสุดไม่ได้ -> หยุด ไม่กดบันทึก"); log.append((who, "หยุด")); stop = True; break
+                print(f"{who}: ดึงฟอร์มขึ้นหน้าสุดไม่ได้ -> หยุด ไม่กดบันทึก"); S.log.append((who, "หยุด")); S.stop = True; break
             if ans in (None, "หยุด"):
-                close_form(P); log.append((who, "หยุดโดยผู้ใช้")); stop = True; break
-            if do_save and ans == ok:
-                pyautogui.click(*jf.fp(P, "save")); time.sleep(1.5); log.append((who, "บันทึกแล้ว" + (f" ({how})" if how else "")))
-                print(f"✓ {who}")
+                close_form(P); S.log.append((who, "หยุดโดยผู้ใช้")); S.stop = True; break
+            if S.do_save and ans == ok:
+                pyautogui.click(*jf.fp(P, "save")); time.sleep(1.5)
+                S.log.append((who, "บันทึกแล้ว" + (f" ({how})" if how else ""))); print(f"✓ {who}")
             else:
-                log.append((who, f"ไม่บันทึก ({ans})")); print(f"  {who}: ไม่บันทึก")
+                S.log.append((who, f"ไม่บันทึก ({ans})")); print(f"  {who}: ไม่บันทึก")
             if jf.FORM_KEY in jf.active_title() and not close_form(P):
-                print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); stop = True; break
+                print("ปิดฟอร์มไม่สำเร็จ -> หยุด"); S.stop = True; break
             time.sleep(0.3)
-        if stop or new_here == 0:
+        if S.stop or new_here == 0:
             break
         # เลื่อนตารางลงทีละแถวด้วยปุ่มลูกศรของแถบเลื่อน (ล้อเมาส์ใช้กับ JHCIS ไม่ได้)
-        # ทับแถวเก่า 2 แถว คนที่เปิดดูแล้วจะข้ามเอง
-        scroll_rows(P, visible - 2)
+        scroll_rows(P, S.visible - 2)
         page += 1
-    console(True)
-    missing = [k["name"] for k in kids if k["room"] == room and not k["done"] and not k["absent"]]
-    out = os.path.join(HERE, f"ลงJHCIS_ผล_{room}_{time.strftime('%Y%m%d_%H%M')}.txt")
+    return opened
+
+
+def report(path, kids, room, S):
+    mine = [k for k in kids if room is None or k["room"] == room]
+    missing = [k for k in mine if not k["done"] and not k["absent"]]
+    label = room or "ทุกห้อง"
+    out = os.path.join(HERE, f"ลงJHCIS_ผล_{label}_{time.strftime('%Y%m%d_%H%M')}.txt")
     with open(out, "w", encoding="utf-8") as f:
-        f.write(f"ไฟล์ {os.path.basename(path)} ห้อง {room} โหมด {'บันทึกจริง' if do_save else 'ซ้อม'}\n\n")
-        for who, st in log:
+        f.write(f"ไฟล์ {os.path.basename(path)} ห้อง {label} โหมด {'บันทึกจริง' if S.do_save else 'ซ้อม'}\n\n")
+        for who, st in S.log:
             f.write(f"{who}\t{st}\n")
-        f.write(f"\nมีในไฟล์ แต่ไม่เจอในตาราง JHCIS ({len(missing)}):\n" + "\n".join(missing) + "\n")
-    saved = sum(1 for _, st in log if st.startswith("บันทึกแล้ว") and "รอบก่อน" not in st)
+        f.write(f"\nมีในไฟล์ แต่ไม่เจอในตาราง JHCIS ({len(missing)}):\n" + "\n".join(f"{k['name']} ({k['room']})" for k in missing) + "\n")
+        ab = [k for k in mine if k["absent"]]
+        f.write(f"\nไม่มาตรวจ ({len(ab)}) ควรเปลี่ยนเป็น 'ไม่ตรวจ' ในตาราง JHCIS:\n" + "\n".join(f"{k['name']} ({k['room']})" for k in ab) + "\n")
+    saved = sum(1 for _, st in S.log if st.startswith("บันทึกแล้ว") and "รอบก่อน" not in st)
     print("\n" + "=" * 60)
-    print(f" ห้อง {room}: บันทึก {saved} คน | ไม่มีในไฟล์ {len(extra)} | ไม่เจอในตาราง {len(missing)}")
+    print(f" {label}: บันทึก {saved} คน | ไม่มีในไฟล์ {len(S.extra)} | ไม่เจอในตาราง {len(missing)}")
     if missing:
-        print(" ไม่เจอในตาราง JHCIS (ต้องลงเอง หรือเช็กชั้นเรียน):", ", ".join(missing))
+        print(" ไม่เจอในตาราง JHCIS (ต้องลงเอง หรือเช็กชั้นเรียน):", ", ".join(f"{k['name']} ({k['room']})" for k in missing))
     print(" สรุปอยู่ที่:", out)
     print("=" * 60)
+
+
+def run(path, room, do_save, auto, visible, delay, redo=False):
+    import pyautogui
+    pyautogui.FAILSAFE = True
+    pyautogui.PAUSE = delay
+    P = jf.load_points()
+    kids = load(path, room)
+    mine = [k for k in kids if k["room"] == room]
+    todo = [k for k in mine if not k["absent"]]
+    print(f"ห้อง {room}: ในไฟล์ {len(mine)} คน | ต้องลง {len(todo)} | ไม่มา {len(mine) - len(todo)}")
+    print("โหมด:", "บันทึกจริง" if do_save else "ซ้อม (ไม่กดบันทึก)", "| ถามทุกคน" if not auto else "| ถาม 3 คนแรก")
+    input("เปิดหน้า ตรวจทันตกรรม ของห้องนี้ แป้นพิมพ์ EN แล้วกด Enter (มีเวลา 3 วินาทีสลับไป JHCIS)")
+    time.sleep(3)
+    console(False)                                # ย่อหน้าต่างดำลง ไม่ให้บังแถบเลื่อน/ปุ่ม Dental
+    S = St(do_save, auto, redo, visible)
+    if S.already and not redo:
+        print(f"บันทึกไปแล้วในรอบก่อน {len(S.already)} คน จะข้ามคนเหล่านี้")
+    if process_table(P, kids, room, S) == 0 and not S.stop:
+        print("คลิกแถวแรกแล้วไม่มีฟอร์มขึ้น: ตารางว่าง หรือตำแหน่งปุ่ม Dental ไม่ตรง (เช็กด้วย python jhcis_dental_fill.py check)")
+    console(True)
+    report(path, kids, room, S)
+
+
+# ---------- โหมดทุกห้อง: ปิดตาราง -> เลื่อนชั้นในหน้าอนามัยโรงเรียน -> เปิดตรวจทันตกรรม ----------
+SCHOOL_KEY = "อนามัยโรงเรียน(นักเรียน)"
+
+
+def school_origin():
+    import pygetwindow
+    ws = [w for w in pygetwindow.getAllWindows() if SCHOOL_KEY in (w.title or "") and jf.TABLE_KEY not in (w.title or "")]
+    return (ws[0].left, ws[0].top) if ws else None
+
+
+def school_front():
+    import pygetwindow
+    ws = [w for w in pygetwindow.getAllWindows() if SCHOOL_KEY in (w.title or "") and jf.TABLE_KEY not in (w.title or "")]
+    if ws:
+        try:
+            ws[0].activate()
+        except Exception:
+            pass
+        time.sleep(0.4)
+
+
+def cls_img(P):
+    import pyautogui
+    o = school_origin(); x, y = o[0] + P["sch_cls"][0], o[1] + P["sch_cls"][1]
+    return pyautogui.screenshot(region=(int(x - 70), int(y - 10), 140, 20)).convert("RGB")
+
+
+def close_table():
+    """ปิดหน้าต่าง ตรวจทันตกรรม ด้วย Alt+F4 (ไม่คลิกใกล้ปุ่ม 'ลบข้อมูลการตรวจทั้งหมด')"""
+    import pyautogui
+    table_front()
+    if jf.TABLE_KEY not in jf.active_title():
+        return False
+    pyautogui.hotkey("alt", "f4")
+    t0 = time.time()
+    while time.time() - t0 < 4:
+        if not jf.table_origin():
+            return True
+        time.sleep(0.3)
+    return False
+
+
+def next_class(P):
+    """เลือกชั้นถัดไปในรายการชั้นเรียน คืน False ถ้าสุดรายการแล้ว"""
+    import pyautogui
+    school_front()
+    o = school_origin()
+    if not o:
+        return False
+    before = cls_img(P)
+    pyautogui.click(o[0] + P["sch_cls"][0], o[1] + P["sch_cls"][1]); time.sleep(0.4)
+    pyautogui.press("down"); pyautogui.press("enter"); time.sleep(1.2)
+    return not same(before, cls_img(P))
+
+
+def open_table(P):
+    import pyautogui
+    school_front()
+    o = school_origin()
+    pyautogui.click(o[0] + P["sch_dent"][0], o[1] + P["sch_dent"][1])
+    t0 = time.time()
+    while time.time() - t0 < 8:
+        if jf.table_origin():
+            time.sleep(1.0); return True
+        time.sleep(0.3)
+    return False
+
+
+def calib_school():
+    import pyautogui
+    if not school_origin():
+        sys.exit("เปิดหน้า 'บันทึกข้อมูลงานอนามัยโรงเรียน(นักเรียน)' ค้างไว้ก่อน")
+    P = json.load(open(jf.CAL, encoding="utf-8"))
+    for key, desc in (("sch_cls", "ช่อง 'ชั้นเรียน' (กลางช่อง ไม่ใช่ลูกศร)"),
+                      ("sch_dent", "ปุ่ม 'ตรวจทันตกรรม'")):
+        input(f"ชี้เมาส์ที่ {desc} ในหน้าอนามัยโรงเรียน (ไม่ต้องคลิก) แล้วกลับมากด Enter ")
+        x, y = pyautogui.position(); ox, oy = school_origin()
+        P[key] = [x - ox, y - oy]; print("   =", P[key])
+    if abs(P["sch_cls"][0] - P["sch_dent"][0]) + abs(P["sch_cls"][1] - P["sch_dent"][1]) < 30:
+        sys.exit("สองจุดอยู่ใกล้กันเกินไป (เมาส์ไม่ได้ย้าย) ลองใหม่")
+    json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
+    print("บันทึกแล้ว")
+
+
+def run_all(path, classes, do_save, auto, visible, delay, redo=False):
+    import pyautogui
+    pyautogui.FAILSAFE = True
+    pyautogui.PAUSE = delay
+    P = jf.load_points()
+    if "sch_cls" not in P:
+        sys.exit("ยังไม่ได้จดตำแหน่งหน้าอนามัยโรงเรียน: พิมพ์ห้องเป็น school ก่อน (ครั้งเดียว)")
+    kids = load(path, None)
+    rooms = sorted({k["room"] for k in kids}, key=lambda r: ("อปม".find(r[:1]) if r[:1] in "อปม" else 9, r))
+    classes = classes or len(rooms)
+    print(f"ในไฟล์ {len(kids)} คน {len(rooms)} ห้อง: {', '.join(rooms)}")
+    print(f"จะทำ {classes} ชั้น เริ่มจากชั้นที่เลือกไว้ในหน้าอนามัยโรงเรียนตอนนี้ แล้วเลื่อนลงทีละชั้น")
+    print("โหมด:", "บันทึกจริง" if do_save else "ซ้อม (ไม่กดบันทึก)", "| ถามทุกคน" if not auto else "| ถาม 3 คนแรก")
+    input("ในหน้าอนามัยโรงเรียน เลือกชั้นแรก (เช่น อนุบาล2) ไว้ แป้นพิมพ์ EN แล้วกด Enter (มีเวลา 3 วินาที)")
+    time.sleep(3)
+    console(False)
+    S = St(do_save, auto, redo, visible)
+    for c in range(classes):
+        if c > 0:
+            if jf.table_origin() and not close_table():
+                print("ปิดหน้าต่างตรวจทันตกรรมไม่ได้ -> หยุด"); break
+            if not next_class(P):
+                print("เลื่อนชั้นต่อไม่ได้ (สุดรายการชั้นแล้ว) -> จบ"); break
+        if not jf.table_origin() and not open_table(P):
+            print("กดตรวจทันตกรรมแล้วไม่มีหน้าต่างขึ้น -> หยุด"); break
+        print(f"\n----- ชั้นที่ {c + 1}/{classes} -----")
+        hint = rooms[c] if c < len(rooms) else None   # ชั้นใน JHCIS น่าจะตรงกับห้องลำดับเดียวกันในไฟล์ ใช้ช่วยแยกชื่อซ้ำ
+        n = process_table(P, kids, hint, S)
+        if n == 0:
+            print("  ชั้นนี้ไม่มีรายชื่อในตาราง")
+        if S.stop:
+            break
+    console(True)
+    report(path, kids, None, S)
 
 
 def room_name(r):
@@ -411,6 +556,7 @@ def cli(pause=False):
     ap.add_argument("--visible", type=int, default=17, help="จำนวนแถวที่เห็นในตารางโดยไม่เลื่อน")
     ap.add_argument("--delay", type=float, default=0.25)
     ap.add_argument("--redo", action="store_true", help="บันทึกซ้ำคนที่ลงไปแล้ว (เช่น แก้ผู้ให้บริการ)")
+    ap.add_argument("--classes", type=int, default=0, help="โหมด all: จำนวนชั้นที่จะทำ (ไม่ใส่ = เท่าจำนวนห้องในไฟล์)")
     # พิมพ์รวมในช่องห้องได้ เช่น "a2 + redo" หรือ "a2 save"
     args = [x for x in sys.argv[1:] if x not in ("+", ",")]
     for w, f in (("save", ["--save", "--auto"]), ("redo", ["--save", "--auto", "--redo"])):
@@ -422,13 +568,18 @@ def cli(pause=False):
             calib_scroll()
         elif len(sys.argv) > 1 and sys.argv[1] in ("calib-provider", "provider"):
             calib_provider()
+        elif len(sys.argv) > 1 and sys.argv[1] in ("school", "calib-school"):
+            calib_school()
         else:
             a = ap.parse_args()
             path = a.csv or newest_csv()
             print("ไฟล์:", os.path.basename(path))
             if "provider" not in json.load(open(jf.CAL, encoding="utf-8")):
                 print("** ยังไม่ได้จดผู้ให้บริการ: ช่องผู้ให้บริการจะเป็นชื่อตั้งต้นของ JHCIS (จดด้วยคำสั่ง provider)")
-            run(path, room_name(a.room), a.save, a.auto, a.visible, a.delay, a.redo)
+            if a.room.lower() == "all":
+                run_all(path, a.classes, a.save, a.auto, a.visible, a.delay, a.redo)
+            else:
+                run(path, room_name(a.room), a.save, a.auto, a.visible, a.delay, a.redo)
     except BaseException as e:            # รวม sys.exit ด้วย จะได้เห็นข้อความก่อนหน้าต่างปิด
         import traceback
         console(True)

@@ -188,6 +188,8 @@ def gui():
                command=lambda: run_chain([("jhcis_dental_room", ["calib"])], refresh0, "จดตำแหน่งแถบเลื่อน")).pack(fill="x", padx=8, pady=3)
     ttk.Button(t0, text="จดผู้ให้บริการ (เปิดฟอร์ม Dental ค้างไว้ แล้วชี้ช่องผู้ให้บริการ กับชื่อในรายการ)",
                command=lambda: run_chain([("jhcis_dental_room", ["provider"])], refresh0, "จดผู้ให้บริการ")).pack(fill="x", padx=8, pady=3)
+    ttk.Button(t0, text="จดตำแหน่งหน้าอนามัยโรงเรียน: ช่องชั้นเรียน + ปุ่มตรวจทันตกรรม (ใช้กับ 'ทุกห้อง')",
+               command=lambda: run_chain([("jhcis_dental_room", ["school"])], refresh0, "จดตำแหน่งหน้าอนามัยโรงเรียน")).pack(fill="x", padx=8, pady=3)
     ttk.Button(t0, text="เช็กตำแหน่งฟอร์มผลตรวจฟัน (เมาส์ชี้ทีละช่อง ไม่คลิก)",
                command=lambda: run_chain([("jhcis_dental_fill", ["check"])], None, "เช็กตำแหน่ง")).pack(fill="x", padx=8, pady=3)
     refresh0()
@@ -341,7 +343,7 @@ def gui():
                 m = _re.match(r"([อปม])\D*(\d+)", r)
                 return ("อปม".index(m.group(1)), int(m.group(2))) if m else (9, 0)
             rooms = sorted({r["ROOM"] for r in rows}, key=k)
-            cb["values"] = rooms
+            cb["values"] = rooms + ["ทุกห้อง"]
             if rooms and dsheet.get() not in rooms:
                 dsheet.set(rooms[0])
             n = {x: sum(1 for r in rows if r["ROOM"] == x) for x in rooms}
@@ -361,7 +363,8 @@ def gui():
     ttk.Checkbutton(t3, text="บันทึกซ้ำคนที่ลงไปแล้วด้วย (ใช้ตอนแก้ผลหรือแก้ผู้ให้บริการ)", variable=redo).pack(anchor="w", padx=8)
     ttk.Label(t3, text="ก่อนกด: ใน JHCIS เปิด 'บันทึกข้อมูลงานอนามัยโรงเรียน' เลือกโรงเรียน/ชั้นให้ตรงกับห้อง แล้วกด 'ตรวจทันตกรรม' ค้างไว้\n"
                        "โปรแกรมจะเปิดฟอร์ม Dental ทีละคน อ่านชื่อจากฟอร์ม แล้วกรอกผลของเด็กคนนั้น (ลำดับไม่ต้องตรงกัน)\n"
-                       "เลื่อนตารางลงเองจนครบ ข้ามคนไม่มา/ไม่มีในไฟล์/ที่บันทึกไปแล้ว  แป้นพิมพ์ต้องเป็น ENG",
+                       "เลื่อนตารางลงเองจนครบ ข้ามคนไม่มา/ไม่มีในไฟล์/ที่บันทึกไปแล้ว  แป้นพิมพ์ต้องเป็น ENG\n"
+                       "'ทุกห้อง' = เลือกชั้นแรกในหน้าอนามัยโรงเรียนไว้ โปรแกรมจะปิดตาราง เลื่อนชั้น เปิดตรวจทันตกรรม ให้เองจนครบ",
               foreground="#555", justify="left").pack(anchor="w", padx=8)
 
     def dental(save):
@@ -369,7 +372,7 @@ def gui():
             messagebox.showwarning("ผลตรวจฟัน", "เลือกไฟล์และห้องก่อน"); return
         if save and not confirm_real("บันทึกผลตรวจฟัน ห้อง " + dsheet.get()):
             return
-        run_chain([("jhcis_dental_room", [dsheet.get(), "--csv", dfile.get()] + (["--save", "--auto"] if save else []) + (["--redo"] if redo.get() else []))],
+        run_chain([("jhcis_dental_room", ["all" if dsheet.get() == "ทุกห้อง" else dsheet.get(), "--csv", dfile.get()] + (["--save", "--auto"] if save else []) + (["--redo"] if redo.get() else []))],
                   None, "ลงผลตรวจฟัน " + dsheet.get())
     ttk.Button(t3, text="ซ้อม (กรอกแต่ไม่บันทึก ถามทุกคน)", command=lambda: dental(False)).pack(fill="x", padx=8, pady=3)
     ttk.Button(t3, text="บันทึกจริงทั้งห้อง (ถาม 3 คนแรก แล้วทำต่อเอง)", command=lambda: dental(True)).pack(fill="x", padx=8, pady=3)
