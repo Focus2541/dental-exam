@@ -675,6 +675,8 @@ def process_table(P, kids, room, S):
             pyautogui.click(to[0] + P["row1_dental"][0], to[1] + P["row1_dental"][1] + row_h * slot)
             title = wait_open_form()
             if not title:                         # คลิกแถวว่าง = สุดรายชื่อแล้ว
+                if opened == 0:
+                    dbg("first row: no form")
                 return opened
             ensure_en(); time.sleep(0.4)
             opened += 1
@@ -865,6 +867,7 @@ def close_table():
     import pyautogui
     table_front()
     if jf.TABLE_KEY not in jf.active_title():
+        dbg("close table: table not in front")
         return False
     pyautogui.hotkey("alt", "f4")
     t0 = time.time()
@@ -987,9 +990,18 @@ def pass_dialogs(P, sec=20):
     """ตอบหน้าต่างเด้งจนกว่าตาราง ตรวจทันตกรรม จะขึ้น  เจอหน้าต่างที่ไม่รู้จัก = ไม่กดอะไร"""
     import pyautogui
     t0 = time.time()
+    quiet = None                                  # เวลาที่ตารางขึ้นแล้วและไม่มีหน้าต่างเด้งค้าง
     while time.time() - t0 < sec:
-        if jf.table_origin():
-            time.sleep(1.0); return True
+        if jf.table_origin() and not (find_win(*DLG_INFO) or find_win(DLG_DATE) or find_win(DLG_YES)):
+            quiet = quiet or time.time()
+            if time.time() - quiet >= 3:          # ตารางขึ้นแล้ว รอ 3 วินาทีเผื่อหน้าต่างเด้งตามมา
+                other = dbg("table open")
+                if other:                         # มีหน้าต่างที่ไม่รู้จักค้างอยู่บนตาราง ไม่กดเอง
+                    print("มีหน้าต่างของ JHCIS ค้างอยู่:", other)
+                    return False
+                return True
+            time.sleep(0.3); continue
+        quiet = None
         w = find_win(*DLG_INFO)
         if w:
             if win_front(w):
@@ -1092,10 +1104,12 @@ def run_all(path, classes, do_save, auto, visible, delay, redo=False, night=Fals
         if not jf.table_origin() and not open_table(P, night):
             print("กดตรวจทันตกรรมแล้วไม่มีหน้าต่างขึ้น -> หยุด"); break
         print(f"\n----- ชั้นที่ {c + 1}/{classes} -----")
+        dbg(f"class {c + 1} start")
         hint = rooms[c] if c < len(rooms) else None   # ชั้นใน JHCIS น่าจะตรงกับห้องลำดับเดียวกันในไฟล์ ใช้ช่วยแยกชื่อซ้ำ
         n = process_table(P, kids, hint, S)
         if n == 0:
             print("  ชั้นนี้ไม่มีรายชื่อในตาราง")
+            dbg(f"class {c + 1} empty?")
         if S.stop:
             break
     keep_awake(False)
