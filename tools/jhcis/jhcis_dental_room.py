@@ -119,6 +119,20 @@ def console(show):
         pass
 
 
+def ensure_en():
+    """สลับแป้นพิมพ์ของหน้าต่าง JHCIS เป็นอังกฤษ (แป้นไทยพิมพ์ตัวเลขแล้วได้ตัวไทยแทน)"""
+    try:
+        import ctypes, pygetwindow
+        u = ctypes.windll.user32
+        hkl = u.LoadKeyboardLayoutW("00000409", 1)
+        for w in pygetwindow.getAllWindows():
+            t = w.title or ""
+            if "JHCIS" in t or jf.TABLE_KEY in t or jf.FORM_KEY in t or "อนามัยโรงเรียน" in t:
+                u.PostMessageW(w._hWnd, 0x0050, 0, hkl)          # WM_INPUTLANGCHANGEREQUEST
+    except Exception:
+        pass
+
+
 def table_front():
     import pygetwindow
     ws = [w for w in pygetwindow.getAllWindows() if jf.TABLE_KEY in (w.title or "")]
@@ -182,7 +196,7 @@ def is_old(path):
     """ภาพที่จดด้วยรุ่นก่อน (ขาวดำล้วน) ใช้กับวิธีเทียบใหม่ไม่ได้"""
     from PIL import Image
     try:
-        return len(set(Image.open(path).convert("L").getdata())) <= 2
+        return sum(1 for v in Image.open(path).convert("L").histogram() if v) <= 2
     except Exception:
         return True
 
@@ -554,6 +568,7 @@ def process_table(P, kids, room, S):
             title = wait_open_form()
             if not title:                         # คลิกแถวว่าง = สุดรายชื่อแล้ว
                 return opened
+            ensure_en()
             opened += 1
             who = title.split("ของ :", 1)[-1].strip(" :")
             key = norm(who)
@@ -659,6 +674,7 @@ def run(path, room, do_save, auto, visible, delay, redo=False):
     input("เปิดหน้า ตรวจทันตกรรม ของห้องนี้ แป้นพิมพ์ EN แล้วกด Enter (มีเวลา 3 วินาทีสลับไป JHCIS)")
     time.sleep(3)
     console(False)                                # ย่อหน้าต่างดำลง ไม่ให้บังแถบเลื่อน/ปุ่ม Dental
+    ensure_en()
     if not jf.table_origin():                     # ยังไม่ได้กดตรวจทันตกรรม: กดให้ถ้าจดตำแหน่งไว้แล้ว
         if "sch_dent" in P and school_origin() and open_table(P):
             print("เปิดหน้า ตรวจทันตกรรม ให้แล้ว")
@@ -903,6 +919,7 @@ def run_all(path, classes, do_save, auto, visible, delay, redo=False):
     input("ในหน้าอนามัยโรงเรียน เลือกชั้นแรก (เช่น อนุบาล2) ไว้ แป้นพิมพ์ EN แล้วกด Enter (มีเวลา 3 วินาที)")
     time.sleep(3)
     console(False)
+    ensure_en()
     S = St(do_save, auto, redo, visible)
     for c in range(classes):
         if c > 0:
@@ -926,9 +943,11 @@ def run_all(path, classes, do_save, auto, visible, delay, redo=False):
 def room_name(r):
     """พิมพ์ห้องเป็นอังกฤษได้: a2/o2 = อ2, p1 = ป1, m1 = ม1 (ไม่ต้องสลับแป้นภาษา)"""
     m = re.match(r"^\s*([aopmAOPM])\.?\s*(\d+)\s*$", r or "")
-    if not m:
+    m2 = re.match(r"^\s*(\d+)\s*([aopmAOPM])\s*$", r or "")       # พิมพ์สลับ เช่น 2a
+    if not (m or m2):
         return (r or "").strip()
-    return {"a": "อ", "o": "อ", "p": "ป", "m": "ม"}[m.group(1).lower()] + m.group(2)
+    letter, num = (m.group(1), m.group(2)) if m else (m2.group(2), m2.group(1))
+    return {"a": "อ", "o": "อ", "p": "ป", "m": "ม"}[letter.lower()] + num
 
 
 def newest_csv():
