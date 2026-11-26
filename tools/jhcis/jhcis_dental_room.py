@@ -155,14 +155,11 @@ def dbg(label):
 
 
 def table_front():
+    """ดึงหน้าต่างตาราง ตรวจทันตกรรม ขึ้นหน้าสุด (ถ้า Windows ไม่ยอม ให้คลิกแถบชื่อหน้าต่าง)"""
     import pygetwindow
     ws = [w for w in pygetwindow.getAllWindows() if jf.TABLE_KEY in (w.title or "")]
     if ws:
-        try:
-            ws[0].activate()
-        except Exception:
-            pass
-        time.sleep(0.3)
+        win_front(ws[0])
 
 
 def scroll_rows(P, n):
@@ -854,11 +851,7 @@ def school_front():
     import pygetwindow
     ws = [w for w in pygetwindow.getAllWindows() if SCHOOL_KEY in (w.title or "") and jf.TABLE_KEY not in (w.title or "")]
     if ws:
-        try:
-            ws[0].activate()
-        except Exception:
-            pass
-        time.sleep(0.4)
+        win_front(ws[0])
 
 
 def cls_img(P):
@@ -1085,7 +1078,10 @@ def run_all(path, classes, do_save, auto, visible, delay, redo=False, night=Fals
     ensure_en()
     keep_awake(True)
     if jf.table_origin():                         # ตารางของชั้นก่อนหน้ายังเปิดค้าง ปิดก่อน แล้วเปิดของชั้นที่เลือกใหม่
-        close_table(); time.sleep(0.8)
+        if not close_table():
+            keep_awake(False); console(True)
+            sys.exit("ปิดหน้าต่าง ตรวจทันตกรรม ที่เปิดค้างไม่ได้: ปิดเองก่อน (เหลือแค่หน้าอนามัยโรงเรียน เลือกชั้นไว้) แล้วรันใหม่")
+        time.sleep(0.8)
     S = St(do_save, auto, redo, visible, night)
     for c in range(classes):
         if c > 0:
