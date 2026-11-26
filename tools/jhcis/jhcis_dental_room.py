@@ -131,6 +131,10 @@ def run(path, room, do_save, auto, visible, delay):
     if already:
         print(f"บันทึกไปแล้วในรอบก่อน {len(already)} คน จะข้ามคนเหล่านี้")
     stop, page = False, 0
+    to = jf.table_origin()                        # เลื่อนตารางขึ้นบนสุดก่อนเริ่ม
+    if to:
+        pyautogui.moveTo(to[0] + P["row1_dental"][0], to[1] + P["row1_dental"][1] + row_h * (visible // 2))
+        pyautogui.scroll(40); time.sleep(0.6)
     while not stop:
         new_here = 0
         for slot in range(visible):
