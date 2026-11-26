@@ -149,7 +149,7 @@ def scroll_rows(P, n):
     time.sleep(0.5)
 
 
-REF = os.path.join(HERE, "dental_provider_ref.png")
+REF = os.path.join(HERE, "dental_provider_ok.png")   # ภาพชื่อผู้ให้บริการที่คนยืนยันแล้วตอนลงคนแรก
 
 
 def prov_box(P):
@@ -183,15 +183,28 @@ def prov_steps(P, n):
     pyautogui.press("enter"); time.sleep(0.35)
 
 
+def prov_settled(P):
+    """ภาพช่องผู้ให้บริการหลังย้ายโฟกัสออก (JHCIS แสดงชื่อใหม่ตอนช่องเสียโฟกัส ภาพตอนยังโฟกัสเชื่อไม่ได้)"""
+    import pyautogui
+    pyautogui.press("tab"); time.sleep(0.4)
+    return prov_img(P)
+
+
 def set_provider(P):
-    """เลือกผู้ให้บริการ: เปิดรายการแล้วกดลูกศรตามจำนวนที่จดไว้ (นับจากชื่อตั้งต้น) แล้วเทียบภาพช่องกับภาพที่จดไว้"""
-    if "provider" not in P or "provider_steps" not in P or not os.path.exists(REF):
+    """เลือกผู้ให้บริการ: กดลูกศรตามจำนวนที่จดไว้ (นับจากชื่อตั้งต้น) แล้วเทียบกับภาพชื่อที่คนยืนยันแล้ว
+    คืน True = ตรงภาพที่ยืนยันไว้, "new" = ยังไม่มีภาพยืนยัน (ต้องให้คนดู), False = ไม่ตรง"""
+    from PIL import Image
+    if "provider" not in P or "provider_steps" not in P:
         return True
-    prov_steps(P, 0)                              # คลิกช่อง + Enter = ยังไม่เปลี่ยนชื่อ แต่ได้โฟกัสเหมือนตอนจด
-    if prov_match(P):                             # ฟอร์มเปิดมาเป็นชื่อนี้อยู่แล้ว
+    ok = Image.open(REF).convert("RGB") if os.path.exists(REF) else None
+    prov_steps(P, 0)
+    if ok is not None and same(prov_settled(P), ok):   # ฟอร์มเปิดมาเป็นชื่อนี้อยู่แล้ว
         return True
     prov_steps(P, P["provider_steps"])
-    return prov_match(P)
+    img = prov_settled(P)
+    if ok is None:
+        return "new"
+    return same(img, ok)
 
 
 def calib_provider():
@@ -211,11 +224,11 @@ def calib_provider():
     k, d = 0, 1
     for _ in range(120):
         prov_steps(P, d); k += d
-        img = prov_img(P)                         # เก็บภาพตอนช่องยังโฟกัส (เหมือนตอนลงผลจริง)
         ans = input(f"   [{k:+d}] เป็นชื่อที่ต้องการหรือยัง? ").strip().lower()
         if ans == "y":
             P["provider_steps"] = k
-            img.save(REF)
+            if os.path.exists(REF):
+                os.remove(REF)                    # ภาพชื่อจะจดใหม่ตอนลงผลคนแรก (ให้คนยืนยัน)
             json.dump(P, open(jf.CAL, "w", encoding="utf-8"), indent=1)
             print(f"\nบันทึกแล้ว: จากชื่อตั้งต้น เลื่อน {k:+d} ชื่อ  ปิดฟอร์มนี้โดยไม่บันทึกได้เลย")
             return
@@ -317,7 +330,16 @@ def process_table(P, kids, room, S):
             for f, v in k["nums"]:
                 pyautogui.click(*jf.fp(P, f)); pyautogui.hotkey("ctrl", "a"); pyautogui.write(v)
             pyautogui.click(*jf.fp(P, "cpi_all_normal"))
-            if not set_provider(P):
+            sp = set_provider(P)
+            if sp == "new":                       # คนแรก: ให้คนดูชื่อผู้ให้บริการ แล้วจำภาพไว้เทียบคนต่อไป
+                ans = jf.ask(f"{who}\n\nดูช่อง 'ผู้ให้บริการ' ในฟอร์ม JHCIS ตอนนี้\nเป็นชื่อทันตแพทย์ที่ต้องการ (เช่น ท.พ.อำนาจ) ใช่ไหม?",
+                             ["ใช่ ถูกต้อง", "ไม่ใช่ หยุด"])
+                time.sleep(0.4)
+                if ans == "ใช่ ถูกต้อง" and jf.focus_form():
+                    time.sleep(0.4); prov_img(P).save(REF); sp = True
+                else:
+                    close_form(P); S.log.append((who, "หยุด-ผู้ให้บริการไม่ตรง")); S.stop = True; break
+            if not sp:
                 ans = jf.ask(f"{who}\n\nช่องผู้ให้บริการไม่ใช่ชื่อที่จดไว้\nดูในฟอร์มแล้วเลือกเอง หรือหยุดแล้วจดใหม่ (provider)",
                              ["เลือกเองแล้ว ทำต่อ", "หยุด"])
                 if ans != "เลือกเองแล้ว ทำต่อ":
@@ -326,7 +348,7 @@ def process_table(P, kids, room, S):
             ans = ok
             if not S.auto or S.asked < 3:
                 S.asked += 1
-                ans = jf.ask(f"{who}\n\nกรอกเสร็จแล้ว ดูค่าในฟอร์ม JHCIS ให้ถูกต้องก่อนกด", [ok, "ข้ามคนนี้", "หยุด"])
+                ans = jf.ask(f"{who}\n\nกรอกเสร็จแล้ว ดูค่าในฟอร์ม JHCIS (รวมช่องผู้ให้บริการ) ให้ถูกต้องก่อนกด", [ok, "ข้ามคนนี้", "หยุด"])
                 time.sleep(0.4)
             if not jf.focus_form():
                 print(f"{who}: ดึงฟอร์มขึ้นหน้าสุดไม่ได้ -> หยุด ไม่กดบันทึก"); S.log.append((who, "หยุด")); S.stop = True; break
